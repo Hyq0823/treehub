@@ -1,0 +1,19 @@
+<view class="container">
+  <view wx:for="{{tests}}" wx:key="id" class="test-card" bindtap="goToTestDetail" data-id="{{item.id}}">
+    <view class="test-card-icon">
+      <view class="icon-background">{{item.icon}}</view>
+    </view>
+    <view class="test-card-content">
+      <view class="test-card-title">{{item.name}}</view>
+      <view class="test-card-desc">{{item.description}}</view>
+      <view class="test-card-meta">
+        <view class="meta-badge">
+          📋 {{item.questionsCount}}题
+        </view>
+        <view class="meta-badge">
+          ⏱️ {{item.time}}
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,121 @@
+/* 全局样式 */
+page {
+  background-color: var(--warm-gray);
+  font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 配色变量 */
+:root {
+  --deep-blue: #1E3A8A;
+  --sky-blue: #3B82F6;
+  --light-blue: #BFDBFE;
+  --emerald: #10B981;
+  --white: #FFFFFF;
+  --warm-gray: #F9FAFB;
+  --dark-gray: #1F2937;
+  --medium-gray: #6B7280;
+  --light-gray: #9CA3AF;
+}
+
+/* 卡片样式 */
+.card {
+  background-color: var(--white);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+  margin-bottom: 12px;
+}
+
+/* 按钮样式 */
+.btn-primary {
+  background-color: var(--emerald);
+  color: var(--white);
+  border-radius: 30px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 16px;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+.btn-primary:active {
+  opacity: 0.8;
+}
+
+.btn-secondary {
+  background-color: var(--white);
+  border: 2px solid var(--sky-blue);
+  color: var(--sky-blue);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+.btn-secondary:active {
+  opacity: 0.8;
+}
+
+/* 进度条样式 */
+.progress-bar {
+  height: 10px;
+  background-color: #E5E7EB;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--sky-blue);
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+/* 注意事项样式 */
+.notice {
+  background-color: #FFFBEB;
+  border: 1px solid #FCD34D;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--dark-gray);
+  font-family: 'PingFang SC', sans-serif;
+}
+
+.notice-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark-gray);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+.notice-title::before {
+  content: '⚠️';
+}
+
+.notice-content {
+  font-size: 12px;
+  color: var(--dark-gray);
+  line-height: 1.5;
+  font-family: 'PingFang SC', sans-serif;
+}
+
+.notice-content view {
+  margin-bottom: 4px;
+  display: list-item;
+  list-style-type: disc;
+  list-style-position: inside;
+}
+

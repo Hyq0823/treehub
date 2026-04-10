@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="test-info">
+    <view class="test-icon">{{test.icon}}</view>
+    <view class="test-name">{{test.name}}</view>
+    <view class="test-description">{{test.description}}</view>
+    <view class="test-meta">
+      ⏱️ {{test.time}} · 📌 {{test.questionsCount}}题
+    </view>
+  </view>
+  
+  <view class="notice">
+    <view class="notice-title">注意事项</view>
+    <view class="notice-content">
+      <view>请在安静的环境中完成测试</view>
+      <view>按照真实情况回答问题</view>
+      <view>测试结果仅供参考</view>
+    </view>
+  </view>
+  
+  <view class="btn-primary" bindtap="startTest">开始测试</view>
+</view>

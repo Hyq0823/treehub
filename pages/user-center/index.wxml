@@ -1,0 +1,33 @@
+<view class="container">
+  <view class="card">
+    <view class="card-title">产品介绍</view>
+    <view class="card-content">
+      <text>人格测试树是一款基于心理学理论的人格测试小程序，提供多种人格测试，帮助你更好地了解自己。</text>
+    </view>
+  </view>
+  
+  <view class="notice">
+    <view class="notice-title">使用前必读</view>
+    <view class="notice-content">
+      <view>🔍 非诊断工具，不替代医疗诊断</view>
+      <view>🔒 数据仅本地存储，不上传</view>
+      <view>🧒 18岁以上使用，未成年人需监护人指导</view>
+      <view>❤️ 不适时停止并寻求专业帮助</view>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="card-title">版本信息</view>
+    <view class="card-content">
+      <text>当前版本：v1.0.0</text>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="card-title">意见反馈</view>
+    <view class="card-content">
+      <text>如有任何问题或建议，请联系我们。</text>
+      <view class="btn-secondary" bindtap="feedback">反馈</view>
+    </view>
+  </view>
+</view>
