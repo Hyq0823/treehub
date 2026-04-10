@@ -153,11 +153,17 @@ Page({
       imageUrl: this.data.result.image || ''
     };
   },
-  // 点击分享按钮
-  onShare() {
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage', 'shareTimeline']
-    });
+  
+  // 分享到朋友圈
+  onShareTimeline() {
+    const testName = this.data.test.name;
+    const resultTitle = this.data.result.title;
+    
+    return {
+      title: `${testName}测试结果：${resultTitle}`,
+      query: `id=${this.data.test.id}`,
+      imageUrl: this.data.result.image || ''
+    };
   }
+
 })

@@ -31,4 +31,9 @@
     <view class="btn-secondary" bindtap="retakeTest">🔄 再测一次</view>
     <view class="btn-primary" bindtap="goToHome">🏠 返回首页</view>
   </view>
+  
+  <!-- 悬浮分享按钮 -->
+  <button open-type="share" class="floating-share-btn">
+    <view class="share-text">分享</view>
+  </button>
 </view>
