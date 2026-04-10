@@ -23,14 +23,6 @@
   overflow: hidden;
 }
 
-.result-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 8px;
-  font-family: 'PingFang SC', sans-serif;
-}
-
 .result-header::before {
   content: '';
   position: absolute;

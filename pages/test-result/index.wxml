@@ -1,6 +1,5 @@
 <view class="container">
   <view class="result-header">
-    <view class="result-title">人格测试树-测试结果</view>
     <view class="result-icon" wx:if="{{test.id !== 'sbti'}}">
       <view class="icon-background">{{getResultIcon(result.title)}}</view>
     </view>
