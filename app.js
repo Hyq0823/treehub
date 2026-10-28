@@ -1,10 +1,23 @@
 App({
   onLaunch() {
-    // 小程序启动时执行
-    console.log('人格测试树小程序启动');
+    this.recordEnterScene();
+  },
+  onShow() {
+    // 每次进入都覆盖，取最近一次的来源场景
+    this.recordEnterScene();
+  },
+  recordEnterScene() {
+    try {
+      const opts = wx.getEnterOptionsSync ? wx.getEnterOptionsSync() : wx.getLaunchOptionsSync();
+      this.globalData.enterScene = opts.scene;
+      this.globalData.enterPath = opts.path;
+      this.globalData.enterQuery = opts.query;
+    } catch (e) {}
   },
   globalData: {
-    // 全局数据
-    userInfo: null
+    userInfo: null,
+    enterScene: 0,
+    enterPath: '',
+    enterQuery: {}
   }
 })

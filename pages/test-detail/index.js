@@ -1,9 +1,12 @@
+const { report, EVENTS } = require('../../utils/track.js');
+
 Page({
   data: {
     test: {}
   },
   onLoad(options) {
     const testId = options.id;
+    report(EVENTS.DETAIL_VIEW, { testId: testId });
     this.loadTestData(testId);
   },
   loadTestData(testId) {

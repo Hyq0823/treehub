@@ -1,14 +1,28 @@
+const { report, EVENTS } = require('../../utils/track.js');
+
 Page({
   data: {
     test: {},
     questions: [],
     currentQuestionIndex: 0,
     selectedOption: -1,
-    answers: []
+    answers: [],
+    submitted: false
   },
   onLoad(options) {
     const testId = options.id;
+    report(EVENTS.TEST_START, { testId: testId });
     this.loadTestData(testId);
+  },
+  onUnload() {
+    // 未提交就离开，记为中途放弃，用于定位放弃在哪一题
+    if (!this.data.submitted) {
+      report(EVENTS.TEST_ABORT, {
+        testId: this.data.test.id,
+        reachedIndex: this.data.currentQuestionIndex,
+        totalCount: this.data.questions.length
+      });
+    }
   },
   loadTestData(testId) {
     try {
@@ -113,6 +127,12 @@ Page({
     const scores = this.calculateScores();
     // 获取结果类型
     const resultType = this.data.test.scoring.resultRule(scores);
+    this.data.submitted = true;
+    report(EVENTS.TEST_SUBMIT, {
+      testId: this.data.test.id,
+      resultType: resultType,
+      unanswered: this.data.answers.filter(a => a === -1).length
+    });
     // 保存结果
     wx.setStorageSync('testResult', {
       testId: this.data.test.id,

@@ -1,8 +1,11 @@
+const { report, EVENTS } = require('../../utils/track.js');
+
 Page({
   data: {
     tests: []
   },
   onLoad() {
+    report(EVENTS.HALL_VIEW);
     // 加载测试数据
     this.loadTests();
   },

@@ -1,3 +1,5 @@
+const { report, EVENTS } = require('../../utils/track.js');
+
 Page({
   data: {
     test: {},
@@ -83,7 +85,17 @@ Page({
       });
     }
   },
+  instrumentResultView() {
+    // 区分「自己测完回看」和「别人分享进来的」，后者是分享转化的分子
+    const own = wx.getStorageSync('testResult');
+    const isOwn = own && own.testId === this.data.test.id;
+    report(isOwn ? EVENTS.RESULT_VIEW : EVENTS.RESULT_VIEW_FOREIGN, {
+      testId: this.data.test.id,
+      resultType: isOwn ? own.resultType : ''
+    });
+  },
   loadResult(testId) {
+    this.instrumentResultView();
     try {
       const testResult = wx.getStorageSync('testResult');
       console.log('loadResult - testId:', testId);
@@ -141,7 +153,14 @@ Page({
     });
   },
   // 分享功能
+  instrumentShare() {
+    report(EVENTS.SHARE_TAP, {
+      testId: this.data.test.id,
+      resultType: this.data.result.title
+    });
+  },
   onShareAppMessage() {
+    this.instrumentShare();
     const testName = this.data.test.name;
     const resultTitle = this.data.result.title;
     const resultSummary = this.data.result.summary;
@@ -156,6 +175,7 @@ Page({
   
   // 分享到朋友圈
   onShareTimeline() {
+    this.instrumentShare();
     const testName = this.data.test.name;
     const resultTitle = this.data.result.title;
     
