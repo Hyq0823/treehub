@@ -119,10 +119,15 @@ test('all registered pages, components and packaged assets exist within main-pac
   const project = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json')));
   const excluded = ['.git', ...project.packOptions.ignore.map(item => item.value)];
   const files = [];
+  const mediaFiles = [];
   function visit(dir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const target = path.join(dir, entry.name);
       const relative = path.relative(root, target).split(path.sep).join('/');
+      if (relative === '.git' || relative.startsWith('.git/')) continue;
+      if (!entry.isDirectory() && /\.(?:png|jpe?g|webp|gif|svg|mp3|wav|ogg|aac|m4a)$/i.test(relative)) {
+        mediaFiles.push({ relative, bytes: fs.statSync(target).size });
+      }
       if (excluded.some(prefix => relative === prefix || relative.startsWith(`${prefix}/`))) continue;
       if (entry.isDirectory()) visit(target); else files.push({ relative, bytes: fs.statSync(target).size });
     }
@@ -136,7 +141,8 @@ test('all registered pages, components and packaged assets exist within main-pac
     const bytes = files.filter(file => file.relative.startsWith(`${subRoot}/`)).reduce((sum, file) => sum + file.bytes, 0);
     assert.ok(bytes > 0 && bytes < 2 * 1024 * 1024, `${subRoot}: ${bytes} bytes exceed subpackage budget`);
   }
-  for (const file of files.filter(file => /\.(?:png|jpe?g|webp|gif|svg|mp3|wav|ogg|aac|m4a)$/i.test(file.relative))) {
+  // DevTools' code-quality scan also inspects media excluded from upload packaging.
+  for (const file of mediaFiles) {
     assert.ok(file.bytes <= 200000, `${file.relative}: ${file.bytes} bytes exceed the 200KB media budget`);
   }
   assert.ok(fs.statSync(path.join(root, 'assets/trees/species.png')).size > 10000);
