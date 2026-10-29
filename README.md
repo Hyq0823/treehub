@@ -1,10 +1,12 @@
 # 人格测试树
 
-微信原生小程序。本地版以探索图鉴、个人树形、测评报告和历次记录组成完整流程，无需登录或后台服务。
+微信原生小程序。探索图鉴、个人树形、测评报告和历次记录组成完整流程；本地缓存支持离线使用，微信云开发用于跨设备同步测评档案、树种子和 VIP 解锁权益。
 
 ## 开发与验证
 
 使用微信开发者工具导入本目录，沿用 `project.config.json` 中的项目配置。大厅和「我的档案」为底部标签页。当前云机器没有微信开发者工具；原生布局、触摸反馈和设备存储仍需在工具与真机预览中检查。
+
+云环境 ID 为 `cloud1-d2ghbskq3663254ce`。首次部署先按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 创建集合、关闭客户端直读写权限，并上传 `treehub-api` 云函数。云函数尚未部署或网络不可用时，小程序继续写入本地档案，联网后自动补传。
 
 无需 npm 安装。逻辑测试使用 Node.js 24（读取原有 ESM 题库）：
 
@@ -21,7 +23,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 
 编译检查与 Node 页面控制器测试不替代微信真机测试。验证流程：首次进入 → 选卡 → 完成六套测试中的一项 → 已保存报告 → 我的档案 → 再测一次 → 对照两次历史报告 → 查看树的成长记录。还应确认退出重开后数据保留，以及清理存储后的首次进入状态。
 
-## 第一版规则
+## 产品规则
 
 - 完成 **不同测试** 的数量决定成长：1 初芽、3 扎根、5 舒展、10 繁茂、20 花冠、35 星辉；零项为待萌芽。现有六套测试仅提示可达到的下一阶段，其他阶段标为未来开放。
 - 重复测评新建记录，不覆盖旧报告，不重复增加探索种类。每次记录附有树形快照。
@@ -35,6 +37,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 ## 数据与扩展
 
 - `utils/archive.js`：单键 `personalityTreeArchive.v1` 保存版本化档案、设备种子、规范题号答案、分数、结果、日期与树形快照。写入失败保留页面答案；格式异常停止写入，不自动重置。旧版 `testResult` 仅迁移一次，并保留原键；旧版错误空分数不展示为新版有效报告。
+- `utils/cloud-sync.js`：连接指定微信云环境，将本地档案按 20 条分批上传、按页拉取并以记录 ID 去重。云端用户种子作为跨设备统一种子；历史树快照保持原样。同步失败只记录待同步状态，不覆盖或删除本地数据。
+- `cloudfunctions/treehub-api`：根据 OpenID 隔离用户，维护 `treehub_users` 与 `treehub_assessments`。同一测评记录首次写入后结果保持不变，后续只允许补充 VIP 解锁状态。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果。
 - `packages/reports/deep-report.js`：按六套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
 - `packages/reports/premium-access.js`：记录已完成广告的待保存凭据，按测评记录补存权益；页面退出后停止广告加载与显示重试。
@@ -45,6 +49,6 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `pages/tree-history/`：每次测评的树形历史；不会用当前结果重算过去的快照。
 - `packages/reports/`：报告页与 SBTI 结果图片所在分包，打开报告时由微信按需加载。应用内链接直接进入分包；旧的 `pages/test-result/index` 地址保留轻量跳转，继续支持已有报告链接与记录 ID。
 
-测评和探索日志只保存在当前设备，不调用远程分析接口。换设备、删除小程序或清理数据后可能无法恢复；当前不提供云端同步。存储达到设备限制时提示保存失败，保留已有记录，不静默清理。
+测评记录同时保存在本地缓存和微信云开发数据库，用于同一微信账号跨设备恢复。云端保存题目答案、维度分数、报告结果、树形快照和 VIP 解锁时间；不把测评结果发送到第三方分析服务。存储或网络异常时保留已有记录，不静默清理，恢复后自动补传。
 
-`app.json` 使用 `lazyCodeLoading: "requiredComponents"` 按需注入组件。`project.config.json` 已将设计参考图、文档和测试目录排除出小程序包，避免将约17MB设计图打包。包体检查分别计算主包与分包，主包源文件预算为 1.4 MB、每张运行图片预算为 200 KB，给微信编译产物留出余量。
+`app.json` 使用 `lazyCodeLoading: "requiredComponents"` 按需注入组件。`project.config.json` 将云函数目录单独配置，并把文档和测试目录排除出小程序包。包体检查分别计算主包与分包，主包源文件预算为 1.4 MB、每张运行图片预算为 200 KB，给微信编译产物留出余量。

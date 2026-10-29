@@ -117,7 +117,8 @@ test('all registered pages, components and packaged assets exist within main-pac
     }
   }
   const project = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json')));
-  const excluded = ['.git', ...project.packOptions.ignore.map(item => item.value)];
+  const cloudRoot = String(project.cloudfunctionRoot || '').replace(/\/$/, '');
+  const excluded = ['.git', cloudRoot, ...project.packOptions.ignore.map(item => item.value)].filter(Boolean);
   const files = [];
   const mediaFiles = [];
   function visit(dir) {

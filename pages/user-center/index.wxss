@@ -371,16 +371,45 @@ button::after {
   padding: 7rpx 22rpx;
   margin: 30rpx 0;
 }
-.local-note {
+.cloud-note {
   color: #93998c;
-  padding: 30rpx 12rpx 0;
+  padding: 24rpx;
+  margin-top: 28rpx;
+  border-radius: 22rpx;
+  background: #f1f5ea;
+  border: 1rpx solid #e0e8d6;
   font-size: 22rpx;
   line-height: 1.8;
 }
-.local-note-title {
+.cloud-note-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+.cloud-note-title {
   color: #73836b;
-  margin-bottom: 8rpx;
   font-size: 24rpx;
+  font-weight: 600;
+}
+.cloud-note-detail {
+  margin-top: 5rpx;
+}
+.cloud-synced .cloud-note-title {
+  color: #286145;
+}
+.cloud-pending {
+  background: #fbf3df;
+  border-color: #ecddb7;
+}
+.cloud-retry {
+  flex-shrink: 0;
+  padding: 2rpx 20rpx;
+  border-radius: 28rpx;
+  background: #315f46;
+  color: #fffbed;
+  font-size: 22rpx;
+  line-height: 2.2;
 }
 .local-note-extra {
   margin-top: 12rpx;

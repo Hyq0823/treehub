@@ -121,6 +121,24 @@ test('premium unlock is record-specific, persistent and idempotent', () => {
   assert.throws(() => archive.unlockPremium('missing-record'), /不在当前设备/);
 });
 
+test('cloud merge is append-only, adopts the account seed and preserves the earliest unlock', () => {
+  setup();
+  const local = archive.saveResult(assessment('mbti', 'INTJ'));
+  const localUnlock = archive.unlockPremium(local.id).premiumUnlockedAt;
+  const remoteOnly = Object.assign(assessment('ie', 'I', { EI: 0 }), {
+    id: 'assessment-from-another-device', testVersion: '1', scoringVersion: '2',
+    completedAt: '2026-10-28T10:00:00.000Z'
+  });
+  const merged = archive.mergeCloudArchive({
+    seed: 'account-seed',
+    records: [Object.assign({}, local, { premiumUnlockedAt: '2026-10-30T10:00:00.000Z' }), remoteOnly]
+  });
+  assert.equal(merged.seed, 'account-seed');
+  assert.equal(merged.records.length, 2);
+  assert.equal(archive.getRecord(local.id).premiumUnlockedAt, localUnlock);
+  assert.equal(archive.getRecord(remoteOnly.id).testId, 'ie');
+});
+
 test('species, variant and prose are deterministic for identical results and seed', () => {
   const base = { seed: 'device-a', records: [Object.assign(assessment(), { scoringVersion: '2' })] };
   const first = getTree(base, catalog);

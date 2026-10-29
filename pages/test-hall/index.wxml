@@ -45,7 +45,7 @@
       </view>
     </view>
     <view wx:if="{{!filteredCards.length}}" class="empty-category">新的探索正在生长，先看看其他分类吧。</view>
-    <view class="local-note">档案保存在当前设备 · 无需登录</view>
+    <view class="local-note">本地缓存与微信云端同步 · 无需额外注册</view>
     <view class="hall-footnote">树形是探索的意象，性格没有高低。</view>
   </block>
 </view>

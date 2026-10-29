@@ -1,10 +1,12 @@
 App({
   onLaunch() {
     this.recordEnterScene();
+    require('./utils/cloud-sync.js').start();
   },
   onShow() {
     // 每次进入都覆盖，取最近一次的来源场景
     this.recordEnterScene();
+    require('./utils/cloud-sync.js').schedule(0);
   },
   recordEnterScene() {
     try {

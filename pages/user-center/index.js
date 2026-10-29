@@ -1,4 +1,5 @@
 const archive = require('../../utils/archive.js');
+const cloudSync = require('../../utils/cloud-sync.js');
 const { getTree } = require('../../utils/personality-tree.js');
 const { resolveReport } = require('../../utils/scoring.js');
 const catalogModule = require('../../data/tests/index.js');
@@ -18,9 +19,37 @@ Page({
   data: {
     loaded: false, error: '', tree: null, groups: [], stages: [], expandedTests: {},
     totalCount: 0, uniqueCount: 0, repeatCount: 0, catalogCount: catalog.length,
-    coveragePercent: 0, evidence: []
+    coveragePercent: 0, evidence: [],
+    cloudState: 'idle', cloudTitle: '云端备份已开启', cloudDetail: '本地记录会在联网后自动同步。'
   },
-  onShow() { this.loadArchive(); },
+  onShow() {
+    this.loadArchive();
+    this.refreshCloud();
+  },
+  formatSyncTime(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return '';
+    const pad = number => String(number).padStart(2, '0');
+    return `${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  },
+  applyCloudStatus(status) {
+    const state = status && status.state || 'pending';
+    const titles = {
+      syncing: '正在同步到微信云端', synced: '云端档案已同步',
+      pending: '等待云端同步', unavailable: '当前版本暂不支持云同步', idle: '云端备份已开启'
+    };
+    let detail = status && status.message || '本地记录会在联网后自动同步。';
+    if (state === 'synced' && status.lastSyncedAt) detail += ` · ${this.formatSyncTime(status.lastSyncedAt)}`;
+    this.setData({ cloudState: state, cloudTitle: titles[state] || titles.pending, cloudDetail: detail });
+  },
+  refreshCloud() {
+    this.applyCloudStatus(Object.assign({}, cloudSync.getStatus(), { state: 'syncing', message: '正在合并本地与云端档案…' }));
+    cloudSync.syncArchive().then(status => {
+      this.applyCloudStatus(status);
+      if (status.state === 'synced') this.loadArchive();
+    });
+  },
+  retryCloudSync() { this.refreshCloud(); },
   loadArchive() {
     try {
       const saved = archive.getArchive();

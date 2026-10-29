@@ -21,6 +21,9 @@ function write(value) {
   try { wx.setStorageSync(STORAGE_KEY, value); }
   catch (error) { throw storageError('本地档案保存失败，请检查设备存储空间后重试。'); }
 }
+function requestCloudSync() {
+  try { require('./cloud-sync.js').schedule(); } catch (error) {}
+}
 function recordIsValid(record) {
   return plainObject(record) && typeof record.id === 'string' && !!record.id &&
     typeof record.testId === 'string' && !!record.testId &&
@@ -114,6 +117,7 @@ function saveResult(input) {
   archive.records.unshift(record);
   record.treeSnapshot = getTree(archive, catalog);
   write(archive);
+  requestCloudSync();
   return clone(record);
 }
 function getRecords(testId) {
@@ -132,10 +136,41 @@ function unlockPremium(recordId) {
   if (!record.premiumUnlockedAt) {
     record.premiumUnlockedAt = new Date().toISOString();
     write(archive);
+    requestCloudSync();
   }
   return clone(record);
 }
 
+function mergeCloudArchive(remote) {
+  if (!plainObject(remote) || typeof remote.seed !== 'string' || !remote.seed || !Array.isArray(remote.records) ||
+      !remote.records.every(recordIsValid)) {
+    throw storageError('云端档案格式异常，本地记录未被修改。');
+  }
+  const archive = getArchive();
+  const merged = new Map(archive.records.map(record => [record.id, clone(record)]));
+  remote.records.forEach(record => {
+    const existing = merged.get(record.id);
+    if (!existing) {
+      merged.set(record.id, clone(record));
+      return;
+    }
+    if (record.premiumUnlockedAt && (!existing.premiumUnlockedAt ||
+        Date.parse(record.premiumUnlockedAt) < Date.parse(existing.premiumUnlockedAt))) {
+      existing.premiumUnlockedAt = record.premiumUnlockedAt;
+    }
+  });
+  const next = Object.assign({}, archive, {
+    seed: remote.seed,
+    records: Array.from(merged.values()).sort((first, second) => {
+      const time = Date.parse(second.completedAt) - Date.parse(first.completedAt);
+      return time || first.id.localeCompare(second.id);
+    })
+  });
+  validateArchive(next);
+  if (JSON.stringify(next) !== JSON.stringify(archive)) write(next);
+  return clone(next);
+}
+
 module.exports = {
-  STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord, unlockPremium
+  STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord, unlockPremium, mergeCloudArchive
 };

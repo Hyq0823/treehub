@@ -61,6 +61,9 @@
       </view>
     </view>
     <button wx:if="{{groups.length}}" class="explore-more" bindtap="explore">去发现更多测试 →</button>
-    <view class="local-note"><view class="local-note-title">只保存在当前设备</view><view>报告与人格树不上传云端。更换设备、删除小程序或清理数据后，记录可能无法恢复。</view><view class="local-note-extra">测评用于自我探索，不替代专业评估；不同版本的结果不宜直接比较。</view></view>
+    <view class="cloud-note cloud-{{cloudState}}">
+      <view class="cloud-note-heading"><view><view class="cloud-note-title">{{cloudTitle}}</view><view class="cloud-note-detail">{{cloudDetail}}</view></view><button wx:if="{{cloudState === 'pending'}}" class="cloud-retry" bindtap="retryCloudSync">重试</button></view>
+      <view class="local-note-extra">本地仍保留缓存，离线完成的测评会在联网后补传。测评用于自我探索，不替代专业评估。</view>
+    </view>
   </block>
 </view>

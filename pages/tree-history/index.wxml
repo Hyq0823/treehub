@@ -15,5 +15,5 @@
     <view wx:if="{{item.legacy}}" class="legacy-note">早期版本记录 · 树形暂不据此推断</view>
     <view class="snapshot-footer" data-id="{{item.id}}" data-test-id="{{item.testId}}" bindtap="openReport" role="button"><text>{{item.testName}}</text><text>回看当时的报告 →</text></view>
   </view>
-  <view wx:if="{{snapshots.length && !error}}" class="local-note">快照保存在当前设备。不同测评版本的结果不宜直接比较，树形寓意用于自我探索。</view>
+  <view wx:if="{{snapshots.length && !error}}" class="local-note">快照会随档案同步到微信云端。不同测评版本的结果不宜直接比较，树形寓意用于自我探索。</view>
 </view>

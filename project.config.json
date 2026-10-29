@@ -1,5 +1,6 @@
 {
   "description": "人格测试树小程序",
+  "cloudfunctionRoot": "cloudfunctions/",
   "packOptions": {
     "ignore": [
       {
