@@ -1,21 +1,22 @@
-<view class="container">
-  <view class="test-info">
-    <view class="test-icon">{{test.icon}}</view>
-    <view class="test-name">{{test.name}}</view>
-    <view class="test-description">{{test.description}}</view>
-    <view class="test-meta">
-      ⏱️ {{test.time}} · 📌 {{test.questionsCount}}题
+<view class="detail-page">
+  <view class="tech-grid"></view><view class="detail-orb orb-one"></view><view class="detail-orb orb-two"></view>
+  <view class="detail-shell">
+    <view class="protocol-line"><text class="protocol-dot"></text> PERSONALITY PROTOCOL <text>READY</text></view>
+    <view class="hero-panel">
+      <view class="hero-scan"></view>
+      <view class="icon-orbit"><view class="orbit-ring ring-one"></view><view class="orbit-ring ring-two"></view><view class="test-icon">{{test.icon}}</view><view class="orbit-node node-one"></view><view class="orbit-node node-two"></view></view>
+      <view class="test-label">ASSESSMENT MODULE</view>
+      <view class="test-name">{{test.name}}</view>
+      <view class="test-description">{{test.description}}</view>
+      <view class="meta-grid"><view><text>{{test.questionsCount}}</text><text>题目节点</text></view><view><text>{{test.time}}</text><text>预计耗时</text></view><view><text>∞</text><text>可重复探索</text></view></view>
     </view>
-  </view>
-  
-  <view class="notice">
-    <view class="notice-title">注意事项</view>
-    <view class="notice-content">
-      <view>请在安静的环境中完成测试</view>
-      <view>按照真实情况回答问题</view>
-      <view>测试结果仅供参考</view>
+    <view class="guide-panel">
+      <view class="guide-title"><text>开始前校准</text><text>03 STEPS</text></view>
+      <view class="guide-item"><text>01</text><view><view>找到相对安静的环境</view><view>给直觉一点完整空间</view></view></view>
+      <view class="guide-item"><text>02</text><view><view>依据最近真实状态回答</view><view>不需要选择“更好”的答案</view></view></view>
+      <view class="guide-item"><text>03</text><view><view>完成后生成专属画像</view><view>本次记录会成为人格树的新年轮</view></view></view>
     </view>
+    <view class="start-button" bindtap="startTest" hover-class="start-button-pressed"><view class="start-signal">✦</view><view><text>启动本次探索</text><text>START ASSESSMENT</text></view><text class="start-arrow">→</text></view>
+    <view class="safety-line"><text></text> 测评用于自我探索，不作心理诊断</view>
   </view>
-  
-  <view class="btn-primary" bindtap="startTest">开始测试</view>
 </view>

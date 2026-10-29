@@ -1,54 +1,36 @@
 <view class="answer-page">
-  <!-- 加载状态 -->
-  <view wx:if="{{error}}" class="loading-container">
-    <text class="loading-text">{{error}}</text>
-    <button bindtap="goToHome">返回探索大厅</button>
-  </view>
-  <view wx:elif="{{!test.id}}" class="loading-container">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
-  </view>
+  <view class="ambient ambient-one"></view><view class="ambient ambient-two"></view><view class="tech-grid"></view>
+  <view wx:if="{{error}}" class="loading-container glass-panel"><view class="error-core">!</view><text class="loading-text">{{error}}</text><button class="return-button" bindtap="goToHome">返回探索大厅</button></view>
+  <view wx:elif="{{!test.id}}" class="loading-container"><view class="loading-orbit"><view class="loading-core"></view></view><text class="loading-text">正在连接人格探索舱…</text></view>
 
-  <!-- 内容区域 -->
-  <view wx:else>
-    <!-- 顶部进度信息 -->
-    <view class="header">
-      <view class="progress-section">
-        <text class="progress-text">{{currentQuestionIndex + 1}} / {{test.questionsCount}}</text>
-        <view class="progress-bar">
-          <view class="progress-fill" style="width: {{(currentQuestionIndex + 1) / test.questionsCount * 100}}%"></view>
-        </view>
+  <view wx:else class="answer-shell">
+    <view class="session-header">
+      <view class="session-meta"><view><text class="live-dot"></text><text>ASSESSMENT SESSION</text></view><text>{{test.name}}</text></view>
+      <view class="progress-console">
+        <view class="progress-numbers"><view><text class="current-number">{{currentQuestionIndex + 1}}</text><text class="total-number"> / {{test.questionsCount}}</text></view><text>{{progressPercent}}%</text></view>
+        <view class="progress-track"><view class="progress-fill" style="width:{{progressPercent}}%;"><view class="progress-scan"></view></view></view>
+        <view class="progress-caption"><text>探索进度</text><text>已记录 {{answeredCount}} 个选择</text></view>
       </view>
     </view>
 
-    <!-- 问题卡片 -->
-    <view class="question-card">
-      <view class="question-number">问题 {{currentQuestionIndex + 1}}</view>
+    <view class="question-card motion-{{motionKey}}">
+      <view class="question-topline"><view class="question-number">NODE {{currentQuestionIndex + 1}}</view><view class="signal"><text></text><text></text><text></text></view></view>
       <view class="question-content">{{question.text}}</view>
-
-      <!-- 选项列表 -->
+      <view class="question-hint">选择更接近此刻真实反应的一项</view>
       <view class="options-list">
-        <view wx:for="{{question.options}}" wx:key="letter"
-          class="option-item {{selectedOption === index ? 'option-selected' : ''}}"
-          bindtap="selectOption"
-          data-index="{{index}}">
-          <view class="option-content">
-            <view class="option-letter">{{item.letter}}</view>
-            <view class="option-text">{{item.text}}</view>
-          </view>
-          <view wx:if="{{selectedOption === index}}" class="option-check">✓</view>
+        <view wx:for="{{question.options}}" wx:key="letter" class="option-item option-{{index}} {{selectedOption === index ? 'option-selected' : ''}}" bindtap="selectOption" data-index="{{index}}" hover-class="option-pressed">
+          <view class="option-glow"></view>
+          <view class="option-content"><view class="option-letter">{{item.letter}}</view><view class="option-text">{{item.text}}</view></view>
+          <view class="option-state"><view class="state-ring"><view wx:if="{{selectedOption === index}}" class="state-core"></view></view></view>
         </view>
       </view>
+      <view class="choice-feedback {{autoAdvancing ? 'choice-feedback-visible' : ''}}"><text>✓</text> 选择已记录，正在进入下一题</view>
     </view>
 
-    <!-- 底部导航 -->
-    <view class="footer">
-      <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}">
-        上一题
-      </button>
-      <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}" loading="{{submitting}}">
-        {{currentQuestionIndex === test.questionsCount - 1 ? '查看报告' : '下一题'}}
-      </button>
+    <view class="footer-console">
+      <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}"><text>←</text> 上一题</button>
+      <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}" loading="{{submitting}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '确认并继续'}} <text wx:if="{{!submitting}}">→</text></button>
     </view>
+    <view class="privacy-line"><text>●</text> 你的选择会先安全保存在本地</view>
   </view>
 </view>

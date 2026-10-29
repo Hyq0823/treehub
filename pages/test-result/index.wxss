@@ -1,41 +1,72 @@
 page {
-  background: #faf7ef;
+  min-height: 100%;
+  color: #eafff9;
+  background: #06121c;
 }
 .report-redirect {
+  position: relative;
   margin: 100rpx 32rpx;
-  padding: 50rpx 28rpx;
+  padding: 58rpx 30rpx;
+  overflow: hidden;
   text-align: center;
-  background: #fffdf8;
-  border: 1rpx solid #ede9dc;
-  border-radius: 30rpx;
+  background: radial-gradient(circle at 50% 0, rgba(92, 224, 198, .13), transparent 42%), linear-gradient(145deg, #0e2a35, #081b27);
+  border: 1rpx solid rgba(101, 229, 204, .2);
+  border-radius: 32rpx;
+  box-shadow: 0 26rpx 70rpx rgba(0, 0, 0, .3), inset 0 1rpx rgba(255, 255, 255, .06);
+}
+.report-redirect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(108, 241, 213, .08), transparent);
+  transform: skewX(-12deg);
+  animation: reportConnect 2.6s ease-in-out infinite;
 }
 .report-redirect-icon {
+  position: relative;
+  width: 126rpx;
+  height: 126rpx;
+  margin: 0 auto;
+  line-height: 126rpx;
+  border-radius: 50%;
   font-size: 70rpx;
-  color: #789b65;
+  color: #72e7ca;
+  background: rgba(89, 224, 194, .08);
+  box-shadow: 0 0 0 1rpx rgba(98, 227, 201, .14), 0 0 42rpx rgba(74, 220, 190, .12);
+  animation: reportPulse 1.8s ease-in-out infinite;
 }
 .report-redirect-title {
-  margin-top: 24rpx;
-  color: #244839;
+  position: relative;
+  margin-top: 28rpx;
+  color: #ecfffa;
   font-size: 30rpx;
+  font-weight: 650;
 }
 .report-redirect-error {
+  position: relative;
   margin: 24rpx 0;
-  color: #7b8379;
+  color: #8ca7a6;
   font-size: 25rpx;
   line-height: 1.7;
 }
 .report-redirect-retry {
-  color: #fffdf4;
-  background: #205c42;
+  position: relative;
+  color: #08201e;
+  background: linear-gradient(100deg, #62e4c6, #b3e5aa);
   border-radius: 48rpx;
   font-size: 27rpx;
+  font-weight: 650;
 }
 .report-redirect-home {
+  position: relative;
   margin-top: 20rpx;
   font-size: 24rpx;
-  color: #50704e;
+  color: #67cdb9;
   background: transparent;
 }
-button::after {
-  border: 0;
-}
+button::after { border: 0; }
+@keyframes reportConnect { 0%, 18% { left: -40%; } 78%, 100% { left: 125%; } }
+@keyframes reportPulse { 0%, 100% { transform: scale(.96); opacity: .72; } 50% { transform: scale(1.03); opacity: 1; } }

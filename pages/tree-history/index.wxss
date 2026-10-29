@@ -1,3 +1,4 @@
+@import "./tech.wxss";
 page {
   background: #faf7ef;
   color: #152d3c;

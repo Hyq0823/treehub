@@ -150,10 +150,16 @@ test('storage failure preserves answers and allows retry without navigation', ()
 test('rapid selection replaces pending timer; revisiting preserves selection; unload clears timer', () => {
   const { page, timers } = loadPage('pages/test-answer/index.js');
   page.onLoad({ id: 'ie' });
+  assert.equal(page.data.progressPercent, 7);
+  assert.equal(page.data.answeredCount, 0);
   page.selectOption({ currentTarget: { dataset: { index: 0 } } });
   page.selectOption({ currentTarget: { dataset: { index: 1 } } });
+  assert.equal(page.data.answeredCount, 1);
+  assert.equal(page.data.autoAdvancing, true);
   assert.equal(timers.size, 1);
   page.nextQuestion();
+  assert.equal(page.data.progressPercent, 13);
+  assert.equal(page.data.autoAdvancing, false);
   assert.equal(timers.size, 0);
   page.prevQuestion();
   assert.equal(page.data.selectedOption, 1);

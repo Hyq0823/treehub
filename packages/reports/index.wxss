@@ -1,4 +1,5 @@
 @import "./premium-visual.wxss";
+@import "./tech.wxss";
 page {
   background: #faf7ef;
   color: #142c35;

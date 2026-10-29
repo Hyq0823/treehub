@@ -15,18 +15,18 @@
   ],
   "lazyCodeLoading": "requiredComponents",
   "window": {
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#faf7f0",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#07141d",
     "navigationBarTitleText": "人格测试树",
-    "navigationBarTextStyle": "black",
-    "backgroundColor": "#faf7f0"
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#07141d"
   },
   "sitemapLocation": "sitemap.json",
   "tabBar": {
-    "color": "#8d968b",
-    "selectedColor": "#286346",
-    "backgroundColor": "#fffdf8",
-    "borderStyle": "white",
+    "color": "#6f8b90",
+    "selectedColor": "#62e7c8",
+    "backgroundColor": "#091821",
+    "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/test-hall/index",

@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "我的档案",
-  "navigationBarBackgroundColor": "#faf7ef",
-  "navigationBarTextStyle": "black",
+  "navigationBarBackgroundColor": "#07141d",
+  "navigationBarTextStyle": "white",
   "usingComponents": {
     "personality-tree": "/components/personality-tree/index"
   }

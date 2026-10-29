@@ -5,7 +5,8 @@ const archive = require('../../utils/archive.js');
 Page({
   data: {
     test: {}, questions: [], currentQuestionIndex: 0, selectedOption: -1,
-    answers: [], submitted: false, submitting: false, error: ''
+    answers: [], submitted: false, submitting: false, error: '',
+    progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false
   },
   onLoad(options) {
     this._unloaded = false;
@@ -48,11 +49,16 @@ Page({
   },
   updateQuestion() {
     const question = this.data.questions[this.data.currentQuestionIndex];
+    const answeredCount = this.data.answers.filter(answer => answer !== -1).length;
     this.setData({
       question: Object.assign({}, question, {
         options: question.options.map((option, index) => Object.assign({}, option, { letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index] }))
       }),
-      selectedOption: this.data.answers[this.data.currentQuestionIndex]
+      selectedOption: this.data.answers[this.data.currentQuestionIndex],
+      progressPercent: Math.round((this.data.currentQuestionIndex + 1) / this.data.questions.length * 100),
+      answeredCount,
+      motionKey: this.data.motionKey ? 0 : 1,
+      autoAdvancing: false
     });
   },
   selectOption(event) {
@@ -63,7 +69,7 @@ Page({
     this.clearAdvance();
     const answers = this.data.answers.slice();
     answers[current] = index;
-    this.setData({ selectedOption: index, answers });
+    this.setData({ selectedOption: index, answers, answeredCount: answers.filter(answer => answer !== -1).length, autoAdvancing: true });
     // Auto-advance only the question on which the tap occurred.
     this._advanceTimer = setTimeout(() => {
       this._advanceTimer = null;
