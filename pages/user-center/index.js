@@ -36,7 +36,11 @@ Page({
             // Preserve older records even when their scoring version has no report.
           }
           const legacy = record.scoringVersion === 'legacy' || !!record.migrated;
-          return { id: record.id, testId: test.id, title, date: legacy ? '旧版导入 · 原测评时间未知' : formatDate(record.completedAt), legacy };
+          return {
+            id: record.id, testId: test.id, title,
+            date: legacy ? '旧版导入 · 原测评时间未知' : formatDate(record.completedAt),
+            legacy, premiumUnlocked: !!record.premiumUnlockedAt
+          };
         });
         return { id: test.id, name: test.name, icon: test.icon, count: history.length, latest: history[0], history };
       }).filter(group => group.count);

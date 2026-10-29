@@ -109,6 +109,18 @@ test('save rejects incomplete results and unknown tests without changing archive
   assert.deepEqual(archive.getArchive(), before);
 });
 
+test('premium unlock is record-specific, persistent and idempotent', () => {
+  const first = archive.saveResult(assessment('mbti', 'INTJ'));
+  const second = archive.saveResult(assessment('mbti', 'ENFP'));
+  const unlocked = archive.unlockPremium(first.id);
+  assert.ok(Number.isFinite(Date.parse(unlocked.premiumUnlockedAt)));
+  assert.equal(archive.getRecord(second.id).premiumUnlockedAt, undefined);
+  const originalTime = unlocked.premiumUnlockedAt;
+  assert.equal(archive.unlockPremium(first.id).premiumUnlockedAt, originalTime);
+  assert.equal(archive.getRecord(first.id).premiumUnlockedAt, originalTime);
+  assert.throws(() => archive.unlockPremium('missing-record'), /不在当前设备/);
+});
+
 test('species, variant and prose are deterministic for identical results and seed', () => {
   const base = { seed: 'device-a', records: [Object.assign(assessment(), { scoringVersion: '2' })] };
   const first = getTree(base, catalog);

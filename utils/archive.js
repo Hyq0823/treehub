@@ -25,6 +25,8 @@ function recordIsValid(record) {
   return plainObject(record) && typeof record.id === 'string' && !!record.id &&
     typeof record.testId === 'string' && !!record.testId &&
     typeof record.completedAt === 'string' && Number.isFinite(Date.parse(record.completedAt)) &&
+    (record.premiumUnlockedAt === undefined ||
+      typeof record.premiumUnlockedAt === 'string' && Number.isFinite(Date.parse(record.premiumUnlockedAt))) &&
     finiteScores(record.scores) && validType(record.resultType);
 }
 function validateArchive(archive) {
@@ -120,4 +122,20 @@ function getRecords(testId) {
 function getLatest(testId) { return getRecords(testId)[0] || null; }
 function getRecord(recordId) { return getArchive().records.find(record => record.id === recordId) || null; }
 
-module.exports = { STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord };
+function unlockPremium(recordId) {
+  if (typeof recordId !== 'string' || !recordId) {
+    throw storageError('没有找到要解锁的测评报告。');
+  }
+  const archive = getArchive();
+  const record = archive.records.find(item => item.id === recordId);
+  if (!record) throw storageError('这份测评记录不在当前设备。');
+  if (!record.premiumUnlockedAt) {
+    record.premiumUnlockedAt = new Date().toISOString();
+    write(archive);
+  }
+  return clone(record);
+}
+
+module.exports = {
+  STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord, unlockPremium
+};

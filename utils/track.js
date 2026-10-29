@@ -7,7 +7,9 @@ const EVENTS = {
   TEST_SUBMIT: 'test_submit',
   RESULT_VIEW: 'result_view',
   RESULT_VIEW_FOREIGN: 'result_view_foreign',
-  SHARE_TAP: 'share_tap'
+  SHARE_TAP: 'share_tap',
+  PREMIUM_AD_START: 'premium_ad_start',
+  PREMIUM_UNLOCK: 'premium_unlock'
 };
 
 const LOG_KEY = 'trackLog';

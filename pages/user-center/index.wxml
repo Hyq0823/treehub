@@ -54,10 +54,10 @@
     </view>
     <view wx:for="{{groups}}" wx:key="id" wx:for-item="group" class="record-group">
       <view class="group-heading"><view class="group-name">{{group.icon}} {{group.name}}</view><text class="record-count">{{group.count}} 次</text></view>
-      <view class="latest-record" bindtap="openRecord" data-id="{{group.id}}" data-record-id="{{group.latest.id}}" role="button"><view class="latest-label">最近一次</view><view class="latest-title">{{group.latest.title}}<text class="record-arrow">→</text></view><view class="record-date">{{group.latest.date}}</view></view>
+      <view class="latest-record" bindtap="openRecord" data-id="{{group.id}}" data-record-id="{{group.latest.id}}" role="button"><view class="latest-label">最近一次 <text wx:if="{{group.latest.premiumUnlocked}}" class="premium-history-badge">VIP 已解锁</text></view><view class="latest-title">{{group.latest.title}}<text class="record-arrow">→</text></view><view class="record-date">{{group.latest.date}}</view></view>
       <view class="group-actions"><button class="text-action" data-id="{{group.id}}" bindtap="retakeTest">再测一次 ↗</button><button class="text-action muted-action" data-id="{{group.id}}" bindtap="toggleHistory">{{expandedTests[group.id] ? '收起记录 −' : '全部记录 ＋'}}</button></view>
       <view wx:if="{{expandedTests[group.id]}}" class="record-history">
-        <view wx:for="{{group.history}}" wx:key="id" wx:for-item="record" class="history-row" data-id="{{group.id}}" data-record-id="{{record.id}}" bindtap="openRecord" role="button"><view class="history-info"><view class="history-title">{{record.title}}</view><view class="record-date">{{record.date}}</view></view><text class="record-arrow">→</text></view>
+        <view wx:for="{{group.history}}" wx:key="id" wx:for-item="record" class="history-row" data-id="{{group.id}}" data-record-id="{{record.id}}" bindtap="openRecord" role="button"><view class="history-info"><view class="history-title">{{record.title}} <text wx:if="{{record.premiumUnlocked}}" class="premium-history-badge">VIP</text></view><view class="record-date">{{record.date}}</view></view><text class="record-arrow">→</text></view>
       </view>
     </view>
     <button wx:if="{{groups.length}}" class="explore-more" bindtap="explore">去发现更多测试 →</button>

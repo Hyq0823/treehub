@@ -266,6 +266,17 @@ page {
   font-size: 21rpx;
   line-height: 1.6;
 }
+.premium-history-badge {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 3rpx 10rpx;
+  border-radius: 14rpx;
+  color: #8a6629;
+  background: #f5e5b8;
+  font-size: 18rpx;
+  line-height: 1.5;
+  vertical-align: middle;
+}
 .record-arrow {
   font-size: 28rpx;
   color: #7b967e;

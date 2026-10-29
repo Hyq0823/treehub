@@ -1,0 +1,193 @@
+const MBTI_DIMENSIONS = [
+  { id: 'EI', left: '内向 I', right: '外向 E' },
+  { id: 'SN', left: '直觉 N', right: '实感 S' },
+  { id: 'TF', left: '情感 F', right: '思考 T' },
+  { id: 'JP', left: '感知 P', right: '判断 J' }
+];
+
+const BIG_FIVE_LABELS = {
+  openness: ['开放性', '偏好熟悉', '探索新知'],
+  conscientiousness: ['尽责性', '灵活随性', '计划推进'],
+  extraversion: ['外向性', '独处充电', '互动充电'],
+  agreeableness: ['宜人性', '独立直接', '合作体谅'],
+  neuroticism: ['情绪敏感性', '情绪平稳', '感受敏锐']
+};
+
+const ENNEAGRAM_COPY = {
+  '1': ['原则与改进', '认真、负责，善于发现可以完善之处。', '标准过高时，容易把“还可以更好”变成持续的自我压力。', '每周刻意保留一件“做到够好就停下”的小事。'],
+  '2': ['连接与被需要', '能感知他人的需要，也愿意主动提供支持。', '忙着照顾别人时，自己的需求可能被放到最后。', '帮助别人之前，先问自己：我现在还有多少余量？'],
+  '3': ['目标与成就', '善于调动资源、推进目标并适应不同场合。', '过度追求成果时，可能忽略真实感受和休息。', '给一个目标补上过程指标，而不只看最终结果。'],
+  '4': ['独特与真实', '情感细腻，重视真实体验与个人表达。', '情绪强烈时，容易放大缺失感或与他人比较。', '把一种感受写成事实、解释、需要三句话。'],
+  '5': ['理解与边界', '观察深入，善于独立思考并积累知识。', '准备太久时，可能把行动推迟到“完全弄懂以后”。', '选一件事，用最小可行版本先行动十分钟。'],
+  '6': ['安全与责任', '能预见风险，重视承诺与可靠关系。', '不确定性增加时，可能反复验证或预想最坏结果。', '把担忧分为可行动、待观察、无法控制三类。'],
+  '7': ['可能与体验', '乐于探索新机会，能为环境带来活力。', '选项过多时，可能避开不舒服的感受或难以收尾。', '本周只选一个最重要的新想法完成闭环。'],
+  '8': ['力量与保护', '敢于行动、表达立场，也愿意保护重要的人。', '推进过快时，强度可能让他人来不及表达。', '重要对话中先问一个问题，再给自己的结论。'],
+  '9': ['和谐与接纳', '能看见不同立场，常为关系提供稳定空间。', '避免冲突时，自己的优先级可能变得模糊。', '每天明确说出一个小偏好，从低风险表达开始。']
+};
+
+const SBTI_GROUPS = [
+  ['自我感受', ['S1', 'S2', 'S3']],
+  ['关系安全', ['E1', 'E2', 'E3']],
+  ['信念取向', ['A1', 'A2', 'A3']],
+  ['行动方式', ['Ac1', 'Ac2', 'Ac3']],
+  ['社交距离', ['So1', 'So2', 'So3']]
+];
+
+function clamp(value) { return Math.max(0, Math.min(100, Math.round(value))); }
+
+function dimension(id, label, left, right, percent, detail) {
+  const normalized = clamp(percent);
+  return { id, label, left, right, percent: normalized, scoreText: `${normalized}%`, detail };
+}
+
+function mbtiDimensions(test, record) {
+  return MBTI_DIMENSIONS.map(item => {
+    const count = test.scoring.mapping.filter(mapping => mapping.dim === item.id).length;
+    const score = Number(record.scores[item.id]) || 0;
+    const percent = count ? (score / count + 1) * 50 : 50;
+    const preference = percent >= 50 ? item.right : item.left;
+    const strength = Math.abs(percent - 50) < 15 ? '偏好较均衡，可能随情境切换。' : `本次更靠近${preference}。`;
+    return dimension(item.id, `${item.left.slice(-1)} / ${item.right.slice(-1)}`, item.left, item.right, percent, strength);
+  });
+}
+
+function bigFiveDimensions(test, record) {
+  return test.scoring.dimensions.map(id => {
+    const count = test.scoring.mapping.filter(mapping => mapping.dim === id).length;
+    const mean = count ? record.scores[id] / count : 3;
+    const labels = BIG_FIVE_LABELS[id];
+    const percent = (mean - 1) / 4 * 100;
+    const level = mean > 3.4 ? '相对突出' : mean < 2.6 ? '相对收敛' : '处于中间区间';
+    return dimension(id, labels[0], labels[1], labels[2], percent, `本次均分 ${mean.toFixed(2)} / 5，${level}。`);
+  });
+}
+
+function enneagramDimensions(record) {
+  const values = Object.keys(ENNEAGRAM_COPY).map(id => Number(record.scores[id]) || 0);
+  const maximum = Math.max.apply(null, values.concat([1]));
+  return Object.keys(ENNEAGRAM_COPY).map(id => dimension(
+    id, `${id} 型`, '较少体现', '较多体现', (Number(record.scores[id]) || 0) / maximum * 100,
+    `本次选择中有 ${Number(record.scores[id]) || 0} 次体现该类型动机。`
+  ));
+}
+
+function sbtiDimensions(record) {
+  return SBTI_GROUPS.map(([label, ids], index) => {
+    const raw = ids.reduce((sum, id) => sum + (Number(record.scores[id]) || 0), 0);
+    const percent = (raw - 6) / 12 * 100;
+    return dimension(`sbti-${index}`, label, '低调表达', '鲜明表达', percent,
+      '由三个趣味子维度合并呈现，仅用于理解本次作答风格。');
+  });
+}
+
+function ieDimensions(record) {
+  const percent = (Number(record.scores.EI) || 0) / 15 * 100;
+  return [dimension('EI', '能量方向', '独处充电 I', '互动充电 E', percent,
+    Math.abs(percent - 50) < 15 ? '你的能量方式较均衡，情境影响可能更明显。' : '你在本次作答中呈现了较清晰的能量偏好。')];
+}
+
+function shadowDimensions(record) {
+  const raw = Number(record.scores.shadow) || 20;
+  return [dimension('shadow', '应对表达倾向', '更多内收', '更多外显', (raw - 20) / 20 * 100,
+    `本次原始分为 ${raw} / 40。它描述答题选择，不代表“阴影”好坏或临床程度。`)];
+}
+
+function strongest(dimensions) {
+  return dimensions.slice().sort((a, b) => Math.abs(b.percent - 50) - Math.abs(a.percent - 50))[0];
+}
+
+function buildMbti(test, record, base, dimensions) {
+  const type = record.resultType;
+  const energy = type[0] === 'E' ? '通过互动整理想法' : '先在内部形成想法，再选择合适的方式表达';
+  const information = type[1] === 'N' ? '容易先看到关联、趋势与可能性' : '更信赖具体信息、经验和可验证的细节';
+  const decision = type[2] === 'F' ? '做决定时会把价值与人的感受纳入考虑' : '做决定时偏好逻辑、标准和一致性';
+  const pace = type[3] === 'P' ? '保留选择空间，在变化中调整' : '建立结构与计划，倾向先把事情确定下来';
+  return {
+    tagline: `${type} 的四维偏好，不止一个类型标签。`, dimensions,
+    sections: [
+      { title: '核心模式', content: `${base.description}${energy}，${information}。` },
+      { title: '优势如何发挥', content: `你的组合优势常出现在：${decision}，同时${pace}。把这种偏好放到合适场景，会比追求“像某一类型”更有价值。` },
+      { title: '可能的盲区', content: `${base.advice} 维度越接近中间，越说明你可能根据情境切换；维度越靠两端，越需要主动借用另一端的视角。` },
+      { title: '关系中的你', content: `${energy}；在重要关系里，先说明自己的沟通节奏和做决定的依据，能减少“对方应该懂”的误会。` }
+    ],
+    actions: ['遇到重要决定时，写下事实、可能性、逻辑与感受各一条。', '观察一周：什么环境最让你恢复精力？', '选一个最强偏好的相反动作，做一次低风险尝试。']
+  };
+}
+
+function buildEnneagram(record, base, dimensions) {
+  const copy = ENNEAGRAM_COPY[record.resultType] || ENNEAGRAM_COPY['9'];
+  const ranked = dimensions.slice().sort((a, b) => b.percent - a.percent).slice(0, 3).map(item => item.label).join('、');
+  return {
+    tagline: `从主要动机出发，看见行为背后的“为什么”。`, dimensions,
+    sections: [
+      { title: '核心动机', content: `${copy[0]}：${base.description}` },
+      { title: '自然优势', content: copy[1] },
+      { title: '压力下的提醒', content: copy[2] },
+      { title: '相邻倾向', content: `本次得分较突出的三个方向是 ${ranked}。九型更适合用来观察动机，不宜只凭最高分给自己定型。` }
+    ],
+    actions: [copy[3], '记录一次强烈反应：发生了什么、我在保护什么？', '下次复测时，对比最高三项的顺序是否发生变化。']
+  };
+}
+
+function buildBigFive(base, dimensions) {
+  const sorted = dimensions.slice().sort((a, b) => Math.abs(b.percent - 50) - Math.abs(a.percent - 50));
+  return {
+    tagline: '五个连续维度，呈现比单一标签更完整的你。', dimensions,
+    sections: [
+      { title: '画像主线', content: `${sorted[0].label}与${sorted[1].label}是本次离中点较远的维度，最能区分你此刻的自评倾向。` },
+      { title: '优势如何发挥', content: `将${sorted[0].right}或${sorted[0].left}视为一种可调用的偏好，而不是固定身份。合适的环境会放大优势。` },
+      { title: '平衡与盲区', content: `${base.advice} 分数靠近中间并不代表“没有特点”，通常意味着能随场景调整。` },
+      { title: '复测怎么看', content: '优先比较同一维度的变化，并结合近期工作、关系与压力情境理解，不把一次波动当成人格彻底改变。' }
+    ],
+    actions: ['挑一个最高维度，写下它最近帮助你的一件事。', '挑一个最低维度，为它设计一个十分钟的小练习。', '30 天后在相似状态下复测，观察变化而非追求高分。']
+  };
+}
+
+function buildSimple(test, record, base, dimensions) {
+  const lead = strongest(dimensions);
+  const playful = test.id === 'sbti';
+  const shadow = test.id === 'shadow';
+  return {
+    tagline: playful ? '把趣味标签拆开，看见构成它的五组作答风格。' :
+      shadow ? '观察你面对情绪、压力和冲突时的回答方式。' : '从能量来源出发，理解你的社交与独处节奏。',
+    dimensions,
+    sections: [
+      { title: '本次主线', content: `${base.description} 在当前维度中，“${lead.label}”离中点相对更远。` },
+      { title: '可以保留的优势', content: playful ? '趣味结果的价值在于提供谈论自己的入口，而不是定义真实能力。' : '知道自己的自然倾向，可以更早安排恢复方式与沟通边界。' },
+      { title: '需要留意的时刻', content: shadow ? '这些选择不等于心理问题。如果某种情绪持续影响生活，优先寻求可信赖的人或专业支持。' : base.advice },
+      { title: '关系中的应用', content: '把需要说成具体请求，例如“我想先安静半小时，再继续聊”，通常比让对方猜测更有效。' }
+    ],
+    actions: ['记录一个最有共鸣的维度，以及它出现的具体场景。', '尝试一次与惯常偏好相反的小行动。', '复测时先回看这次记录，再比较变化。']
+  };
+}
+
+function buildDeepReport(test, record, base) {
+  if (!test || !record || !base || record.scoringVersion !== '2') return null;
+  let dimensions;
+  if (test.id === 'mbti') dimensions = mbtiDimensions(test, record);
+  else if (test.id === 'bigfive') dimensions = bigFiveDimensions(test, record);
+  else if (test.id === 'enneagram') dimensions = enneagramDimensions(record);
+  else if (test.id === 'sbti') dimensions = sbtiDimensions(record);
+  else if (test.id === 'ie') dimensions = ieDimensions(record);
+  else if (test.id === 'shadow') dimensions = shadowDimensions(record);
+  else return null;
+
+  let report;
+  if (test.id === 'mbti') report = buildMbti(test, record, base, dimensions);
+  else if (test.id === 'enneagram') report = buildEnneagram(record, base, dimensions);
+  else if (test.id === 'bigfive') report = buildBigFive(base, dimensions);
+  else report = buildSimple(test, record, base, dimensions);
+  return Object.assign(report, {
+    title: 'VIP 深度报告',
+    note: '深度解读依据本次自评生成，用于自我探索，不构成心理诊断或能力评价。'
+  });
+}
+
+function basicDimensions(result) {
+  if (!result || !Array.isArray(result.dimensions)) return [];
+  return result.dimensions.slice().sort((a, b) =>
+    Math.abs(Number(b.percent) - 50) - Math.abs(Number(a.percent) - 50)
+  ).slice(0, 2);
+}
+
+module.exports = { buildDeepReport, basicDimensions };

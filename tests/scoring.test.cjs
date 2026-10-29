@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const catalog = require('../data/tests/index.js').default;
 const { scoreTest, resolveReport } = require('../utils/scoring.js');
+const { buildDeepReport, basicDimensions } = require('../utils/deep-report.js');
 const get = id => catalog.find(item => item.id === id);
 function result(id, choice) {
   const selected = get(id);
@@ -81,7 +82,7 @@ test('unanswered or duplicate/missing question sets cannot produce a result', ()
   assert.throws(() => scoreTest(selected, duplicate, selected.questions.map(() => 0)), /不一致/);
 });
 
-function loadPage(relative, archiveOverrides = {}) {
+function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   const absolute = path.join(__dirname, '..', relative);
   const nativeRequire = createRequire(absolute);
   let page;
@@ -92,10 +93,10 @@ function loadPage(relative, archiveOverrides = {}) {
     saveResult: input => { calls.saved.push(input); return Object.assign({ id: 'record-1' }, input); },
     getRecord: () => null, getLatest: () => null
   }, archiveOverrides);
-  const wx = {
+  const wx = Object.assign({
     redirectTo: value => calls.redirect.push(value), switchTab: value => calls.switch.push(value),
     showToast: value => calls.toast.push(value), showModal: value => calls.modal.push(value)
-  };
+  }, wxOverrides);
   vm.runInNewContext(fs.readFileSync(absolute, 'utf8'), {
     Page: value => { page = value; }, wx, console,
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
@@ -196,4 +197,58 @@ test('migrated report labels original assessment time as unknown', () => {
   assert.equal(page.data.state, 'ready');
   assert.equal(page.data.savedAt, '旧版导入 · 原测评时间未知');
   assert.equal(page.data.legacy, true);
+});
+
+test('all current tests produce a distinct deep report with useful dimensions and actions', () => {
+  const expectedDimensions = { sbti: 5, mbti: 4, enneagram: 9, bigfive: 5, shadow: 1, ie: 1 };
+  for (const selected of catalog) {
+    const scored = result(selected.id, 0);
+    const base = resolveReport(selected, scored);
+    const deep = buildDeepReport(selected, scored, base);
+    assert.equal(deep.dimensions.length, expectedDimensions[selected.id], selected.id);
+    assert.ok(deep.sections.length >= 4, selected.id);
+    assert.equal(deep.actions.length, 3, selected.id);
+    assert.ok(deep.dimensions.every(item => item.percent >= 0 && item.percent <= 100), selected.id);
+  }
+  const bigFiveBase = resolveReport(get('bigfive'), result('bigfive', 0));
+  assert.equal(basicDimensions(bigFiveBase).length, 2);
+});
+
+test('legacy reports do not synthesize a deep report', () => {
+  const legacy = Object.assign(result('sbti', 0), { scoringVersion: 'legacy' });
+  assert.equal(buildDeepReport(get('sbti'), legacy, resolveReport(get('sbti'), legacy)), null);
+});
+
+test('rewarded video unlocks only the exact report after a completed view', () => {
+  const record = Object.assign(result('ie', 0), {
+    id: 'record-vip', completedAt: new Date().toISOString()
+  });
+  const handlers = {};
+  const videoAd = {
+    onLoad: callback => { handlers.load = callback; },
+    onError: callback => { handlers.error = callback; },
+    onClose: callback => { handlers.close = callback; },
+    offLoad() {}, offError() {}, offClose() {}, destroy() {},
+    show: () => Promise.resolve(), load: () => Promise.resolve()
+  };
+  let unlockCount = 0;
+  const { page } = loadPage('pages/test-result/index.js', {
+    getRecord: () => record,
+    unlockPremium: id => {
+      unlockCount++;
+      assert.equal(id, record.id);
+      return Object.assign({}, record, { premiumUnlockedAt: '2026-10-29T01:00:00.000Z' });
+    }
+  }, { createRewardedVideoAd: ({ adUnitId }) => {
+    assert.equal(adUnitId, 'adunit-c4b863e073c10066');
+    return videoAd;
+  } });
+  page.onLoad({ id: 'ie', recordId: record.id });
+  assert.equal(page.data.premiumUnlocked, false);
+  handlers.close({ isEnded: false });
+  assert.equal(unlockCount, 0);
+  assert.equal(page.data.premiumUnlocked, false);
+  handlers.close({ isEnded: true });
+  assert.equal(unlockCount, 1);
+  assert.equal(page.data.premiumUnlocked, true);
 });

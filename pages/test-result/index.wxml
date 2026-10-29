@@ -18,11 +18,12 @@
       <view class="saved-badge">已收集 · {{savedAt}}</view>
     </view>
     <view wx:if="{{legacy}}" class="legacy-note">这是旧版本记录，不用于新版人格树匹配。重新测试会保留这份历史记录。</view>
-    <view class="content-card">
+    <view class="report-tier-label"><text>基础报告</text><text>完成测试即可查看</text></view>
+    <view class="content-card basic-report-card">
       <view class="section-title">这一次，看见自己</view>
       <view class="body-copy">{{result.description}}</view>
-      <view wx:if="{{result.dimensions}}" class="dimensions">
-        <view class="dimension" wx:for="{{result.dimensions}}" wx:key="id">
+      <view wx:if="{{basicDimensions.length}}" class="dimensions basic-dimensions">
+        <view class="dimension" wx:for="{{basicDimensions}}" wx:key="id">
           <view class="dimension-heading"><text>{{item.label}}</text><text>{{item.score}} / 5 · {{item.level}}</text></view>
           <view class="dimension-track"><view class="dimension-fill" style="width: {{item.percent}}%"></view></view>
           <view class="dimension-summary">{{item.summary}}</view>
@@ -30,6 +31,56 @@
       </view>
       <view class="advice-box"><view class="advice-label">给自己的小提醒</view>{{result.advice}}</view>
       <view wx:if="{{result.note}}" class="report-note">{{result.note}}</view>
+    </view>
+
+    <view wx:if="{{premiumAvailable && !premiumUnlocked}}" class="premium-lock-card">
+      <view class="premium-kicker"><text class="premium-crown">✦</text> VIP 深度版</view>
+      <view class="premium-title">不止看见结果，更看懂自己</view>
+      <view class="premium-subtitle">{{deepReport.tagline}}</view>
+      <view class="premium-preview-grid">
+        <view><text>完整维度</text><text>全部倾向与强度</text></view>
+        <view><text>优势盲区</text><text>适用场景与提醒</text></view>
+        <view><text>关系模式</text><text>沟通与边界建议</text></view>
+        <view><text>行动方案</text><text>3 个具体练习</text></view>
+      </view>
+      <button class="premium-unlock-button" bindtap="showPremiumAd" loading="{{adWatching}}" disabled="{{adWatching}}">
+        {{adWatching ? '正在打开视频…' : '看视频，永久解锁本次报告'}}
+      </button>
+      <view class="premium-rule">完整观看 1 次激励视频 · 仅解锁当前这次测评 · 以后可直接回看</view>
+      <view wx:if="{{adError}}" class="ad-error">{{adError}}</view>
+    </view>
+
+    <view wx:if="{{premiumAvailable && premiumUnlocked}}" class="premium-report">
+      <view class="premium-report-header">
+        <view class="premium-kicker"><text class="premium-crown">✦</text> VIP 深度版 · 已解锁</view>
+        <view class="premium-title">{{deepReport.title}}</view>
+        <view class="premium-subtitle">{{deepReport.tagline}}</view>
+        <view class="premium-unlocked-at">解锁于 {{premiumUnlockedAt}}</view>
+      </view>
+
+      <view class="premium-section">
+        <view class="premium-section-title">完整维度画像</view>
+        <view class="deep-dimension" wx:for="{{deepReport.dimensions}}" wx:key="id">
+          <view class="deep-dimension-heading"><text>{{item.label}}</text><text>{{item.scoreText}}</text></view>
+          <view class="deep-poles"><text>{{item.left}}</text><text>{{item.right}}</text></view>
+          <view class="deep-track"><view class="deep-midline"></view><view class="deep-fill" style="width: {{item.percent}}%"></view><view class="deep-dot" style="left: {{item.percent}}%"></view></view>
+          <view class="deep-detail">{{item.detail}}</view>
+        </view>
+      </view>
+
+      <view class="premium-section insight-section">
+        <view class="premium-section-title">你的深度解读</view>
+        <view class="insight-card" wx:for="{{deepReport.sections}}" wx:key="title">
+          <view class="insight-index">0{{index + 1}}</view>
+          <view><view class="insight-title">{{item.title}}</view><view class="insight-content">{{item.content}}</view></view>
+        </view>
+      </view>
+
+      <view class="premium-section action-section">
+        <view class="premium-section-title">接下来可以这样做</view>
+        <view class="action-item" wx:for="{{deepReport.actions}}" wx:key="*this"><text>{{index + 1}}</text><view>{{item}}</view></view>
+      </view>
+      <view class="premium-note">{{deepReport.note}}</view>
     </view>
     <view class="archive-link" bindtap="goToArchive" hover-class="pressed">
       <view><view class="archive-title">你的人格树，留下了新记录</view><view class="archive-subtitle">查看成长档案与历次测评</view></view>

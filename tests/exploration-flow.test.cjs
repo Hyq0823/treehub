@@ -57,6 +57,7 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(hall.data.tree.stage.id, 'sprout');
   assert.equal(hall.data.cards.find(c => c.id === 'mbti').collected, true);
   const original = structuredClone(first.treeSnapshot);
+  archive.unlockPremium(first.id);
   ['ie', 'enneagram', 'bigfive', 'shadow'].forEach(id => complete(id));
   hall.onShow();
   assert.equal(hall.data.tree.stage.id, 'growing');
@@ -74,6 +75,7 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(personal.data.totalCount, 6);
   assert.equal(personal.data.repeatCount, 1);
   assert.equal(personal.data.groups.find(g => g.id === 'mbti').count, 2);
+  assert.equal(personal.data.groups.find(g => g.id === 'mbti').history[1].premiumUnlocked, true);
   const journal = page('pages/tree-history'); journal.onShow();
   assert.equal(journal.data.snapshots.length, 6);
   assert.equal(journal.data.snapshots[journal.data.snapshots.length - 1].tree.stage.id, 'sprout');
