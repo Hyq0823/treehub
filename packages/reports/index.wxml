@@ -52,10 +52,16 @@
 
     <view wx:if="{{premiumAvailable && premiumUnlocked}}" class="premium-report">
       <view class="premium-report-header">
-        <view class="premium-kicker"><text class="premium-crown">✦</text> VIP 深度版 · 已解锁</view>
+        <view class="premium-kicker"><text class="premium-crown">✦</text> VIP 深度版 · {{premiumSavePending ? '待保存' : '已解锁'}}</view>
         <view class="premium-title">{{deepReport.title}}</view>
         <view class="premium-subtitle">{{deepReport.tagline}}</view>
         <view class="premium-unlocked-at">解锁于 {{premiumUnlockedAt}}</view>
+      </view>
+
+      <view wx:if="{{premiumSavePending}}" class="premium-save-banner">
+        <view class="premium-save-title">视频已看完，当前可查看完整报告</view>
+        <view class="premium-save-copy">{{premiumSaveError || '解锁状态正在等待保存。'}}恢复存储空间后可直接重试，无需重新观看广告。</view>
+        <button class="premium-save-button" bindtap="retryPremiumSave" loading="{{premiumSaving}}" disabled="{{premiumSaving}}">{{premiumSaving ? '正在保存…' : '重试保存解锁状态'}}</button>
       </view>
 
       <view class="premium-section">

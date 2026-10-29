@@ -3,6 +3,7 @@ const archive = require('../../utils/archive.js');
 const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
 const { buildDeepReport, basicDimensions } = require('../../utils/deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('../../data/ads.js');
+const premiumAccess = require('../../utils/premium-access.js');
 
 function formatTime(value) {
   const date = new Date(value);
@@ -17,9 +18,12 @@ Page({
     stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦',
     basicDimensions: [], deepReport: null, premiumAvailable: false,
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
-    adLoading: false, adWatching: false, adError: ''
+    adLoading: false, adWatching: false, adError: '',
+    premiumSavePending: false, premiumSaving: false, premiumSaveError: ''
   },
   onLoad(options) {
+    this._disposed = false;
+    this._adAttempt = null;
     try {
       const imported = require('../../data/tests/index.js');
       const test = (imported.default || imported).find(item => item.id === options.id);
@@ -46,6 +50,7 @@ Page({
         return;
       }
       const deepReport = buildDeepReport(test, record, result);
+      const pendingGrant = !record.premiumUnlockedAt && premiumAccess.getPendingGrant(record.id);
       this.setData({
         record: { id: record.id, treeSnapshot: record.treeSnapshot || null },
         result, savedAt: record.migrated || record.scoringVersion === 'legacy'
@@ -53,20 +58,26 @@ Page({
         legacy: record.scoringVersion !== SCORING_VERSION,
         basicDimensions: basicDimensions(result), deepReport,
         premiumAvailable: !!deepReport,
-        premiumUnlocked: !!record.premiumUnlockedAt,
-        premiumUnlockedAt: record.premiumUnlockedAt ? formatTime(record.premiumUnlockedAt) : '',
+        premiumUnlocked: !!record.premiumUnlockedAt || !!pendingGrant,
+        premiumUnlockedAt: record.premiumUnlockedAt ? formatTime(record.premiumUnlockedAt) :
+          pendingGrant ? formatTime(pendingGrant.completedAt) : '',
+        premiumSavePending: !!pendingGrant,
         state: 'ready'
       });
-      if (deepReport && !record.premiumUnlockedAt) this.setupRewardedVideoAd();
+      if (deepReport && !record.premiumUnlockedAt && !pendingGrant) this.setupRewardedVideoAd();
       report(EVENTS.RESULT_VIEW, { testId: test.id, resultType: record.resultType });
     } catch (error) {
       this.showState('error', '暂时无法读取档案', error.message || '请稍后重试，设备中的记录不会被覆盖。');
     }
   },
+  onShow() {
+    if (!this._disposed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
+  },
   showState(state, title, message) {
     this.setData({ state, stateTitle: title, stateMessage: message });
   },
   setupRewardedVideoAd() {
+    if (this._disposed) return;
     if (!wx.createRewardedVideoAd || this._videoAd) {
       if (!wx.createRewardedVideoAd) {
         this.setData({ adError: '当前微信版本暂不支持激励视频，请升级微信后重试。' });
@@ -76,18 +87,26 @@ Page({
     try {
       const videoAd = wx.createRewardedVideoAd({ adUnitId: REWARDED_AD_UNIT_ID });
       this._videoAd = videoAd;
-      this._onAdLoad = () => this.setData({ adReady: true, adLoading: false, adError: '' });
+      this._onAdLoad = () => {
+        if (!this._disposed) this.setData({ adReady: true, adLoading: false, adError: '' });
+      };
       this._onAdError = error => {
+        if (this._disposed) return;
         console.error('激励视频广告加载失败', error);
         this.setData({
-          adReady: false, adLoading: false, adWatching: false,
+          adReady: false,
           adError: '广告暂时没有准备好，请稍后重试。'
         });
+        // A failed initial show can still be retried by load(). Keep that attempt locked.
+        if (!this._adAttempt) this.setData({ adLoading: false, adWatching: false });
       };
       this._onAdClose = result => {
+        const attempt = this._adAttempt;
+        if (!this.isCurrentAdAttempt(attempt)) return;
+        this._adAttempt = null;
         this.setData({ adWatching: false, adLoading: false });
-        if (result && result.isEnded) {
-          this.completePremiumUnlock();
+        if (result && result.isEnded === true) {
+          this.completePremiumUnlock(attempt.recordId);
         } else {
           wx.showToast({ title: '完整看完视频即可解锁', icon: 'none' });
         }
@@ -100,8 +119,16 @@ Page({
       this.setData({ adError: '广告组件初始化失败，请稍后重试。' });
     }
   },
-  showPremiumAd() {
-    if (this.data.premiumUnlocked || this.data.adWatching) return;
+  isCurrentAdAttempt(attempt) {
+    return !!attempt && !this._disposed && this._adAttempt === attempt && this._videoAd === attempt.ad;
+  },
+  async showPremiumAd() {
+    if (this._disposed || !this.data.premiumAvailable || this.data.adWatching) return;
+    if (this.data.premiumSavePending) {
+      this.retryPremiumSave();
+      return;
+    }
+    if (this.data.premiumUnlocked) return;
     if (!this._videoAd) {
       this.setupRewardedVideoAd();
       if (!this._videoAd) {
@@ -113,46 +140,70 @@ Page({
         return;
       }
     }
+    const videoAd = this._videoAd;
+    const attempt = { ad: videoAd, recordId: this.data.record.id };
+    this._adAttempt = attempt;
     this.setData({ adWatching: true, adLoading: true, adError: '' });
     report(EVENTS.PREMIUM_AD_START, { testId: this.data.test.id, recordId: this.data.record.id });
-    this._videoAd.show().catch(() => this._videoAd.load()
-      .then(() => this._videoAd.show())
-      .catch(error => {
-        console.error('激励视频广告显示失败', error);
-        this.setData({
-          adReady: false, adLoading: false, adWatching: false,
-          adError: '广告暂时无法播放，请稍后再试。'
-        });
-        wx.showToast({ title: '广告暂时无法播放', icon: 'none' });
-      }));
-  },
-  completePremiumUnlock() {
     try {
-      const updated = archive.unlockPremium(this.data.record.id);
+      try {
+        await videoAd.show();
+      } catch (error) {
+        if (!this.isCurrentAdAttempt(attempt)) return;
+        await videoAd.load();
+        if (!this.isCurrentAdAttempt(attempt)) return;
+        await videoAd.show();
+      }
+    } catch (error) {
+      if (!this.isCurrentAdAttempt(attempt)) return;
+      this._adAttempt = null;
+      console.error('激励视频广告显示失败', error);
+      this.setData({
+        adReady: false, adLoading: false, adWatching: false,
+        adError: '广告暂时无法播放，请稍后再试。'
+      });
+      wx.showToast({ title: '广告暂时无法播放', icon: 'none' });
+    }
+  },
+  completePremiumUnlock(recordId) {
+    if (this._disposed || !this.data.record || recordId !== this.data.record.id) return;
+    const receipt = premiumAccess.rememberCompletedGrant(recordId);
+    this.setData({
+      premiumUnlocked: true, premiumSavePending: true,
+      premiumUnlockedAt: formatTime(receipt.completedAt), adError: ''
+    });
+    this.retryPremiumSave();
+  },
+  retryPremiumSave(options = {}) {
+    if (this._disposed || !this.data.premiumSavePending || this.data.premiumSaving) return;
+    this.setData({ premiumSaving: true });
+    try {
+      const updated = premiumAccess.persistPendingGrant(this.data.record.id);
       this.setData({
         premiumUnlocked: true,
         premiumUnlockedAt: formatTime(updated.premiumUnlockedAt),
+        premiumSavePending: false, premiumSaving: false, premiumSaveError: '',
         adReady: false, adLoading: false, adError: ''
       });
       report(EVENTS.PREMIUM_UNLOCK, { testId: this.data.test.id, recordId: this.data.record.id });
-      wx.showToast({ title: '深度报告已永久解锁', icon: 'success' });
+      if (!options.silent) wx.showToast({ title: '深度报告已保存', icon: 'success' });
     } catch (error) {
-      const temporaryTime = formatTime(new Date().toISOString());
-      this.setData({ premiumUnlocked: true, premiumUnlockedAt: `${temporaryTime} · 临时` });
-      wx.showModal({
-        title: '已临时解锁',
-        content: `${error.message || '本地存储空间不足。'}当前页面可以查看深度报告，但退出后可能无法保留解锁状态。`,
-        showCancel: false
+      this.setData({
+        premiumSaving: false,
+        premiumSaveError: error.message || '存储空间暂时不可用，请恢复后重试保存。'
       });
     }
   },
   onUnload() {
-    if (!this._videoAd) return;
-    if (this._videoAd.offLoad && this._onAdLoad) this._videoAd.offLoad(this._onAdLoad);
-    if (this._videoAd.offError && this._onAdError) this._videoAd.offError(this._onAdError);
-    if (this._videoAd.offClose && this._onAdClose) this._videoAd.offClose(this._onAdClose);
-    if (this._videoAd.destroy) this._videoAd.destroy();
+    this._disposed = true;
+    this._adAttempt = null;
+    const videoAd = this._videoAd;
     this._videoAd = null;
+    if (!videoAd) return;
+    if (videoAd.offLoad && this._onAdLoad) videoAd.offLoad(this._onAdLoad);
+    if (videoAd.offError && this._onAdError) videoAd.offError(this._onAdError);
+    if (videoAd.offClose && this._onAdClose) videoAd.offClose(this._onAdClose);
+    if (videoAd.destroy) videoAd.destroy();
   },
   retakeTest() {
     if (!this.data.test.id) return;

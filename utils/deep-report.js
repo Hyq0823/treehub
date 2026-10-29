@@ -13,6 +13,29 @@ const BIG_FIVE_LABELS = {
   neuroticism: ['情绪敏感性', '情绪平稳', '感受敏锐']
 };
 
+const BIG_FIVE_GUIDANCE = {
+  openness: {
+    low: ['偏好熟悉', '你可能更愿意从已有经验出发，在稳定做法中积累可靠性。', '遇到陌生方案时，留意是否在了解之前就把它排除。', '选一件熟悉的小事，只改变其中一个步骤，观察实际感受。'],
+    high: ['探索新知', '你可能更容易被新想法吸引，适合在探索和联想中寻找可能性。', '新鲜感增加时，留意是否忽略了验证细节和完成收尾。', '为一个新想法安排十分钟小实验，先验证再扩大投入。']
+  },
+  conscientiousness: {
+    low: ['灵活随性', '你可能更能容纳临时调整，在开放的节奏中找到自己的做法。', '任务需要持续推进时，留意是否缺少可见的下一步。', '为一件正在拖延的小事写下唯一的下一步，并安排开始时间。'],
+    high: ['计划推进', '你可能更习惯用计划和承诺组织行动，在明确目标下持续推进。', '计划被打断时，留意是否对自己或他人提出过紧的要求。', '给今天的计划留一段缓冲时间，允许根据新信息调整。']
+  },
+  extraversion: {
+    low: ['独处充电', '你可能更习惯在安静空间里恢复精力，适合给思考留出连续时间。', '需要合作时，留意是否让别人只能猜测你的想法。', '重要讨论前写下一个观点，选择适合自己的方式表达。'],
+    high: ['互动充电', '你可能更容易通过互动激发想法，在交流与协作中获得动力。', '互动密集时，留意是否挤掉了自己的恢复时间或别人的表达空间。', '下一次讨论中先听完对方，再留十分钟独处整理想法。']
+  },
+  agreeableness: {
+    low: ['独立直接', '你可能更愿意明确表达立场，在需要辨别分歧时保持独立判断。', '表达不同意见时，留意语气是否掩盖了你真正想解决的问题。', '提出一个不同意见时，先复述对方关心的事，再说明自己的依据。'],
+    high: ['合作体谅', '你可能较容易照顾不同感受，在协作中寻找共同点。', '维护关系时，留意是否把自己的需要一再放到最后。', '在一个低风险场景里，明确说出自己的偏好或可接受的边界。']
+  },
+  neuroticism: {
+    low: ['情绪平稳', '你在这次自评中呈现较平稳的情绪体验，可能更容易在压力情境里保持节奏。', '感受较平稳并不等于没有压力，仍值得留意身体信号和他人的感受。', '给今天的身体状态和情绪各写一个词，检查是否有被忽略的需要。'],
+    high: ['感受敏锐', '你在这次自评中更容易注意到情绪和压力信号，这些线索可以帮助你及早安排支持。', '感受强烈时，留意是否把预想的风险当成了已经发生的事实。', '把一次担忧分成已知事实、自己的解释和眼下可做的一步。']
+  }
+};
+
 const ENNEAGRAM_COPY = {
   '1': ['原则与改进', '认真、负责，善于发现可以完善之处。', '标准过高时，容易把“还可以更好”变成持续的自我压力。', '每周刻意保留一件“做到够好就停下”的小事。'],
   '2': ['连接与被需要', '能感知他人的需要，也愿意主动提供支持。', '忙着照顾别人时，自己的需求可能被放到最后。', '帮助别人之前，先问自己：我现在还有多少余量？'],
@@ -130,16 +153,62 @@ function buildEnneagram(record, base, dimensions) {
 }
 
 function buildBigFive(base, dimensions) {
-  const sorted = dimensions.slice().sort((a, b) => Math.abs(b.percent - 50) - Math.abs(a.percent - 50));
+  // The middle band is a presentation rule for these self-ratings, not a norm or
+  // diagnostic threshold. A balanced profile must not acquire an arbitrary leader.
+  const directions = dimensions.map(item => ({
+    dimension: item,
+    distance: Math.abs(item.percent - 50),
+    side: item.percent > 60 ? 'high' : item.percent < 40 ? 'low' : 'middle'
+  }));
+  const salient = directions.filter(item => item.side !== 'middle');
+  const maxDistance = Math.max.apply(null, salient.map(item => item.distance).concat([0]));
+  const leaders = salient.filter(item => item.distance === maxDistance);
+  const guidance = leaders.map(item => ({
+    label: item.dimension.label,
+    copy: BIG_FIVE_GUIDANCE[item.dimension.id][item.side]
+  }));
+  const exactMiddle = directions.every(item => item.distance === 0);
+  const main = !leaders.length
+    ? exactMiddle
+      ? '本次五个维度都位于量表中点，没有明显偏向某一端。可以结合具体场景，继续观察自己的选择。'
+      : '本次五个维度都接近量表中间区间，没有明显偏离中点的主导维度。细小差异不需要被放大成固定标签。'
+    : `本次偏离量表中点${leaders.length > 1 ? '同样明显、并列呈现' : '最明显'}的方向是：${guidance.map(item => `${item.label}更靠近「${item.copy[0]}」`).join('；')}。这些是本次自评倾向，没有高低优劣之分。`;
+  const strength = guidance.length
+    ? guidance.map(item => `${item.label}：${item.copy[1]}`).join(' ')
+    : '中间位置没有指向一种固定优势。试着观察自己在哪些场景偏好稳定，在哪些场景愿意探索，再选择适合当时任务的做法。';
+  const caution = guidance.length
+    ? guidance.map(item => `${item.label}：${item.copy[2]}`).join(' ')
+    : '不要为了得到更鲜明的画像而刻意选择极端答案。保持真实作答，比追求高分或低分更有参考价值。';
+  const energy = directions.find(item => item.dimension.id === 'extraversion');
+  const cooperation = directions.find(item => item.dimension.id === 'agreeableness');
+  const energyCopy = energy.side === 'low'
+    ? '你更靠近独处充电，可以提前说明自己需要安静思考的时间。'
+    : energy.side === 'high'
+      ? '你更靠近互动充电，可以主动安排交流，同时给对方留出回答空间。'
+      : '你的能量偏好接近中间，可以直接商量当下更需要交流还是独处。';
+  const cooperationCopy = cooperation.side === 'low'
+    ? '表达分歧时，把判断依据和对方的感受一起说清楚。'
+    : cooperation.side === 'high'
+      ? '照顾他人时，也明确表达自己的需要和边界。'
+      : '遇到分歧时，先说明双方各自在意什么，再决定如何协作。';
   return {
     tagline: '五个连续维度，呈现比单一标签更完整的你。', dimensions,
     sections: [
-      { title: '画像主线', content: `${sorted[0].label}与${sorted[1].label}是本次离中点较远的维度，最能区分你此刻的自评倾向。` },
-      { title: '优势如何发挥', content: `将${sorted[0].right}或${sorted[0].left}视为一种可调用的偏好，而不是固定身份。合适的环境会放大优势。` },
-      { title: '平衡与盲区', content: `${base.advice} 分数靠近中间并不代表“没有特点”，通常意味着能随场景调整。` },
+      { title: '画像主线', content: main },
+      { title: '优势如何发挥', content: strength },
+      { title: '平衡与盲区', content: caution },
+      { title: '关系中的你', content: `${energyCopy}${cooperationCopy}` },
       { title: '复测怎么看', content: '优先比较同一维度的变化，并结合近期工作、关系与压力情境理解，不把一次波动当成人格彻底改变。' }
     ],
-    actions: ['挑一个最高维度，写下它最近帮助你的一件事。', '挑一个最低维度，为它设计一个十分钟的小练习。', '30 天后在相似状态下复测，观察变化而非追求高分。']
+    actions: [
+      guidance.length === 1 ? guidance[0].copy[3]
+        : guidance.length > 1
+          ? `从${guidance.map(item => item.label).join('、')}这些并列方向中任选一项，记录它最近出现的一次具体场景。`
+          : '记录同一周里两次不同情境的选择，看看自己如何随场景调整。',
+      guidance.length ? '选一个上述提醒对应的小场景，尝试一次新的应对方式，再记录感受。'
+        : '下次作答时依据最近的具体经历选择，不必为了更鲜明的结果改变答案。',
+      '30 天后在相似状态下复测，观察同一维度的变化，而非追求高分。'
+    ]
   };
 }
 

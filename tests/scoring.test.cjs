@@ -93,6 +93,20 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
     saveResult: input => { calls.saved.push(input); return Object.assign({ id: 'record-1' }, input); },
     getRecord: () => null, getLatest: () => null
   }, archiveOverrides);
+  const pendingGrants = new Map();
+  const premiumAccess = {
+    getPendingGrant: id => pendingGrants.get(id) || null,
+    rememberCompletedGrant: id => {
+      const receipt = { recordId: id, completedAt: new Date().toISOString() };
+      pendingGrants.set(id, receipt);
+      return receipt;
+    },
+    persistPendingGrant: id => {
+      const record = archive.unlockPremium(id);
+      pendingGrants.delete(id);
+      return record;
+    }
+  };
   const wx = Object.assign({
     redirectTo: value => calls.redirect.push(value), switchTab: value => calls.switch.push(value),
     showToast: value => calls.toast.push(value), showModal: value => calls.modal.push(value)
@@ -101,7 +115,9 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
     Page: value => { page = value; }, wx, console,
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
     clearTimeout: id => timers.delete(id),
-    require: name => name.endsWith('/archive.js') ? archive : name.endsWith('/track.js') ? { report() {}, EVENTS: {} } : nativeRequire(name)
+    require: name => name.endsWith('/archive.js') ? archive :
+      name.endsWith('/premium-access.js') ? premiumAccess :
+      name.endsWith('/track.js') ? { report() {}, EVENTS: {} } : nativeRequire(name)
   }, { filename: absolute });
   page.setData = value => Object.assign(page.data, value);
   return { page, calls, timers };
@@ -219,7 +235,7 @@ test('legacy reports do not synthesize a deep report', () => {
   assert.equal(buildDeepReport(get('sbti'), legacy, resolveReport(get('sbti'), legacy)), null);
 });
 
-test('rewarded video unlocks only the exact report after a completed view', () => {
+test('rewarded video unlocks only the exact report after a completed view', async () => {
   const record = Object.assign(result('ie', 0), {
     id: 'record-vip', completedAt: new Date().toISOString()
   });
@@ -245,9 +261,11 @@ test('rewarded video unlocks only the exact report after a completed view', () =
   } });
   page.onLoad({ id: 'ie', recordId: record.id });
   assert.equal(page.data.premiumUnlocked, false);
+  await page.showPremiumAd();
   handlers.close({ isEnded: false });
   assert.equal(unlockCount, 0);
   assert.equal(page.data.premiumUnlocked, false);
+  await page.showPremiumAd();
   handlers.close({ isEnded: true });
   assert.equal(unlockCount, 1);
   assert.equal(page.data.premiumUnlocked, true);

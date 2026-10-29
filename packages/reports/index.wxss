@@ -499,3 +499,29 @@ button::after {
   padding: 22rpx 26rpx;
   text-align: center;
 }
+.premium-save-banner {
+  padding: 28rpx;
+  background: #fff0cc;
+  border-left: 1rpx solid #dccb9e;
+  border-right: 1rpx solid #dccb9e;
+}
+.premium-save-title {
+  color: #6f582d;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+.premium-save-copy {
+  margin: 12rpx 0 22rpx;
+  color: #8b744c;
+  font-size: 23rpx;
+  line-height: 1.7;
+}
+.premium-save-button {
+  margin: 0;
+  padding: 18rpx;
+  color: #fffdf4;
+  background: #486b58;
+  border-radius: 36rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
