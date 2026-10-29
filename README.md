@@ -41,7 +41,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `assets/stickers.png`：六套测试的透明纸贴插画，未探索时置灰并显示解锁标记。
 - `components/personality-tree/`：树形展示；`assets/trees/species.png` 为首批生成后压缩的透明素材，3列×2行依次银杏、榕树、松树、枫树、柳树、橄榄树。新增树种时同步增加匹配规则、素材位置和组件配置。
 - `pages/tree-history/`：每次测评的树形历史；不会用当前结果重算过去的快照。
+- `packages/reports/`：报告页与 SBTI 结果图片所在分包，打开报告时由微信按需加载。应用内链接直接进入分包；旧的 `pages/test-result/index` 地址保留轻量跳转，继续支持已有报告链接与记录 ID。
 
 测评和探索日志只保存在当前设备，不调用远程分析接口。换设备、删除小程序或清理数据后可能无法恢复；当前不提供云端同步。存储达到设备限制时提示保存失败，保留已有记录，不静默清理。
 
-`project.config.json` 已将设计参考图、文档和测试目录排除出小程序包，避免将约17MB设计图打包；包体预算另有自动检查。
+`app.json` 使用 `lazyCodeLoading: "requiredComponents"` 按需注入组件。`project.config.json` 已将设计参考图、文档和测试目录排除出小程序包，避免将约17MB设计图打包。包体检查分别计算主包与分包，主包源文件预算为 1.4 MB、每张运行图片预算为 200 KB，给微信编译产物留出余量。

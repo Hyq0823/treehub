@@ -115,7 +115,7 @@ test('answer page saves once, persists version metadata, redirects to exact reco
   assert.equal(calls.saved.length, 1);
   assert.equal(calls.saved[0].scoringVersion, '2');
   assert.equal(calls.saved[0].answers[0].questionId, 1);
-  assert.equal(calls.redirect[0].url, '/pages/test-result/index?id=ie&recordId=record-1');
+  assert.equal(calls.redirect[0].url, '/packages/reports/index?id=ie&recordId=record-1');
   assert.equal(page.data.submitted, true);
 });
 
@@ -157,7 +157,7 @@ test('answer page rejects incomplete submission and focuses missing question', (
 
 test('record-specific result does not display another local result or auto-redirect', () => {
   const wrong = Object.assign(result('ie', 0), { id: 'other', completedAt: Date.now() });
-  const { page, calls } = loadPage('pages/test-result/index.js', { getRecord: () => wrong, getLatest: () => wrong });
+  const { page, calls } = loadPage('packages/reports/index.js', { getRecord: () => wrong, getLatest: () => wrong });
   page.onLoad({ id: 'mbti', recordId: 'missing' });
   assert.equal(page.data.state, 'missing');
   assert.equal(calls.redirect.length, 0);
@@ -166,7 +166,7 @@ test('record-specific result does not display another local result or auto-redir
 test('historical result resolves exact stored record and tab navigation', () => {
   const old = Object.assign(result('ie', 1), { id: 'old', completedAt: 1 });
   const newer = Object.assign(result('ie', 0), { id: 'new', completedAt: 2 });
-  const { page, calls } = loadPage('pages/test-result/index.js', { getRecord: () => old, getLatest: () => newer });
+  const { page, calls } = loadPage('packages/reports/index.js', { getRecord: () => old, getLatest: () => newer });
   page.onLoad({ id: 'ie', recordId: 'old' });
   assert.equal(page.data.state, 'ready');
   assert.equal(page.data.result.title, 'i人');
@@ -192,7 +192,7 @@ test('migrated report labels original assessment time as unknown', () => {
   const record = Object.assign(result('sbti', 0), {
     id: 'legacy-1', completedAt: new Date().toISOString(), scoringVersion: 'legacy', migrated: true
   });
-  const { page } = loadPage('pages/test-result/index.js', { getRecord: () => record });
+  const { page } = loadPage('packages/reports/index.js', { getRecord: () => record });
   page.onLoad({ id: 'sbti', recordId: 'legacy-1' });
   assert.equal(page.data.state, 'ready');
   assert.equal(page.data.savedAt, '旧版导入 · 原测评时间未知');
@@ -232,7 +232,7 @@ test('rewarded video unlocks only the exact report after a completed view', () =
     show: () => Promise.resolve(), load: () => Promise.resolve()
   };
   let unlockCount = 0;
-  const { page } = loadPage('pages/test-result/index.js', {
+  const { page } = loadPage('packages/reports/index.js', {
     getRecord: () => record,
     unlockPremium: id => {
       unlockCount++;

@@ -64,7 +64,7 @@ Page({
   },
   openRecord(event) {
     const { id, recordId } = event.currentTarget.dataset;
-    if (id && recordId) wx.navigateTo({ url: `/pages/test-result/index?id=${encodeURIComponent(id)}&recordId=${encodeURIComponent(recordId)}` });
+    if (id && recordId) wx.navigateTo({ url: `/packages/reports/index?id=${encodeURIComponent(id)}&recordId=${encodeURIComponent(recordId)}` });
   },
   retakeTest(event) {
     const id = event.currentTarget.dataset.id;

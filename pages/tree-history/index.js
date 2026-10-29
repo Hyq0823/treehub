@@ -25,7 +25,7 @@ Page({
   },
   openReport(event) {
     const { id, testId } = event.currentTarget.dataset;
-    if (id && testId) wx.navigateTo({ url: `/pages/test-result/index?id=${encodeURIComponent(testId)}&recordId=${encodeURIComponent(id)}` });
+    if (id && testId) wx.navigateTo({ url: `/packages/reports/index?id=${encodeURIComponent(testId)}&recordId=${encodeURIComponent(id)}` });
   },
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); }
 });

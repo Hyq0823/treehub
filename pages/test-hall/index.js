@@ -61,7 +61,7 @@ Page({
     const card = this.data.cards.find(c => c.id === event.currentTarget.dataset.id);
     if (!card) return;
     const url = card.collected ?
-      `/pages/test-result/index?id=${card.id}&recordId=${encodeURIComponent(card.recordId)}` :
+      `/packages/reports/index?id=${card.id}&recordId=${encodeURIComponent(card.recordId)}` :
       `/pages/test-detail/index?id=${card.id}`;
     wx.navigateTo({ url });
   },

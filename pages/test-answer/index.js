@@ -113,7 +113,7 @@ Page({
       this.setData({ submitted: true, submitting: false });
       report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
       wx.redirectTo({
-        url: `/pages/test-result/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
+        url: `/packages/reports/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
         fail: () => wx.showModal({
           title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
           showCancel: false, success: () => wx.switchTab({ url: '/pages/user-center/index' })

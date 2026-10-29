@@ -7,6 +7,13 @@
     "pages/user-center/index",
     "pages/tree-history/index"
   ],
+  "subPackages": [
+    {
+      "root": "packages/reports",
+      "pages": ["index"]
+    }
+  ],
+  "lazyCodeLoading": "requiredComponents",
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#faf7f0",
