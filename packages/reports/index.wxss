@@ -1,3 +1,4 @@
+@import "./premium-visual.wxss";
 page {
   background: #faf7ef;
   color: #142c35;

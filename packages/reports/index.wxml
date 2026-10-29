@@ -64,27 +64,59 @@
         <button class="premium-save-button" bindtap="retryPremiumSave" loading="{{premiumSaving}}" disabled="{{premiumSaving}}">{{premiumSaving ? '正在保存…' : '重试保存解锁状态'}}</button>
       </view>
 
-      <view class="premium-section">
-        <view class="premium-section-title">完整维度画像</view>
-        <view class="deep-dimension" wx:for="{{deepReport.dimensions}}" wx:key="id">
-          <view class="deep-dimension-heading"><text>{{item.label}}</text><text>{{item.scoreText}}</text></view>
-          <view class="deep-poles"><text>{{item.left}}</text><text>{{item.right}}</text></view>
-          <view class="deep-track"><view class="deep-midline"></view><view class="deep-fill" style="width: {{item.percent}}%"></view><view class="deep-dot" style="left: {{item.percent}}%"></view></view>
-          <view class="deep-detail">{{item.detail}}</view>
-        </view>
+      <view class="premium-tabs">
+        <view class="premium-tab {{premiumPage === 'portrait' ? 'premium-tab-active' : ''}}" data-page="portrait" bindtap="selectPremiumPage"><text>01</text>画像图表</view>
+        <view class="premium-tab {{premiumPage === 'insights' ? 'premium-tab-active' : ''}}" data-page="insights" bindtap="selectPremiumPage"><text>02</text>深度解读</view>
+        <view class="premium-tab {{premiumPage === 'actions' ? 'premium-tab-active' : ''}}" data-page="actions" bindtap="selectPremiumPage"><text>03</text>行动卡</view>
       </view>
 
-      <view class="premium-section insight-section">
-        <view class="premium-section-title">你的深度解读</view>
-        <view class="insight-card" wx:for="{{deepReport.sections}}" wx:key="title">
-          <view class="insight-index">0{{index + 1}}</view>
-          <view><view class="insight-title">{{item.title}}</view><view class="insight-content">{{item.content}}</view></view>
+      <view wx:if="{{premiumPage === 'portrait'}}" class="premium-page portrait-page">
+        <view class="portrait-card">
+          <view class="capture-label"><text>PERSONAL MAP</text><text>适合截图保存</text></view>
+          <view class="portrait-heading"><view><view class="portrait-test">{{test.name}} · 本次画像</view><view class="portrait-title">{{result.title}}</view><view class="portrait-tagline">{{deepReport.tagline}}</view></view><view wx:if="{{record.treeSnapshot}}" class="portrait-tree"><personality-tree tree="{{record.treeSnapshot}}" size="small" /></view></view>
+          <view class="chart-title"><text>倾向清晰度图</text><text>越靠外，表示本次偏好越清晰</text></view>
+          <profile-radar wx:if="{{deepReport.dimensions.length >= 3}}" dimensions="{{deepReport.dimensions}}" />
+          <view wx:else class="single-spectrum">
+            <view class="single-spectrum-labels"><text>{{deepReport.dimensions[0].left}}</text><text>{{deepReport.dimensions[0].right}}</text></view>
+            <view class="single-spectrum-track"><view class="single-spectrum-mid"></view><view class="single-spectrum-dot" style="left:{{deepReport.dimensions[0].percent}}%;"></view></view>
+            <view class="single-spectrum-result">本次更靠近 · {{deepReport.dimensions[0].preference}}</view>
+          </view>
+          <view class="profile-legend">
+            <view wx:for="{{deepReport.dimensions}}" wx:key="id" class="legend-item legend-{{item.tone}}"><view class="legend-top"><text>{{item.label}}</text><text>{{item.scoreText}}</text></view><view class="legend-preference">{{item.preference}} · 清晰度 {{item.clarity}}%</view></view>
+          </view>
+          <view class="portrait-summary">
+            <view class="portrait-summary-title">本次画像关键词</view>
+            <view class="highlight-list"><view wx:for="{{deepReport.highlights}}" wx:key="id" class="highlight-chip">{{item.preference}}</view></view>
+            <view wx:if="{{deepReport.balancedCount}}" class="balance-note">其中 {{deepReport.balancedCount}} 个维度接近中间，说明你可能会随情境调整。</view>
+          </view>
+          <view class="capture-footer"><text>人格测试树</text><text>{{savedAt}}</text></view>
         </view>
+        <view class="chart-note">图表展示本次自评的倾向位置和清晰程度，不代表能力高低或人群排名。</view>
       </view>
 
-      <view class="premium-section action-section">
-        <view class="premium-section-title">接下来可以这样做</view>
-        <view class="action-item" wx:for="{{deepReport.actions}}" wx:key="*this"><text>{{index + 1}}</text><view>{{item}}</view></view>
+      <view wx:elif="{{premiumPage === 'insights'}}" class="premium-page insight-page">
+        <view class="page-number">02 / 03 · DEEP INSIGHTS</view>
+        <view class="premium-section-title">把图表放回真实生活</view>
+        <view class="insight-visual-grid">
+          <view class="visual-insight-card" wx:for="{{deepReport.sections}}" wx:key="title">
+            <view class="insight-symbol">{{item.icon}}</view>
+            <view class="insight-title">{{item.title}}</view>
+            <view class="insight-content">{{item.content}}</view>
+          </view>
+        </view>
+        <view class="insight-reminder"><text>读报告的小方法</text><view>先找最有共鸣的一段，再想起一个真实场景。能对应到生活里的部分，才是这份报告真正有用的地方。</view></view>
+      </view>
+
+      <view wx:else class="premium-page action-page">
+        <view class="page-number">03 / 03 · ACTION PLAN</view>
+        <view class="premium-section-title">把认识自己变成三个小行动</view>
+        <view class="action-timeline">
+          <view class="action-plan-item" wx:for="{{deepReport.actionPlan}}" wx:key="timing">
+            <view class="action-marker"><view class="action-dot"></view><view wx:if="{{index < deepReport.actionPlan.length - 1}}" class="action-line"></view></view>
+            <view class="action-plan-card"><view class="action-timing">{{item.timing}}</view><view class="action-content">{{item.content}}</view><view class="action-check">□ 完成后给自己留一句记录</view></view>
+          </view>
+        </view>
+        <view class="action-save-card"><view class="action-save-icon">✦</view><view><view class="action-save-title">建议截图保存这一页</view><view class="action-save-copy">完成一个就回来打一个勾。30 天后复测时，对照这次行动和维度变化。</view></view></view>
       </view>
       <view class="premium-note">{{deepReport.note}}</view>
     </view>
@@ -92,7 +124,7 @@
       <view><view class="archive-title">你的人格树，留下了新记录</view><view class="archive-subtitle">查看成长档案与历次测评</view></view>
       <text class="archive-arrow">→</text>
     </view>
-    <view class="local-note">报告已保存在当前设备。清理数据或更换设备后可能无法恢复。测评仅供自我探索，不作心理诊断。</view>
+    <view class="local-note">报告保留在本地缓存，并在云端可用时同步到当前微信账号。测评仅供自我探索，不作心理诊断。</view>
     <view class="result-actions">
       <button class="secondary-button" bindtap="retakeTest">再测一次</button>
       <button class="primary-button" bindtap="goToArchive">我的档案</button>

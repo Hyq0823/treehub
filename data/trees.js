@@ -12,7 +12,9 @@ const SPECIES = [
 const STAGES = [
   { id: 'seed', name: '待萌芽', threshold: 0, meaning: '一颗属于你的探索种子' },
   { id: 'sprout', name: '初芽', threshold: 1, meaning: '好奇开始发芽' },
+  { id: 'leafy', name: '双叶', threshold: 2, meaning: '新的线索正在展开' },
   { id: 'rooted', name: '扎根', threshold: 3, meaning: '慢慢认识自己' },
+  { id: 'branching', name: '新枝', threshold: 4, meaning: '不同的自己彼此连接' },
   { id: 'growing', name: '舒展', threshold: 5, meaning: '看见更多可能' },
   { id: 'flourishing', name: '繁茂', threshold: 10, meaning: '容纳不同的自己' },
   { id: 'blossom', name: '花冠', threshold: 20, meaning: '让独特自然盛开' },

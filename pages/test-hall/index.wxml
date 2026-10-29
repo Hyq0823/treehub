@@ -10,6 +10,7 @@
         <view class="small-label">我的人格树 · {{tree.stage.name}}</view>
         <view class="tree-name">{{tree.name}}</view>
         <view class="tree-meaning">{{tree.meaning}}</view>
+        <view class="stage-story">{{tree.stage.meaning}}</view>
         <view class="tree-stats">已探索 {{tree.uniqueCount}} / {{cards.length}} 项 · {{tree.totalCount}} 次测评</view>
         <view class="leaf-progress"><text wx:for="{{leaves}}" wx:key="id" class="progress-leaf {{item.collected ? 'leaf-lit' : ''}}">❧</text><text wx:if="{{moreLeafCount}}" class="more-leaves">+{{moreLeafCount}}</text></view>
         <view class="archive-link">查看成长档案 <text>↗</text></view>

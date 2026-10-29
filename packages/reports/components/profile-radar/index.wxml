@@ -1,0 +1,4 @@
+<view class="radar-shell">
+  <canvas type="2d" id="profile-radar" class="radar-canvas"></canvas>
+  <view class="radar-center"><text>偏好</text><text>清晰度</text></view>
+</view>

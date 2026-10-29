@@ -12,6 +12,29 @@ function formatTime(value) {
   return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function decorateDeepReport(report) {
+  if (!report) return null;
+  const dimensions = (report.dimensions || []).map(item => {
+    const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
+    const clarity = Math.round(Math.abs(percent - 50) * 2);
+    return Object.assign({}, item, {
+      percent, clarity,
+      preference: percent > 60 ? item.right : percent < 40 ? item.left : '相对均衡',
+      tone: percent > 60 ? 'right' : percent < 40 ? 'left' : 'middle'
+    });
+  });
+  const ranked = dimensions.slice().sort((first, second) => second.clarity - first.clarity);
+  const icons = ['✦', '❧', '◐', '◇', '◎'];
+  const timing = ['今天', '7 天内', '30 天后'];
+  return Object.assign({}, report, {
+    dimensions,
+    highlights: ranked.slice(0, Math.min(3, ranked.length)),
+    balancedCount: dimensions.filter(item => item.tone === 'middle').length,
+    sections: (report.sections || []).map((section, index) => Object.assign({ icon: icons[index % icons.length] }, section)),
+    actionPlan: (report.actions || []).map((content, index) => ({ timing: timing[index] || `第 ${index + 1} 步`, content }))
+  });
+}
+
 Page({
   data: {
     test: {}, result: {}, record: null, savedAt: '', state: 'loading',
@@ -19,7 +42,8 @@ Page({
     basicDimensions: [], deepReport: null, premiumAvailable: false,
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
-    premiumSavePending: false, premiumSaving: false, premiumSaveError: ''
+    premiumSavePending: false, premiumSaving: false, premiumSaveError: '',
+    premiumPage: 'portrait'
   },
   onLoad(options) {
     this._disposed = false;
@@ -49,7 +73,7 @@ Page({
         this.showState('missing', '旧版记录暂时无法解读', '记录仍保存在本地。可以重新测试，生成新版报告并留下新的成长记录。');
         return;
       }
-      const deepReport = buildDeepReport(test, record, result);
+      const deepReport = decorateDeepReport(buildDeepReport(test, record, result));
       const pendingGrant = !record.premiumUnlockedAt && premiumAccess.getPendingGrant(record.id);
       this.setData({
         record: { id: record.id, treeSnapshot: record.treeSnapshot || null },
@@ -193,6 +217,10 @@ Page({
         premiumSaveError: error.message || '存储空间暂时不可用，请恢复后重试保存。'
       });
     }
+  },
+  selectPremiumPage(event) {
+    const page = event.currentTarget.dataset.page;
+    if (['portrait', 'insights', 'actions'].includes(page)) this.setData({ premiumPage: page });
   },
   onUnload() {
     this._disposed = true;

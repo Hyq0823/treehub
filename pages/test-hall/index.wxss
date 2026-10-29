@@ -63,6 +63,15 @@ page {
   color: #6a785e;
   line-height: 1.7;
 }
+.stage-story {
+  display: inline-block;
+  margin-top: 10rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 253, 241, 0.72);
+  color: #8a743f;
+  font-size: 19rpx;
+}
 .tree-stats {
   font-size: 21rpx;
   color: #6a7567;

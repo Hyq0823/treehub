@@ -270,3 +270,16 @@ test('a permanently unlocked historical report never creates an ad instance', as
   await page.showPremiumAd();
   assert.equal(ad.stats.show, 0);
 });
+
+test('VIP report prepares screenshot chart data and switches between three compact pages', () => {
+  const saved = record();
+  const { page } = openPage(saved);
+  assert.ok(page.data.deepReport.dimensions.every(item => Number.isFinite(item.clarity) && item.preference));
+  assert.equal(page.data.deepReport.actionPlan.length, 3);
+  page.selectPremiumPage({ currentTarget: { dataset: { page: 'insights' } } });
+  assert.equal(page.data.premiumPage, 'insights');
+  page.selectPremiumPage({ currentTarget: { dataset: { page: 'actions' } } });
+  assert.equal(page.data.premiumPage, 'actions');
+  page.selectPremiumPage({ currentTarget: { dataset: { page: 'invalid' } } });
+  assert.equal(page.data.premiumPage, 'actions');
+});

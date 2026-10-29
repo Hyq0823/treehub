@@ -28,7 +28,9 @@
   );
 }
 .tree-shape,
-.sprite-window {
+.sprite-window,
+.growth-shape,
+.growth-window {
   position: absolute;
   inset: 0;
 }
@@ -44,6 +46,20 @@
   height: 200%;
   max-width: none;
 }
+.growth-window {
+  overflow: hidden;
+}
+.growth-sprite {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  max-width: none;
+}
+.growth-shape {
+  transform: scale(0.94);
+  transform-origin: 50% 88%;
+  filter: drop-shadow(0 12rpx 12rpx rgba(70, 60, 36, 0.08));
+}
 .ground-shadow {
   position: absolute;
   bottom: 9%;
@@ -56,9 +72,10 @@
 }
 .tree-spark {
   position: absolute;
-  color: #c29b39;
-  font-size: 22rpx;
-  opacity: 0.7;
+  color: #d2aa4d;
+  font-size: 14rpx;
+  opacity: 0.82;
+  text-shadow: 0 2rpx 8rpx rgba(169, 126, 36, 0.2);
 }
 .stage-seed .tree-spark {
   opacity: 0.25;

@@ -77,7 +77,7 @@ test('new test grows coverage while repeating it only adds history', () => {
   const third = archive.saveResult(assessment('enneagram', '5', { '5': 12 }));
   assert.equal(third.treeSnapshot.stage.id, 'rooted');
   assert.equal(third.treeSnapshot.uniqueCount, 3);
-  assert.equal(third.treeSnapshot.remaining, 2);
+  assert.equal(third.treeSnapshot.remaining, 1);
   const repeated = archive.saveResult(assessment('ie', 'I', { EI: 1 }));
   assert.equal(repeated.treeSnapshot.uniqueCount, 3);
   assert.equal(repeated.treeSnapshot.totalCount, 4);
@@ -200,6 +200,17 @@ test('all stages have exact thresholds, and next prompt never exceeds available 
   assert.equal(tree.nextStage, null);
   assert.equal(tree.remaining, 0);
   assert.equal(tree.progress, 100);
+});
+
+test('each of the first five distinct tests earns a visible growth stage', () => {
+  const expected = ['seed', 'sprout', 'leafy', 'rooted', 'branching', 'growing'];
+  expected.forEach((stageId, count) => {
+    const records = catalog.slice(0, count).map((item, index) => ({
+      id: `growth-${index}`, testId: item.id, scores: {}, resultType: 'done',
+      scoringVersion: 'legacy', completedAt: new Date(2026, 0, index + 1).toISOString()
+    }));
+    assert.equal(getTree({ seed: 'growth-seed', records }, catalog).stage.id, stageId);
+  });
 });
 
 

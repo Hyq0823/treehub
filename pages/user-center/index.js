@@ -2,13 +2,10 @@ const archive = require('../../utils/archive.js');
 const cloudSync = require('../../utils/cloud-sync.js');
 const { getTree } = require('../../utils/personality-tree.js');
 const { resolveReport } = require('../../utils/scoring.js');
+const { STAGES: ALL_STAGES } = require('../../data/trees.js');
 const catalogModule = require('../../data/tests/index.js');
 const catalog = catalogModule.default || catalogModule;
-const STAGES = [
-  { name: '初芽', threshold: 1 }, { name: '扎根', threshold: 3 },
-  { name: '舒展', threshold: 5 }, { name: '繁茂', threshold: 10 },
-  { name: '花冠', threshold: 20 }, { name: '星辉', threshold: 35 }
-];
+const STAGES = ALL_STAGES.filter(stage => stage.threshold > 0);
 function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return '早期测评记录';

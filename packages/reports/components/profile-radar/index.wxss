@@ -1,0 +1,41 @@
+:host {
+  display: block;
+}
+.radar-shell {
+  position: relative;
+  width: 360rpx;
+  height: 360rpx;
+  margin: 0 auto;
+}
+.radar-shell::before {
+  content: '';
+  position: absolute;
+  inset: 11%;
+  border-radius: 50%;
+  border: 1rpx solid rgba(174, 139, 66, 0.22);
+  background: radial-gradient(circle, rgba(234, 224, 193, 0.12), transparent 68%);
+}
+.radar-canvas {
+  position: relative;
+  width: 360rpx;
+  height: 360rpx;
+}
+.radar-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72rpx;
+  height: 72rpx;
+  margin: -36rpx 0 0 -36rpx;
+  border-radius: 50%;
+  background: rgba(27, 54, 45, 0.92);
+  color: #f5df9e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 17rpx;
+  line-height: 1.25;
+  letter-spacing: 1rpx;
+  box-shadow: 0 6rpx 18rpx rgba(28, 50, 42, 0.2);
+}
