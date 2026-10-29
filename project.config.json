@@ -5,6 +5,22 @@
       {
         "value": ".eslintrc.js",
         "type": "file"
+      },
+      {
+        "value": "vibe_images",
+        "type": "folder"
+      },
+      {
+        "value": "docs",
+        "type": "folder"
+      },
+      {
+        "value": "tests",
+        "type": "folder"
+      },
+      {
+        "value": "README.md",
+        "type": "file"
       }
     ],
     "include": []

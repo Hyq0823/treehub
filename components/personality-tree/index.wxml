@@ -1,0 +1,17 @@
+<view class="tree-art tree-art--{{size}} stage-{{stageId}}" aria-label="{{tree.name}}，{{tree.stage.name}}">
+  <view class="tree-halo"></view>
+  <view wx:if="{{stageId === 'seed'}}" class="seed-scene">
+    <view class="soil"></view><view class="seed"></view><view class="seed-spark">✦</view>
+  </view>
+  <view wx:elif="{{stageId === 'sprout' || stageId === 'rooted' || tree.speciesId === 'seed'}}" class="sapling {{stageId === 'rooted' ? 'sapling-rooted' : ''}}">
+    <view class="soil"></view><view class="stem"></view>
+    <view class="leaf leaf-left"></view><view class="leaf leaf-right"></view>
+    <view wx:if="{{stageId === 'rooted'}}" class="leaf leaf-upper"></view>
+    <view wx:if="{{stageId === 'rooted'}}" class="leaf leaf-lower"></view>
+  </view>
+  <view wx:else class="tree-shape" style="{{shapeStyle}}">
+    <view class="sprite-window"><image class="tree-sprite" src="/assets/trees/species.png" mode="scaleToFill" style="{{spriteStyle}}"/></view>
+  </view>
+  <view wx:for="{{sparks}}" wx:key="id" class="tree-spark" style="left:{{item.left}}%;top:{{item.top}}%;">✦</view>
+  <view class="ground-shadow"></view>
+</view>

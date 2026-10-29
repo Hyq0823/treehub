@@ -1,19 +1,51 @@
-<view class="container">
-  <view wx:for="{{tests}}" wx:key="id" class="test-card" bindtap="goToTestDetail" data-id="{{item.id}}">
-    <view class="test-card-icon">
-      <view class="icon-background">{{item.icon}}</view>
+<view class="hall-page">
+  <view class="eyebrow">YOUR INNER GARDEN</view>
+  <view class="hall-title">人格测试树<text class="title-leaf">❧</text></view>
+  <view class="hall-subtitle">每一次探索，都更了解自己</view>
+
+  <view wx:if="{{error}}" class="error-card"><text>{{error}}</text><button bindtap="loadTests">重新读取</button></view>
+  <block wx:elif="{{tree}}">
+    <view class="tree-card" bindtap="openArchive" hover-class="card-pressed">
+      <view class="tree-card-copy">
+        <view class="small-label">我的人格树 · {{tree.stage.name}}</view>
+        <view class="tree-name">{{tree.name}}</view>
+        <view class="tree-meaning">{{tree.meaning}}</view>
+        <view class="tree-stats">已探索 {{tree.uniqueCount}} / {{cards.length}} 项 · {{tree.totalCount}} 次测评</view>
+        <view class="leaf-progress"><text wx:for="{{leaves}}" wx:key="id" class="progress-leaf {{item.collected ? 'leaf-lit' : ''}}">❧</text><text wx:if="{{moreLeafCount}}" class="more-leaves">+{{moreLeafCount}}</text></view>
+        <view class="archive-link">查看成长档案 <text>↗</text></view>
+      </view>
+      <view class="hero-tree"><personality-tree tree="{{tree}}"/></view>
     </view>
-    <view class="test-card-content">
-      <view class="test-card-title">{{item.name}}</view>
-      <view class="test-card-desc">{{item.description}}</view>
-      <view class="test-card-meta">
-        <view class="meta-badge">
-          📋 {{item.questionsCount}}题
+
+    <view class="recommendation" bindtap="exploreNext">
+      <text class="recommend-icon">✧</text>
+      <view class="recommend-copy">
+        <view class="recommend-title">{{recommendation ? '下一站，探索' + recommendation.title : '每张卡片，都留下了你的足迹'}}</view>
+        <view class="recommend-sub">{{recommendation ? (tree.nextStage ? '再探索 ' + tree.remaining + ' 项，进入「' + tree.nextStage.name + '」' : '完成新测试，为你的树添一片叶') : '去档案回看，或复测记录此刻的自己'}}</view>
+      </view>
+      <text class="recommend-arrow">→</text>
+    </view>
+
+    <view class="section-heading"><text class="section-title">探索图鉴</text><text class="section-caption">完成测试，点亮专属卡片</text></view>
+    <scroll-view scroll-x class="category-scroll" show-scrollbar="{{false}}">
+      <view class="categories"><view wx:for="{{categories}}" wx:key="id" class="category {{category === item.id ? 'category-active' : ''}}" data-id="{{item.id}}" bindtap="selectCategory">{{item.name}}</view></view>
+    </scroll-view>
+    <view class="test-grid">
+      <view wx:for="{{filteredCards}}" wx:key="id" class="explore-card {{item.collected ? 'collected' : 'uncollected'}}" data-id="{{item.id}}" bindtap="openTest" hover-class="card-pressed">
+        <view class="card-top"><text class="card-number">{{item.number}}</text><view class="status">{{item.collected ? '❧ 已收集' : '待点亮'}}</view></view>
+        <view class="sticker sticker-{{item.art}}" style="--sticker-color:{{item.color}};">
+          <view wx:if="{{item.hasSticker}}" class="sticker-clip"><image class="sticker-image" src="/assets/stickers.png" mode="scaleToFill" style="{{item.stickerStyle}}"/></view>
+          <block wx:else><view class="sticker-orbit"></view><text class="sticker-symbol">{{item.symbol}}</text></block>
+          <view wx:if="{{!item.collected}}" class="unlock-mark"><view class="lock-shackle"></view><view class="lock-body"></view></view>
         </view>
-        <view class="meta-badge">
-          ⏱️ {{item.time}}
-        </view>
+        <view class="test-title">{{item.title}}</view>
+        <view class="test-prompt">{{item.collected ? item.resultTitle : item.prompt}}</view>
+        <view class="test-meta">{{item.questionsCount}} 题 · {{item.collected ? '已测 ' + item.count + ' 次' : item.time}}</view>
+        <view class="test-action">{{item.collected ? '查看报告' : '探索解锁'}} <text>→</text></view>
       </view>
     </view>
-  </view>
+    <view wx:if="{{!filteredCards.length}}" class="empty-category">新的探索正在生长，先看看其他分类吧。</view>
+    <view class="local-note">档案保存在当前设备 · 无需登录</view>
+    <view class="hall-footnote">树形是探索的意象，性格没有高低。</view>
+  </block>
 </view>

@@ -1,5 +1,4 @@
-// 埋点。eventId 需先在小程序后台「自定义分析」登记，未登记时 wx.reportEvent 静默失败，不影响业务。
-// 同时写一份本地日志，便于后台未配置期间在开发版自查漏斗。
+// 第一版本地记录探索事件，不发送测评结果到远程分析服务。
 const EVENTS = {
   HALL_VIEW: 'hall_view',
   DETAIL_VIEW: 'detail_view',
@@ -28,9 +27,7 @@ function report(eventId, params) {
   const app = getApp();
   const payload = Object.assign({ enterScene: (app && app.globalData.enterScene) || 0 }, params || {});
   appendLocal(eventId, payload);
-  try {
-    wx.reportEvent(eventId, payload);
-  } catch (e) {}
+
 }
 
 module.exports = { EVENTS, report };

@@ -1,0 +1,140 @@
+page {
+  background: #faf7ef;
+  color: #152d3c;
+}
+.history-page {
+  padding: 38rpx 32rpx 60rpx;
+}
+.eyebrow {
+  color: #758875;
+  font-size: 20rpx;
+  letter-spacing: 5rpx;
+}
+.page-title {
+  font-size: 46rpx;
+  font-weight: 700;
+  margin-top: 10rpx;
+}
+.page-subtitle {
+  color: #7b8676;
+  font-size: 25rpx;
+  line-height: 1.9;
+  margin-top: 18rpx;
+}
+.secondary-subtitle {
+  margin: 0 0 32rpx;
+}
+.snapshot-card {
+  border-radius: 30rpx;
+  overflow: hidden;
+  background: #fffdf6;
+  border: 1rpx solid #e1e6d4;
+  margin-bottom: 28rpx;
+  padding: 25rpx 26rpx 0;
+  box-shadow: 0 8rpx 26rpx rgba(64, 80, 46, 0.04);
+}
+.snapshot-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18rpx;
+}
+.snapshot-number {
+  font-size: 24rpx;
+  color: #497455;
+}
+.snapshot-date {
+  font-size: 21rpx;
+  color: #8c9584;
+}
+.snapshot-art {
+  margin-top: 14rpx;
+  background: radial-gradient(ellipse, #eef3df, transparent 70%);
+}
+.snapshot-name {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18rpx;
+  font-size: 34rpx;
+  font-weight: 600;
+}
+.snapshot-name text {
+  border-radius: 25rpx;
+  padding: 6rpx 16rpx;
+  background: #e6eed7;
+  color: #517343;
+  font-size: 20rpx;
+  font-weight: 400;
+}
+.snapshot-meaning {
+  color: #81925b;
+  text-align: center;
+  font-size: 24rpx;
+  margin: 15rpx 0;
+  letter-spacing: 3rpx;
+}
+.snapshot-story {
+  color: #6b7c64;
+  font-size: 24rpx;
+  line-height: 1.85;
+  padding: 0 4rpx 25rpx;
+}
+.snapshot-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  border-top: 1rpx solid #e6eadd;
+  padding: 23rpx 0;
+  color: #356c4b;
+  font-size: 23rpx;
+}
+.snapshot-footer text:first-child {
+  color: #8a937c;
+}
+.missing-snapshot {
+  text-align: center;
+  padding: 60rpx 12rpx;
+  color: #7e8975;
+  font-size: 25rpx;
+}
+.legacy-note {
+  font-size: 20rpx;
+  color: #a08c59;
+  margin-bottom: 18rpx;
+  text-align: center;
+}
+.local-note {
+  margin-top: 28rpx;
+  color: #949b8b;
+  font-size: 22rpx;
+  line-height: 1.8;
+}
+.empty-panel {
+  background: #fffdf6;
+  border: 1rpx dashed #d8dfcb;
+  border-radius: 28rpx;
+  padding: 45rpx 28rpx;
+  text-align: center;
+}
+.empty-title {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.body-copy {
+  font-size: 25rpx;
+  color: #7d8974;
+  margin: 20rpx 0;
+  line-height: 1.8;
+}
+.primary-action {
+  border-radius: 45rpx;
+  background: #2c6547;
+  color: #fff9e9;
+  font-size: 26rpx;
+  padding: 7rpx 20rpx;
+  margin-top: 26rpx;
+}
+.primary-action::after {
+  border: 0;
+}

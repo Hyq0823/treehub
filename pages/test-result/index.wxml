@@ -1,39 +1,46 @@
-<view class="container">
-  <view class="result-header">
-    <view class="result-icon" wx:if="{{test.id !== 'sbti'}}">
-      <view class="icon-background">{{getResultIcon(result.title)}}</view>
-    </view>
-    <view class="result-type">{{result.title}}</view>
-    <view class="result-summary">{{result.summary}}</view>
+<view class="result-page">
+  <view wx:if="{{state === 'loading'}}" class="state-card">正在展开你的报告…</view>
+  <view wx:elif="{{state !== 'ready'}}" class="state-card">
+    <view class="state-leaf">❧</view>
+    <view class="state-title">{{stateTitle}}</view>
+    <view class="state-copy">{{stateMessage}}</view>
+    <button wx:if="{{test.id && state !== 'error'}}" class="primary-button" bindtap="retakeTest">开始这项探索</button>
+    <button class="text-button" bindtap="goToHome">返回探索大厅</button>
   </view>
-  
-  <view class="result-image" wx:if="{{result.image}}">
-    <image src="{{result.image}}" mode="aspectFit"></image>
-  </view>
-  
-  <view class="result-content">
-    <view class="result-description">{{result.description}}</view>
-    <view class="result-advice">
-      <view class="advice-icon">💡</view>
-      <view class="advice-content">{{result.advice}}</view>
+  <block wx:else>
+    <view class="eyebrow">{{test.name}} · {{playful ? '趣味探索' : '本次测评'}}</view>
+    <view class="result-header">
+      <view wx:if="{{!result.image}}" class="result-icon">{{resultIcon}}</view>
+      <image wx:else class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
+      <view class="result-type">{{result.title}}</view>
+      <view class="result-code" wx:if="{{result.type !== 'profile'}}">{{result.type}}</view>
+      <view class="result-summary">{{result.summary}}</view>
+      <view class="saved-badge">已收集 · {{savedAt}}</view>
     </view>
-    <view class="result-note">
-      <view class="note-icon">⚠️</view>
-      <view class="note-content">小程序不会保存您的报告，请按需截屏保存</view>
+    <view wx:if="{{legacy}}" class="legacy-note">这是旧版本记录，不用于新版人格树匹配。重新测试会保留这份历史记录。</view>
+    <view class="content-card">
+      <view class="section-title">这一次，看见自己</view>
+      <view class="body-copy">{{result.description}}</view>
+      <view wx:if="{{result.dimensions}}" class="dimensions">
+        <view class="dimension" wx:for="{{result.dimensions}}" wx:key="id">
+          <view class="dimension-heading"><text>{{item.label}}</text><text>{{item.score}} / 5 · {{item.level}}</text></view>
+          <view class="dimension-track"><view class="dimension-fill" style="width: {{item.percent}}%"></view></view>
+          <view class="dimension-summary">{{item.summary}}</view>
+        </view>
+      </view>
+      <view class="advice-box"><view class="advice-label">给自己的小提醒</view>{{result.advice}}</view>
+      <view wx:if="{{result.note}}" class="report-note">{{result.note}}</view>
     </view>
-    <view class="result-note" wx:if="{{result.note}}">
-      <view class="note-icon">📝</view>
-      <view class="note-content">{{result.note}}</view>
+    <view class="archive-link" bindtap="goToArchive" hover-class="pressed">
+      <view><view class="archive-title">你的人格树，留下了新记录</view><view class="archive-subtitle">查看成长档案与历次测评</view></view>
+      <text class="archive-arrow">→</text>
     </view>
-  </view>
-  
-  <view class="result-footer">
-    <view class="btn-secondary" bindtap="retakeTest">🔄 再测一次</view>
-    <view class="btn-primary" bindtap="goToHome">🏠 返回首页</view>
-  </view>
-  
-  <!-- 悬浮分享按钮 -->
-  <button open-type="share" class="floating-share-btn">
-    <view class="share-text">分享</view>
-  </button>
+    <view class="local-note">报告已保存在当前设备。清理数据或更换设备后可能无法恢复。测评仅供自我探索，不作心理诊断。</view>
+    <view class="result-actions">
+      <button class="secondary-button" bindtap="retakeTest">再测一次</button>
+      <button class="primary-button" bindtap="goToArchive">我的档案</button>
+    </view>
+    <button open-type="share" class="text-button">邀请朋友一起探索 ↗</button>
+    <button class="text-button muted" bindtap="goToHome">返回探索大厅</button>
+  </block>
 </view>

@@ -1,0 +1,19 @@
+<view class="history-page">
+  <text class="eyebrow">GROWTH JOURNAL</text>
+  <view class="page-title">树的成长记录</view>
+  <view class="page-subtitle">新测试长枝叶，复测留下年轮。</view>
+  <view class="page-subtitle secondary-subtitle">这是一棵树，也是一段慢慢认识自己的旅程。</view>
+  <view wx:if="{{error}}" class="empty-panel"><view class="empty-title">暂时无法读取</view><view class="body-copy">{{error}}</view><button class="primary-action" bindtap="loadHistory">重新读取</button></view>
+  <view wx:elif="{{loaded && !snapshots.length}}" class="empty-panel"><view class="empty-title">等待第一片叶子</view><view class="body-copy">完成测试后，每一次树的模样都会记录在这里。</view><button class="primary-action" bindtap="explore">去探索 →</button></view>
+  <view wx:if="{{!error}}" wx:for="{{snapshots}}" wx:key="id" class="snapshot-card">
+    <view class="snapshot-heading"><text class="snapshot-number">第 {{item.number}} 次测评</text><text class="snapshot-date">{{item.date}}</text></view>
+    <view class="snapshot-art" wx:if="{{item.tree}}"><personality-tree tree="{{item.tree}}" size="large" /></view>
+    <view wx:if="{{item.tree}}" class="snapshot-name">{{item.tree.name}}<text>{{item.tree.stage.name}}</text></view>
+    <view wx:else class="missing-snapshot">这份早期记录尚未保存树形快照。</view>
+    <view class="snapshot-meaning" wx:if="{{item.tree.meaning}}">{{item.tree.meaning}}</view>
+    <view class="snapshot-story" wx:if="{{item.tree.message}}">{{item.tree.message}}</view>
+    <view wx:if="{{item.legacy}}" class="legacy-note">早期版本记录 · 树形暂不据此推断</view>
+    <view class="snapshot-footer" data-id="{{item.id}}" data-test-id="{{item.testId}}" bindtap="openReport" role="button"><text>{{item.testName}}</text><text>回看当时的报告 →</text></view>
+  </view>
+  <view wx:if="{{snapshots.length && !error}}" class="local-note">快照保存在当前设备。不同测评版本的结果不宜直接比较，树形寓意用于自我探索。</view>
+</view>

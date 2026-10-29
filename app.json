@@ -4,13 +4,31 @@
     "pages/test-detail/index",
     "pages/test-answer/index",
     "pages/test-result/index",
-    "pages/user-center/index"
+    "pages/user-center/index",
+    "pages/tree-history/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#1E3A8A",
+    "navigationBarBackgroundColor": "#faf7f0",
     "navigationBarTitleText": "人格测试树",
-    "navigationBarTextStyle": "white"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#faf7f0"
   },
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "tabBar": {
+    "color": "#8d968b",
+    "selectedColor": "#286346",
+    "backgroundColor": "#fffdf8",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/test-hall/index",
+        "text": "探索"
+      },
+      {
+        "pagePath": "pages/user-center/index",
+        "text": "我的档案"
+      }
+    ]
+  }
 }

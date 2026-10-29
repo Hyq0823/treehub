@@ -1,66 +1,44 @@
 const { report, EVENTS } = require('../../utils/track.js');
+const { scoreTest, SCORING_VERSION, TEST_VERSION } = require('../../utils/scoring.js');
+const archive = require('../../utils/archive.js');
 
 Page({
   data: {
-    test: {},
-    questions: [],
-    currentQuestionIndex: 0,
-    selectedOption: -1,
-    answers: [],
-    submitted: false
+    test: {}, questions: [], currentQuestionIndex: 0, selectedOption: -1,
+    answers: [], submitted: false, submitting: false, error: ''
   },
   onLoad(options) {
-    const testId = options.id;
-    report(EVENTS.TEST_START, { testId: testId });
-    this.loadTestData(testId);
+    this._unloaded = false;
+    report(EVENTS.TEST_START, { testId: options.id });
+    this.loadTestData(options.id);
   },
   onUnload() {
-    // 未提交就离开，记为中途放弃，用于定位放弃在哪一题
-    if (!this.data.submitted) {
+    this._unloaded = true;
+    this.clearAdvance();
+    if (!this.data.submitted && this.data.test.id) {
       report(EVENTS.TEST_ABORT, {
-        testId: this.data.test.id,
-        reachedIndex: this.data.currentQuestionIndex,
+        testId: this.data.test.id, reachedIndex: this.data.currentQuestionIndex,
         totalCount: this.data.questions.length
       });
     }
   },
+  clearAdvance() {
+    if (this._advanceTimer) clearTimeout(this._advanceTimer);
+    this._advanceTimer = null;
+  },
   loadTestData(testId) {
     try {
-      // 尝试直接导入测试数据
-      const tests = require('../../data/tests/index.js');
-      // 处理不同的导出格式
-      const testList = tests.default || tests;
-      const test = testList.find(t => t.id === testId);
-      
-      if (test) {
-        let questions = test.questions;
-        // 对SBTI测试的题目进行随机排序
-        if (testId === 'sbti') {
-          questions = this.shuffleArray([...questions]);
-        }
-        
-        this.setData({
-          test: test,
-          questions: questions,
-          answers: new Array(questions.length).fill(-1)
-        });
-        this.updateQuestion();
-      } else {
-        console.error('Test not found:', testId);
-        wx.showToast({
-          title: '测试数据加载失败',
-          icon: 'none'
-        });
-      }
+      const imported = require('../../data/tests/index.js');
+      const test = (imported.default || imported).find(item => item.id === testId);
+      if (!test) throw new Error('没有找到这项测试，请返回大厅重新选择');
+      this._test = test;
+      const questions = testId === 'sbti' ? this.shuffleArray(test.questions.slice()) : test.questions;
+      this.setData({ test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, questions, answers: new Array(questions.length).fill(-1), error: '' });
+      this.updateQuestion();
     } catch (error) {
-      console.error('Error loading test data:', error);
-      wx.showToast({
-        title: '数据加载错误',
-        icon: 'none'
-      });
+      this.setData({ error: error.message || '测试加载失败，请返回大厅重试' });
     }
   },
-  // 随机打乱数组
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -70,117 +48,84 @@ Page({
   },
   updateQuestion() {
     const question = this.data.questions[this.data.currentQuestionIndex];
-    const selectedOption = this.data.answers[this.data.currentQuestionIndex];
     this.setData({
-      question: question,
-      selectedOption: selectedOption
+      question: Object.assign({}, question, {
+        options: question.options.map((option, index) => Object.assign({}, option, { letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index] }))
+      }),
+      selectedOption: this.data.answers[this.data.currentQuestionIndex]
     });
   },
-  selectOption(e) {
-    const index = e.currentTarget.dataset.index;
-    const answers = this.data.answers;
-    answers[this.data.currentQuestionIndex] = index;
-    this.setData({
-      selectedOption: index,
-      answers: answers
-    });
-    
-    // 延迟300ms后自动跳转到下一题
-    setTimeout(() => {
-      this.nextQuestion(true);
+  selectOption(event) {
+    if (this.data.submitted || this.data.submitting) return;
+    const index = Number(event.currentTarget.dataset.index);
+    const current = this.data.currentQuestionIndex;
+    if (!Number.isInteger(index) || !this.data.questions[current].options[index]) return;
+    this.clearAdvance();
+    const answers = this.data.answers.slice();
+    answers[current] = index;
+    this.setData({ selectedOption: index, answers });
+    // Auto-advance only the question on which the tap occurred.
+    this._advanceTimer = setTimeout(() => {
+      this._advanceTimer = null;
+      if (!this._unloaded && this.data.currentQuestionIndex === current) this.nextQuestion();
     }, 300);
   },
   prevQuestion() {
+    this.clearAdvance();
+    if (this.data.submitting || this.data.submitted) return;
     if (this.data.currentQuestionIndex > 0) {
-      this.setData({
-        currentQuestionIndex: this.data.currentQuestionIndex - 1
-      });
+      this.setData({ currentQuestionIndex: this.data.currentQuestionIndex - 1 });
       this.updateQuestion();
     }
   },
-  nextQuestion(isAuto = false) {
-    if (!isAuto && this.data.selectedOption === -1) {
-      wx.showToast({
-        title: '请选择答案',
-        icon: 'none'
-      });
+  nextQuestion() {
+    this.clearAdvance();
+    if (this.data.submitting || this.data.submitted) return;
+    if (this.data.selectedOption === -1) {
+      wx.showToast({ title: '请选择答案', icon: 'none' });
       return;
     }
-    
-    if (this.data.currentQuestionIndex < this.data.test.questionsCount - 1) {
-      this.setData({
-        currentQuestionIndex: this.data.currentQuestionIndex + 1
-      });
+    if (this.data.currentQuestionIndex < this.data.questions.length - 1) {
+      this.setData({ currentQuestionIndex: this.data.currentQuestionIndex + 1 });
       this.updateQuestion();
-      // 在更新问题后，重置选中状态
-      setTimeout(() => {
-        this.setData({
-          selectedOption: -1
-        });
-      }, 100);
     } else {
       this.submitTest();
     }
   },
   submitTest() {
-    // 计算分数
-    const scores = this.calculateScores();
-    // 获取结果类型
-    const resultType = this.data.test.scoring.resultRule(scores);
-    this.data.submitted = true;
-    report(EVENTS.TEST_SUBMIT, {
-      testId: this.data.test.id,
-      resultType: resultType,
-      unanswered: this.data.answers.filter(a => a === -1).length
-    });
-    // 保存结果
-    wx.setStorageSync('testResult', {
-      testId: this.data.test.id,
-      scores: scores,
-      resultType: resultType
-    });
-    // 跳转到结果页
-    wx.navigateTo({
-      url: `/pages/test-result/index?id=${this.data.test.id}`
-    });
+    if (this.data.submitting || this.data.submitted) return;
+    this.clearAdvance();
+    const missing = this.data.answers.findIndex(answer => answer === -1);
+    if (missing !== -1) {
+      this.setData({ currentQuestionIndex: missing });
+      this.updateQuestion();
+      wx.showToast({ title: '还有题目未完成', icon: 'none' });
+      return;
+    }
+    this.setData({ submitting: true });
+    try {
+      const result = scoreTest(this._test, this.data.questions, this.data.answers);
+      const saved = archive.saveResult(Object.assign({
+        testId: this.data.test.id, testVersion: TEST_VERSION, scoringVersion: SCORING_VERSION,
+        // Store canonical question IDs because SBTI question order is shuffled.
+        answers: this.data.questions.map((question, index) => ({ questionId: question.id, optionIndex: this.data.answers[index] }))
+      }, result));
+      this.setData({ submitted: true, submitting: false });
+      report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
+      wx.redirectTo({
+        url: `/pages/test-result/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
+        fail: () => wx.showModal({
+          title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
+          showCancel: false, success: () => wx.switchTab({ url: '/pages/user-center/index' })
+        })
+      });
+    } catch (error) {
+      this.setData({ submitting: false });
+      wx.showModal({ title: '暂时无法保存', content: error.message || '请检查设备存储空间后重试，本次答案仍保留在页面中。', showCancel: false });
+    }
   },
   calculateScores() {
-    const scores = {};
-    const mapping = this.data.test.scoring.mapping;
-    const questions = this.data.questions;
-    const answers = this.data.answers;
-    
-    mapping.forEach(item => {
-      // 找到对应id的问题索引
-      const questionId = `q${item.q}`;
-      const qIndex = questions.findIndex(q => q.id === questionId);
-      
-      if (qIndex !== -1) {
-        const dim = item.dim;
-        const direction = item.direction;
-        const selectedAnswer = answers[qIndex];
-        
-        if (selectedAnswer !== -1) {
-          const option = questions[qIndex].options[selectedAnswer];
-          if (option && option.value) {
-            const value = option.value;
-            
-            if (!scores[dim]) {
-              scores[dim] = 0;
-            }
-            
-            if (typeof value === 'number') {
-              scores[dim] += value * direction;
-            } else if (value === 'E' || value === 'S' || value === 'T' || value === 'J') {
-              scores[dim] += 1 * direction;
-            } else if (value === 'I' || value === 'N' || value === 'F' || value === 'P') {
-              scores[dim] -= 1 * direction;
-            }
-          }
-        }
-      }
-    });
-    
-    return scores;
-  }
-})
+    return scoreTest(this._test, this.data.questions, this.data.answers).scores;
+  },
+  goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); }
+});

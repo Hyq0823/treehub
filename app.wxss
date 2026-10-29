@@ -1,20 +1,28 @@
 /* 全局样式 */
 page {
   background-color: var(--warm-gray);
-  font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    "PingFang SC",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 /* 配色变量 */
-:root {
-  --deep-blue: #1E3A8A;
-  --sky-blue: #3B82F6;
-  --light-blue: #BFDBFE;
-  --emerald: #10B981;
-  --white: #FFFFFF;
-  --warm-gray: #F9FAFB;
-  --dark-gray: #1F2937;
-  --medium-gray: #6B7280;
-  --light-gray: #9CA3AF;
+page {
+  --deep-blue: #254838;
+  --sky-blue: #487c58;
+  --light-blue: #e2ebda;
+  --emerald: #286346;
+  --white: #ffffff;
+  --warm-gray: #faf7f0;
+  --dark-gray: #1f2937;
+  --medium-gray: #6b7280;
+  --light-gray: #9ca3af;
 }
 
 /* 卡片样式 */
@@ -22,7 +30,7 @@ page {
   background-color: var(--white);
   border-radius: 20px;
   padding: 16px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
   margin-bottom: 12px;
 }
 
@@ -38,7 +46,7 @@ page {
   font-size: 16px;
   font-weight: 600;
   margin-top: 16px;
-  font-family: 'PingFang SC', sans-serif;
+  font-family: "PingFang SC", sans-serif;
 }
 
 .btn-primary:active {
@@ -55,7 +63,7 @@ page {
   font-size: 16px;
   font-weight: 600;
   transition: all 0.2s ease;
-  font-family: 'PingFang SC', sans-serif;
+  font-family: "PingFang SC", sans-serif;
 }
 
 .btn-secondary:active {
@@ -65,7 +73,7 @@ page {
 /* 进度条样式 */
 .progress-bar {
   height: 10px;
-  background-color: #E5E7EB;
+  background-color: #e5e7eb;
   border-radius: 5px;
   overflow: hidden;
   margin: 16px 0;
@@ -80,14 +88,14 @@ page {
 
 /* 注意事项样式 */
 .notice {
-  background-color: #FFFBEB;
-  border: 1px solid #FCD34D;
+  background-color: #fffbeb;
+  border: 1px solid #fcd34d;
   border-radius: 12px;
   padding: 12px;
   margin-top: 16px;
   font-size: 14px;
   color: var(--dark-gray);
-  font-family: 'PingFang SC', sans-serif;
+  font-family: "PingFang SC", sans-serif;
 }
 
 .notice-title {
@@ -98,18 +106,18 @@ page {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: 'PingFang SC', sans-serif;
+  font-family: "PingFang SC", sans-serif;
 }
 
 .notice-title::before {
-  content: '⚠️';
+  content: "⚠️";
 }
 
 .notice-content {
   font-size: 12px;
   color: var(--dark-gray);
   line-height: 1.5;
-  font-family: 'PingFang SC', sans-serif;
+  font-family: "PingFang SC", sans-serif;
 }
 
 .notice-content view {
@@ -118,4 +126,3 @@ page {
   list-style-type: disc;
   list-style-position: inside;
 }
-
