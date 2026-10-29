@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const catalog = require('../data/tests/index.js').default;
 const { scoreTest, resolveReport } = require('../utils/scoring.js');
-const { buildDeepReport } = require('../utils/deep-report.js');
+const { buildDeepReport } = require('../packages/reports/deep-report.js');
 const questionnaire = catalog.find(item => item.id === 'bigfive');
 
 function fromScores(scores) {

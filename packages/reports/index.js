@@ -1,9 +1,9 @@
 const { report, EVENTS } = require('../../utils/track.js');
 const archive = require('../../utils/archive.js');
 const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
-const { buildDeepReport, basicDimensions } = require('../../utils/deep-report.js');
-const { rewardedReport: REWARDED_AD_UNIT_ID } = require('../../data/ads.js');
-const premiumAccess = require('../../utils/premium-access.js');
+const { buildDeepReport, basicDimensions } = require('./deep-report.js');
+const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
+const premiumAccess = require('./premium-access.js');
 
 function formatTime(value) {
   const date = new Date(value);

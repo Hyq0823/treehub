@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const catalog = require('../data/tests/index.js').default;
 const { scoreTest, resolveReport } = require('../utils/scoring.js');
-const { buildDeepReport, basicDimensions } = require('../utils/deep-report.js');
+const { buildDeepReport, basicDimensions } = require('../packages/reports/deep-report.js');
 const get = id => catalog.find(item => item.id === id);
 function result(id, choice) {
   const selected = get(id);

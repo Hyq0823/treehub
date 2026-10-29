@@ -7,10 +7,6 @@
         "type": "file"
       },
       {
-        "value": "vibe_images",
-        "type": "folder"
-      },
-      {
         "value": "docs",
         "type": "folder"
       },

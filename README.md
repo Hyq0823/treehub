@@ -36,8 +36,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 
 - `utils/archive.js`：单键 `personalityTreeArchive.v1` 保存版本化档案、设备种子、规范题号答案、分数、结果、日期与树形快照。写入失败保留页面答案；格式异常停止写入，不自动重置。旧版 `testResult` 仅迁移一次，并保留原键；旧版错误空分数不展示为新版有效报告。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果。
-- `utils/deep-report.js`：按六套测试生成不同的深度维度与解读；`data/ads.js` 保存报告激励视频广告位 ID。
-- `utils/premium-access.js`：记录已完成广告的待保存凭据，按测评记录补存权益；页面退出后停止广告加载与显示重试。
+- `packages/reports/deep-report.js`：按六套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
+- `packages/reports/premium-access.js`：记录已完成广告的待保存凭据，按测评记录补存权益；页面退出后停止广告加载与显示重试。
 - `data/trees.js`：树种寓意、解读文案和成长阶段；`utils/personality-tree.js`：匹配规则及可追溯依据。
 - `data/exploration.js`：大厅分类、卡片标题、探索引导。新增测试仍需在 `data/tests/index.js` 注册，并检查评分、版本和报告适配。
 - `assets/stickers.png`：六套测试的透明纸贴插画，未探索时置灰并显示解锁标记。

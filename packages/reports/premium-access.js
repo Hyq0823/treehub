@@ -1,4 +1,4 @@
-const archive = require('./archive.js');
+const archive = require('../../utils/archive.js');
 
 // A small completion receipt can still fit when rewriting the full archive fails.
 // Memory keeps the completed view available within this app session if storage is full.
