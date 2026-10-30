@@ -43,10 +43,11 @@ Page({
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
     premiumSavePending: false, premiumSaving: false, premiumSaveError: '',
-    premiumPage: 'portrait'
+    premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: ''
   },
   onLoad(options) {
     this._disposed = false;
+    this._themeRequest = 0;
     this._adAttempt = null;
     try {
       const imported = require('../../data/tests/index.js');
@@ -88,6 +89,7 @@ Page({
         premiumSavePending: !!pendingGrant,
         state: 'ready'
       });
+      this.loadReportTheme();
       if (deepReport && !record.premiumUnlockedAt && !pendingGrant) this.setupRewardedVideoAd();
       report(EVENTS.RESULT_VIEW, { testId: test.id, resultType: record.resultType });
     } catch (error) {
@@ -96,6 +98,22 @@ Page({
   },
   onShow() {
     if (!this._disposed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
+  },
+  async loadReportTheme() {
+    const request = ++this._themeRequest;
+    try {
+      const themes = require('../../utils/themes.js');
+      const state = themes.getState();
+      const current = state.catalog.find(item => item.id === state.selectedId);
+      if (!current || current.hidden && !current.discovered) return;
+      this.setData({ themeId: current.id, themeName: current.name, themeQuote: current.quote,
+        companionNames: current.companions.map(item => item.name).join('与'),
+        themeStatus: current.unlocked ? '已收藏' : '主题预览' });
+      const url = await require('../../utils/theme-assets.js').resolveThemeAsset(current.id);
+      if (!this._disposed && request === this._themeRequest) this.setData({ themeHeroUrl: url || '' });
+    } catch (error) {
+      // A theme asset cannot prevent access to an already saved report.
+    }
   },
   showState(state, title, message) {
     this.setData({ state, stateTitle: title, stateMessage: message });
@@ -246,6 +264,7 @@ Page({
   },
   onUnload() {
     this._disposed = true;
+    this._themeRequest++;
     this.retireRewardedVideo();
   },
   retakeTest() {
@@ -254,6 +273,7 @@ Page({
   },
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   goToArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
+  goToTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
   instrumentShare() {
     report(EVENTS.SHARE_TAP, { testId: this.data.test.id || '', resultType: this.data.result.type || '' });
   },

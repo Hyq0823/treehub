@@ -19,7 +19,8 @@ Page({
     loaded: false, error: '', state: null, current: null, gallery: [], tab: 'themes',
     heroUrl: '', imageLoading: false, assetError: false, busy: false, adError: '',
     pendingSave: false, saving: false, saveError: '', visitorPreview: false,
-    history: [], leaves: [], nextReward: '', posterBusy: false, companionSprite: ''
+    history: [], leaves: [], nextReward: '', posterBusy: false, companionSprite: '',
+    pickerOpen: false, worldPaused: false
   },
   onLoad(options = {}) {
     this._disposed = false;
@@ -49,7 +50,8 @@ Page({
   onShow() {
     this._hidden = false;
     this.setupVideo();
-    this.setData({ busy: false, posterBusy: false });
+    this.setData({ busy: false, posterBusy: false, worldPaused: false });
+    require('../../utils/tab-bar.js').syncTabBar(this, '/pages/my-tree/index');
     this.loadCollection();
     if (this.data.current && themes.getPendingGrant(this.data.current.id)) this.retryThemeSave({ silent: true });
   },
@@ -73,6 +75,10 @@ Page({
           count < 5 ? `再探索 ${5 - count} 类不同测试，发现隐藏的极光` :
             '极光水镜已发现，去主题图鉴看看吧'
       });
+      if (wx.setNavigationBarColor) {
+        const night = current.id === 'moon';
+        wx.setNavigationBarColor({ frontColor: night ? '#ffffff' : '#000000', backgroundColor: night ? '#193260' : '#d4ebff' });
+      }
       if (current.hidden && !current.discovered) {
         this._assetRequest++;
         this.setData({ heroUrl: '', imageLoading: false, assetError: false });
@@ -106,6 +112,12 @@ Page({
     }
   },
   onHeroError() { this.setData({ heroUrl: '', assetError: true, imageLoading: false }); },
+  retryHero() {
+    const current = this.data.current;
+    if (!current || !current.discovered || this.data.imageLoading) return;
+    assets.clearCache();
+    this.loadHero(current.id);
+  },
   async loadCompanionSprite() {
     if (this.data.companionSprite || this._companionLoading) return;
     this._companionLoading = true;
@@ -128,8 +140,23 @@ Page({
     const theme = this.data.gallery.find(item => item.id === id);
     if (!theme) return;
     this._previewThemeId = '';
-    this.setData({ visitorPreview: false, saveError: '', adError: '' });
+    this.setData({ visitorPreview: false, saveError: '', adError: '', pickerOpen: false });
     this.loadCollection(id);
+  },
+  openThemePicker() {
+    if (!this.data.loaded || this.data.busy || this.data.saving) return;
+    this.setData({ pickerOpen: true });
+  },
+  closeThemePicker() { this.setData({ pickerOpen: false }); },
+  keepPickerOpen() {},
+  handleThemeAction() {
+    const current = this.data.current;
+    if (!current || this.data.busy || this.data.saving) return;
+    if (current.unlocked && current.selected && !themes.getPendingGrant(current.id)) {
+      this.openThemePicker();
+      return;
+    }
+    this.useOrUnlockTheme();
   },
   async useOrUnlockTheme() {
     const theme = this.data.current;
@@ -192,6 +219,7 @@ Page({
   openHistory() { wx.navigateTo({ url: '/pages/tree-history/index' }); },
   onHide() {
     this._hidden = true;
+    this.setData({ worldPaused: true, pickerOpen: false });
     this._assetRequest++;
     this._galleryRequest++;
     this._posterRequest++;

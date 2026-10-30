@@ -26,6 +26,7 @@
   },
   "sitemapLocation": "sitemap.json",
   "tabBar": {
+    "custom": true,
     "color": "#8b9bb7",
     "selectedColor": "#2974ff",
     "backgroundColor": "#ffffff",

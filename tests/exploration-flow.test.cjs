@@ -107,6 +107,8 @@ test('all registered pages, components and packaged assets exist within main-pac
   assert.deepEqual(config.tabBar.list.map(item => item.pagePath), [
     'pages/test-hall/index', 'pages/my-tree/index', 'pages/user-center/index'
   ]);
+  assert.equal(config.tabBar.custom, true);
+  for (const ext of ['js', 'json', 'wxml', 'wxss']) assert.ok(fs.existsSync(path.join(root, 'custom-tab-bar/index.' + ext)));
   assert.equal(config.lazyCodeLoading, 'requiredComponents');
   const subPackages = config.subPackages || config.subpackages || [];
   const subRoutes = subPackages.flatMap(subPackage => subPackage.pages.map(route => `${subPackage.root}/${route}`));
@@ -150,6 +152,32 @@ test('all registered pages, components and packaged assets exist within main-pac
     assert.ok(file.bytes <= 200000, `${file.relative}: ${file.bytes} bytes exceed the 200KB media budget`);
   }
   assert.ok(fs.statSync(path.join(root, 'assets/trees/species.png')).size > 10000);
+});
+
+test('custom tab bar routes once and only marks a tab selected after navigation succeeds', () => {
+  const file = path.join(root, 'custom-tab-bar/index.js');
+  let definition;
+  let pending;
+  vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
+    Component: value => { definition = value; },
+    require: createRequire(file),
+    getCurrentPages: () => [{ route: 'pages/test-hall/index' }],
+    wx: { switchTab: options => { navigation.push(options.url); pending = options; }, showToast: value => notifications.push(value) }
+  }, { filename: file });
+  const bar = { data: structuredClone(definition.data), setData(changes) { Object.assign(this.data, changes); } };
+  Object.assign(bar, definition.methods);
+  definition.lifetimes.attached.call(bar);
+  assert.equal(bar.data.selected, 0);
+  bar.switchTab({ currentTarget: { dataset: { index: 1 } } });
+  bar.switchTab({ currentTarget: { dataset: { index: 2 } } });
+  assert.deepEqual(navigation, ['/pages/my-tree/index']);
+  assert.equal(bar.data.selected, 0);
+  pending.success(); pending.complete();
+  assert.equal(bar.data.selected, 1);
+  bar.switchTab({ currentTarget: { dataset: { index: 2 } } });
+  pending.fail(); pending.complete();
+  assert.equal(bar.data.selected, 1);
+  assert.equal(notifications.at(-1).title, '页面暂未打开，请再试一次');
 });
 
 test('all SBTI result images resolve inside the report subpackage with no duplicated runtime originals', () => {

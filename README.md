@@ -23,6 +23,8 @@ npm install --prefix /tmp/treehub-compiler --no-audit --no-fund miniprogram-comp
 node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compiler'); c.wxmlToJs(process.cwd()); c.wxssToJs(process.cwd()); console.log('WXML/WXSS passed')"
 ```
 
+手机 UI 辅助预览与三档宽度验收见 [docs/UI还原与验收.md](docs/UI还原与验收.md)。
+
 编译检查与 Node 页面控制器测试不替代微信真机测试。验证流程：首次进入 → 选卡 → 完成六套测试中的一项 → 已保存报告 → 我的档案 → 再测一次 → 对照两次历史报告 → 查看树的成长记录。还应确认退出重开后数据保留，以及清理存储后的首次进入状态。
 
 ## 视觉与交互

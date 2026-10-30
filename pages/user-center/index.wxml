@@ -1,10 +1,10 @@
 <view class="archive-page">
-  <view class="page-heading"><view><text class="eyebrow">MY EXPLORATION</text><view class="page-title">我的档案</view></view><view class="privacy-button" bindtap="openPrivacy" role="button">隐私设置 ↗</view></view>
+  <view class="page-heading"><view><view class="page-title">我的档案</view><text class="heading-label">每一次了解，都有迹可循</text></view><view class="privacy-button" bindtap="openPrivacy" role="button">隐私设置<text class="privacy-external"></text></view></view>
   <view class="page-subtitle">把每次认真了解自己的时刻，轻轻收藏。</view>
   <view wx:if="{{error}}" class="empty-panel"><view class="empty-symbol">!</view><view class="section-title">档案暂时无法读取</view><view class="body-copy">{{error}}</view><button class="primary-action" bindtap="loadArchive">重新读取</button><view class="footnote">为保护已有记录，不会自动重置本地数据。</view></view>
   <block wx:elif="{{loaded}}">
     <view class="stats-panel"><view class="stat"><view class="stat-number">{{uniqueCount}}<text> / {{catalogCount}}</text></view><view class="stat-label">探索项目</view></view><view class="stat"><view class="stat-number">{{totalCount}}</view><view class="stat-label">测评记录</view></view><view class="stat"><view class="stat-number">{{repeatCount}}</view><view class="stat-label">再次认识自己</view></view></view>
-    <view class="tree-entry" bindtap="openTree" role="button"><view class="tree-entry-symbol">❧</view><view class="tree-entry-copy"><view class="tree-entry-title">去我的树，看看新的风景</view><view class="tree-entry-note">主题、陪伴伙伴和成长印记都在那里。</view></view><text>→</text></view>
+    <view class="tree-entry" bindtap="openTree" role="button"><view class="tree-entry-symbol"><view class="entry-trunk"></view><view class="entry-leaf entry-leaf-one"></view><view class="entry-leaf entry-leaf-two"></view></view><view class="tree-entry-copy"><view class="tree-entry-title">去我的树，看看新的风景</view><view class="tree-entry-note">树与伙伴，陪你收藏每次成长</view></view><text>›</text></view>
     <view class="section-heading records-heading"><view class="section-title">我的测评记录</view><text class="section-aside">每次复测都会保留</text></view>
     <view wx:if="{{!groups.length}}" class="empty-panel"><view class="empty-symbol">✦</view><view class="empty-title">从一份好奇开始</view><view class="body-copy"><view>完成测试后，报告与成长记录会留在这里。</view><view>以后再测，也能回看过去的自己。</view></view><button class="primary-action" bindtap="explore">开始第一次探索 →</button></view>
     <view wx:for="{{groups}}" wx:key="id" wx:for-item="group" class="record-group">

@@ -1,5 +1,6 @@
 <view class="answer-page">
   <view class="ambient ambient-one"></view><view class="ambient ambient-two"></view><view class="tech-grid"></view>
+  <image wx:if="{{themeHeroUrl}}" class="answer-world-bg" src="{{themeHeroUrl}}" mode="aspectFit" aria-hidden="true" />
   <view wx:if="{{error}}" class="loading-container glass-panel"><view class="error-core">!</view><text class="loading-text">{{error}}</text><button class="return-button" bindtap="goToHome">返回探索大厅</button></view>
   <view wx:elif="{{!test.id}}" class="loading-container"><view class="loading-orbit"><view class="loading-core"></view></view><text class="loading-text">正在展开这次探索…</text></view>
 
@@ -7,6 +8,7 @@
     <view class="session-header">
       <view class="session-meta"><view><text class="live-dot"></text><text>慢慢来，听听自己的答案</text></view><text>{{test.name}}</text></view>
       <view class="progress-console">
+        <view class="session-mascot" aria-hidden="true"><view class="mascot-leaf"></view><view class="mascot-cloud"><view class="mascot-eye eye-left"></view><view class="mascot-eye eye-right"></view><view class="mascot-smile"></view><view class="mascot-cheek cheek-left"></view><view class="mascot-cheek cheek-right"></view></view><text class="mascot-star">✦</text><view class="mascot-island"></view></view>
         <view class="progress-numbers"><view><text class="current-number">{{currentQuestionIndex + 1}}</text><text class="total-number"> / {{test.questionsCount}}</text></view><text>{{progressPercent}}%</text></view>
         <view class="progress-track"><view class="progress-fill" style="width:{{progressPercent}}%;"><view class="progress-scan"></view></view></view>
         <view class="progress-caption"><text>探索进度</text><text>已记录 {{answeredCount}} 个选择</text></view>
@@ -17,11 +19,11 @@
       <view class="question-topline"><view class="question-number">QUESTION {{currentQuestionIndex + 1}}</view><view class="signal"><text></text><text></text><text></text></view></view>
       <view class="question-content">{{question.text}}</view>
       <view class="question-hint">选择更接近此刻真实反应的一项</view>
-      <view class="options-list">
+      <view class="options-list option-count-{{question.options.length}}">
         <view wx:for="{{question.options}}" wx:key="letter" class="option-item option-{{index}} {{selectedOption === index ? 'option-selected' : ''}}" bindtap="selectOption" data-index="{{index}}" hover-class="option-pressed">
           <view class="option-glow"></view>
           <view class="option-content"><view class="option-letter">{{item.letter}}</view><view class="option-text">{{item.text}}</view></view>
-          <view class="option-state"><view class="state-ring"><view wx:if="{{selectedOption === index}}" class="state-core"></view></view></view>
+          <view class="option-state"><view class="state-ring"><view wx:if="{{selectedOption === index}}" class="state-core">✓</view></view></view>
         </view>
       </view>
       <view class="choice-feedback {{autoAdvancing ? 'choice-feedback-visible' : ''}}"><text>✓</text> 选择已记录，正在进入下一题</view>

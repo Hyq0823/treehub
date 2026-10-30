@@ -8,9 +8,9 @@ page { background: #f1f7ff; color: #18365e; }
 .status { display: flex; align-items: center; gap: 14rpx; margin: 24rpx 0 12rpx; color: #2e5da1; font-size: 28rpx; font-weight: 650; }
 .status-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: #9bb0c9; }.status-dot.enabled { background: #39b397; box-shadow: 0 0 0 7rpx #e5f8f2; }
 .body-copy { color: #71839c; font-size: 24rpx; line-height: 1.9; margin-top: 14rpx; word-break: break-word; }
-button { margin: 20rpx 0 0; padding: 22rpx 18rpx; border-radius: 22rpx; font-size: 25rpx; line-height: 1.5; font-weight: 600; }button::after { border: 0; }
+button { display:flex; min-height:92rpx; margin:20rpx 0 0; padding:22rpx 18rpx; align-items:center; justify-content:center; border-radius:22rpx; font-size:25rpx; line-height:1.5; font-weight:600; }button::after { border: 0; }
 .primary { color: #fff; background: linear-gradient(100deg, #5c9aff, #2567e9); box-shadow: 0 10rpx 22rpx rgba(52,121,239,.15); }
-.secondary { color: #376bad; background: #edf5ff; border: 1rpx solid #dbe8fa; }.text-button { color: #7b91ad; background: transparent; font-size: 22rpx; padding: 8rpx; }
+.secondary { color: #376bad; background: #edf5ff; border: 1rpx solid #dbe8fa; }.text-button { color:#6f86a4; background:transparent; font-size:23rpx; padding:16rpx 8rpx; }
 .accepted-note { margin-top: 24rpx; color: #4b927e; font-size: 22rpx; }
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; }.danger { color: #a04b5b; background: #fff0f1; }.danger.subtle { background: #faf5f6; font-size: 22rpx; }
 .development-note, .message { padding: 22rpx; border-radius: 20rpx; color: #876e43; background: #fff7e5; border: 1rpx solid #efdfbb; font-size: 23rpx; line-height: 1.75; }.message { margin-top: 24rpx; color: #466d9c; background: #e5f0ff; border-color: #d3e4fc; }

@@ -1,4 +1,4 @@
-<view class="result-page">
+<view class="result-page report-theme-{{themeId || 'adventurer'}}">
   <view wx:if="{{state === 'loading'}}" class="state-card">正在展开你的报告…</view>
   <view wx:elif="{{state !== 'ready'}}" class="state-card">
     <view class="state-leaf">❧</view>
@@ -8,14 +8,18 @@
     <button class="text-button" bindtap="goToHome">返回探索大厅</button>
   </view>
   <block wx:else>
-    <view class="eyebrow">{{test.name}} · {{playful ? '趣味探索' : '本次测评'}}</view>
+    <view class="report-page-heading"><view><view class="report-heading-title">我的人格报告</view><view class="report-heading-subtitle">{{test.name}} · {{playful ? '趣味探索' : '本次测评'}}</view></view><view class="report-heading-mark">{{premiumUnlocked ? '深度版已解锁' : '基础报告'}}</view></view>
     <view class="result-header">
-      <view wx:if="{{!result.image}}" class="result-icon">{{resultIcon}}</view>
-      <image wx:else class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
+      <view class="result-header-glow"></view>
+      <image wx:if="{{result.image}}" class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
+      <view wx:elif="{{themeHeroUrl}}" class="report-tree-scene"><image class="report-theme-hero" src="{{themeHeroUrl}}" mode="aspectFit" /><view class="report-theme-caption">我的树 · {{themeName}}</view></view>
+      <view wx:elif="{{record.treeSnapshot}}" class="report-tree-scene report-tree-fallback"><personality-tree tree="{{record.treeSnapshot}}" size="large" /></view>
+      <view wx:else class="result-icon">{{resultIcon}}</view>
       <view class="result-type">{{result.title}}</view>
       <view class="result-code" wx:if="{{result.type !== 'profile'}}">{{result.type}}</view>
       <view class="result-summary">{{result.summary}}</view>
       <view class="saved-badge">已收集 · {{savedAt}}</view>
+      <view wx:if="{{themeHeroUrl && !result.image}}" class="report-companion-line">{{companionNames}}，陪你看见更多面的自己</view>
     </view>
     <view wx:if="{{legacy}}" class="legacy-note">这是旧版本记录，不用于新版人格树匹配。重新测试会保留这份历史记录。</view>
     <view class="report-tier-label"><text>基础报告</text><text>完成测试即可查看</text></view>
@@ -73,7 +77,8 @@
       <view wx:if="{{premiumPage === 'portrait'}}" class="premium-page portrait-page">
         <view class="portrait-card">
           <view class="capture-label"><text>PERSONAL MAP</text><text>适合截图保存</text></view>
-          <view class="portrait-heading"><view><view class="portrait-test">{{test.name}} · 本次画像</view><view class="portrait-title">{{result.title}}</view><view class="portrait-tagline">{{deepReport.tagline}}</view></view><view wx:if="{{record.treeSnapshot}}" class="portrait-tree"><personality-tree tree="{{record.treeSnapshot}}" size="small" /></view></view>
+          <view class="portrait-heading"><view><view class="portrait-test">{{test.name}} · 本次画像</view><view class="portrait-title">{{result.title}}</view><view class="portrait-tagline">{{deepReport.tagline}}</view></view><view wx:if="{{themeHeroUrl || record.treeSnapshot}}" class="portrait-tree"><image wx:if="{{themeHeroUrl}}" class="portrait-theme-image" src="{{themeHeroUrl}}" mode="aspectFit" /><personality-tree wx:else tree="{{record.treeSnapshot}}" size="small" /></view></view>
+          <view wx:if="{{themeHeroUrl}}" class="portrait-theme-label">我的树 · {{themeName}}<text>当前主题意象，图表对应本次结果</text></view>
           <view class="chart-title"><text>倾向清晰度图</text><text>越靠外，表示本次偏好越清晰</text></view>
           <profile-radar wx:if="{{deepReport.dimensions.length >= 3}}" dimensions="{{deepReport.dimensions}}" />
           <view wx:else class="single-spectrum">

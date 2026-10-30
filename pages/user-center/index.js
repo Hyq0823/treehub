@@ -21,6 +21,7 @@ Page({
     cloudState: 'local', cloudTitle: '测评记录仅保存在本机', cloudDetail: '是否启用云备份，由你选择。'
   },
   onShow() {
+    require('../../utils/tab-bar.js').syncTabBar(this, '/pages/user-center/index');
     this.loadArchive();
     this.refreshCloud();
   },

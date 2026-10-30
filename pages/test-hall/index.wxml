@@ -1,35 +1,33 @@
-<view class="hall-page">
-  <view class="eyebrow">PERSONALITY TREE</view>
-  <view class="hall-title">人格测试树<text class="title-leaf">✦</text></view>
-  <view class="hall-subtitle">收集每一种，独特的你。</view>
-
-  <view wx:if="{{error}}" class="error-card"><text>{{error}}</text><button bindtap="loadTests">重新读取</button></view>
+<view class="hall-page hall-theme-{{themeId}}" style="--theme-color:{{themeColor}};--theme-pale:{{themePale}};">
+  <view wx:if="{{error}}" class="error-card"><view class="error-title">人格测试树</view><text>{{error}}</text><button bindtap="loadTests">重新读取</button></view>
   <block wx:elif="{{tree}}">
-    <view class="welcome-card">
-      <view class="welcome-copy"><view class="welcome-kicker">写给今天的你</view><view class="welcome-title">今天，也更懂自己一点。</view><view class="welcome-note"><view>从一份性格测试开始，</view><view>让每次探索都留下新的风景。</view></view></view>
-      <view class="welcome-art"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit" data-theme="{{themeId}}" binderror="themeImageFailed"/><personality-tree wx:else tree="{{tree}}" size="small" /></view>
-    </view>
-    <view class="tree-shortcut" bindtap="openTree" hover-class="card-pressed" role="button" aria-label="打开我的树">
-      <view class="shortcut-symbol">❧</view><view class="shortcut-copy"><view class="shortcut-title">我的树<text>{{themeName || tree.name}}</text></view><view class="shortcut-note">树与伙伴，陪你收藏每次成长</view></view><text class="shortcut-arrow">→</text>
+    <view class="welcome-scene">
+      <view class="sky-orb sky-orb-one"></view><view class="sky-orb sky-orb-two"></view><view class="scene-mist"></view>
+      <view class="brand"><view class="brand-cloud"><view></view></view><view><view class="hall-title">人格测试树</view><view class="hall-subtitle">收集每一种，独特的你</view></view></view>
+      <view class="welcome-copy"><view class="welcome-title"><view>你好，</view><view>今天也在认真生活呀</view></view><view class="welcome-note"><view>探索不同的测试，</view><view>遇见更多面的自己。</view></view></view>
+      <view class="welcome-art"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit" data-theme="{{themeId}}" binderror="themeImageFailed"/><view wx:else class="art-unavailable"><view class="art-unavailable-ring"></view><view class="art-unavailable-title">{{artState === 'loading' ? '正在唤醒小世界' : '主题画面暂未载入'}}</view><button wx:if="{{artState !== 'loading'}}" bindtap="retryThemeImage">重新加载</button></view></view>
+      <view class="scene-spark spark-one"></view><view class="scene-spark spark-two"></view><view class="scene-spark spark-three"></view>
+      <view class="tree-shortcut" bindtap="openTree" hover-class="card-pressed" role="button" aria-label="打开我的树">
+        <view class="shortcut-thumb"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit"/><view wx:else class="shortcut-leaf"></view></view><view class="shortcut-copy"><view class="shortcut-title">我的树<text>{{themeName}}</text></view><view class="shortcut-note">{{tree.uniqueCount ? '再探索 1 项，让树与伙伴带来新风景' : '完成首次探索，领取属于你的小世界'}}</view></view><text class="shortcut-arrow">›</text>
+      </view>
     </view>
 
     <view class="progress-panel">
       <view class="progress-heading"><text>我的探索进度</text><view>{{tree.uniqueCount}}<text> / {{cards.length}}</text></view></view>
-      <view class="progress-nodes"><view class="progress-node" wx:for="{{leaves}}" wx:key="id"><view class="node-circle {{item.collected ? 'node-lit' : ''}}">{{item.collected ? '✓' : index + 1}}</view><view wx:if="{{index < leaves.length - 1}}" class="node-line {{item.collected ? 'node-line-lit' : ''}}"></view></view></view>
-      <view class="progress-note">{{tree.uniqueCount ? '每份新探索，都在为你的树添一片叶。' : '完成首测，领取属于你的树与陪伴伙伴。'}}</view>
-      <view class="recommendation" bindtap="exploreNext" hover-class="card-pressed"><view class="recommend-copy"><view class="recommend-title">{{recommendation ? '下一站 · ' + recommendation.title : '回看报告，或再认识自己一次'}}</view><view class="recommend-sub">{{recommendation ? '按真实感受回答，没有更好的答案' : '每次复测都保留一份新的记录'}}</view></view><text class="recommend-arrow">→</text></view>
+      <view class="progress-nodes"><view class="progress-node" wx:for="{{leaves}}" wx:key="id"><view class="node-circle {{item.collected ? 'node-lit' : ''}}">{{item.collected ? '' : index + 1}}</view><view wx:if="{{index < leaves.length - 1}}" class="node-line {{item.collected ? 'node-line-lit' : ''}}"></view></view></view>
+      <view class="reward-row" bindtap="exploreNext" hover-class="card-pressed" role="button"><view class="reward-copy"><view class="reward-title">{{rewardTitle}}</view></view><view class="reward-gift"><view class="gift-bow bow-left"></view><view class="gift-bow bow-right"></view><view class="gift-lid"></view><view class="gift-box"></view><view class="gift-ribbon"></view></view></view>
     </view>
 
-    <view class="section-heading"><text class="section-title">性格测试图鉴</text><text class="section-caption">发现更多面的自己</text></view>
-    <scroll-view scroll-x class="category-scroll" show-scrollbar="{{false}}"><view class="categories"><view wx:for="{{categories}}" wx:key="id" class="category {{category === item.id ? 'category-active' : ''}}" data-id="{{item.id}}" bindtap="selectCategory">{{item.name}}</view></view></scroll-view>
+    <view class="section-heading"><view><view class="section-title">选择测试，开始探索</view><view class="section-subtitle">收藏不一样的视角，认识完整的自己</view></view><text class="section-caption" bindtap="toggleFilters">{{filterOpen ? '收起筛选' : category === 'all' ? '全部测试' : '已筛选'}}<text class="filter-chevron {{filterOpen ? 'filter-open' : ''}}"></text></text></view>
+    <scroll-view wx:if="{{filterOpen}}" scroll-x class="category-scroll" show-scrollbar="{{false}}"><view class="categories"><view wx:for="{{categories}}" wx:key="id" class="category {{category === item.id ? 'category-active' : ''}}" data-id="{{item.id}}" bindtap="selectCategory">{{item.name}}</view></view></scroll-view>
     <view class="test-grid">
       <view wx:for="{{filteredCards}}" wx:key="id" class="explore-card {{item.collected ? 'collected' : 'uncollected'}}" data-id="{{item.id}}" bindtap="openTest" hover-class="card-pressed" role="button" aria-label="{{item.title}}">
-        <view class="test-art art-{{item.art}}" style="--art-color:{{item.color}};"><view class="art-orbit"></view><text>{{item.symbol}}</text><view class="art-spark"></view></view>
-        <view class="test-copy"><view class="test-heading"><view class="test-title">{{item.title}}</view><text wx:if="{{item.collected}}" class="status">已探索</text></view><view class="test-prompt">{{item.collected ? item.resultTitle : item.prompt}}</view><view class="test-meta">{{item.questionsCount}} 题 · {{item.collected ? '已测 ' + item.count + ' 次 · 查看报告' : item.time}}</view></view><view class="test-action">›</view>
+        <view class="test-art art-{{item.art}}"><image wx:if="{{item.image}}" class="test-art-image" src="{{item.image}}" mode="aspectFit" lazy-load="{{true}}" data-id="{{item.id}}" binderror="cardImageFailed"/><view wx:else class="test-art-empty"><view class="art-empty-leaf"></view><text>探索 {{item.number}}</text></view><view class="art-glint"></view></view>
+        <view class="test-copy"><view class="test-heading"><view class="test-title">{{item.title}}</view><text wx:if="{{item.collected}}" class="status">已探索</text></view><view class="test-prompt">{{item.collected ? item.resultTitle : item.prompt}}</view><view class="test-meta">{{item.questionsCount}} 题<text>·</text>{{item.collected ? '已测 ' + item.count + ' 次 · 查看报告' : item.time}}</view></view><view class="test-action">›</view>
       </view>
     </view>
     <view wx:if="{{!filteredCards.length}}" class="empty-category">新的探索正在生长，先看看其他分类吧。</view>
-    <view class="keyword-note"><view>MBTI · 大五人格 · 九型人格 · 内向外向</view><view>在不同角度里，慢慢了解自己。</view></view>
+    <view class="keyword-note"><view>MBTI · 大五人格 · 九型人格 · 内向外向</view><view>每一份探索，都让这棵树更像你。</view></view>
     <view class="privacy-entry" bindtap="openPrivacy">本地测评 · 云备份由你选择 <text>隐私与数据管理 →</text></view>
     <view class="hall-footnote">测评用于自我探索，不作心理诊断。</view>
   </block>

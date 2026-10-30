@@ -6,12 +6,27 @@ Page({
   data: {
     test: {}, questions: [], currentQuestionIndex: 0, selectedOption: -1,
     answers: [], submitted: false, submitting: false, error: '',
-    progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false
+    progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false,
+    themeHeroUrl: ''
   },
   onLoad(options) {
     this._unloaded = false;
     report(EVENTS.TEST_START, { testId: options.id });
     this.loadTestData(options.id);
+    this.loadThemeWorld();
+  },
+  async loadThemeWorld() {
+    try {
+      const themes = require('../../utils/themes.js');
+      const assets = require('../../utils/theme-assets.js');
+      const state = themes.getState();
+      const current = state.catalog.find(item => item.id === state.selectedId);
+      if (!current || !current.discovered) return;
+      const themeHeroUrl = await assets.resolveThemeAsset(current.id);
+      if (!this._unloaded && themeHeroUrl) this.setData({ themeHeroUrl });
+    } catch (error) {
+      // Theme artwork is decorative; answering always remains available offline.
+    }
   },
   onUnload() {
     this._unloaded = true;

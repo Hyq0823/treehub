@@ -8,16 +8,23 @@ const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const catalogModule = require('../../data/tests/index.js');
 const catalog = catalogModule.default || catalogModule;
-const STICKER_CELLS = { sbti: [0, 0], mbti: [1, 0], enneagram: [2, 0], bigfive: [0, 1], shadow: [1, 1], ie: [2, 1] };
+const CARD_THEMES = { mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 Page({
   data: {
-    categories: display.categories, category: 'all', cards: [], filteredCards: [],
+    categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false,
     tree: null, leaves: [], recommendation: null, error: '',
-    themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: ''
+    themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
+    themeColor: '#318aff', themePale: '#e9f5ff',
+    artState: 'loading', rewardTitle: ''
   },
   onLoad() { report(EVENTS.HALL_VIEW); },
-  onShow() { this.loadTests(); },
+  onShow() {
+    this._hidden = false;
+    require('../../utils/tab-bar.js').syncTabBar(this, '/pages/test-hall/index');
+    this.loadTests();
+  },
   loadTests() {
     try {
       const state = archive.getArchive();
@@ -25,14 +32,15 @@ Page({
       let themeId = 'adventurer';
       try { themeId = themes.getState(state.records).selectedId || themeId; } catch (error) {}
       const theme = getTheme(themeId);
-      const cards = catalog.map((test, index) => {
+      const displayRank = id => DISPLAY_ORDER.includes(id) ? DISPLAY_ORDER.indexOf(id) : DISPLAY_ORDER.length;
+      const orderedCatalog = catalog.slice().sort((first, second) => displayRank(first.id) - displayRank(second.id));
+      const cards = orderedCatalog.map((test, index) => {
         const records = state.records.filter(r => r.testId === test.id);
         const latest = records[0];
         const metadata = display.tests[test.id] || {
           title: test.name, category: 'personality', prompt: test.description,
           symbol: '✦', art: 'facets', color: '#488d7a'
         };
-        const stickerCell = STICKER_CELLS[test.id];
         let resultTitle = '';
         if (latest) {
           const resolved = resolveReport(test, latest);
@@ -41,8 +49,8 @@ Page({
         return Object.assign({}, metadata, {
           id: test.id, number: String(index + 1).padStart(2, '0'), questionsCount: test.questionsCount, time: test.time,
           count: records.length, collected: !!latest, recordId: latest && latest.id,
-          hasSticker: !!stickerCell,
-          stickerStyle: stickerCell ? `left:-${stickerCell[0] * 178 + 8}rpx;top:-${stickerCell[1] * 178 + 8}rpx;` : '',
+          artThemeId: CARD_THEMES[test.id] || 'adventurer',
+          image: this._cardImages && this._cardImages[test.id] || '',
           resultTitle
         });
       });
@@ -50,33 +58,59 @@ Page({
       this.setData({
         tree, cards, recommendation, error: '', themeId,
         themeName: theme && theme.name || '我的成长小世界',
-        leaves: cards.slice(0, 8).map(card => ({ id: card.id, collected: card.collected })),
+        themeColor: theme && theme.color || '#318aff', themePale: theme && theme.pale || '#e9f5ff',
+        rewardTitle: !tree.uniqueCount ? '首测完成，领取树与伙伴' : tree.uniqueCount < 5 ? '再探索 1 项，让树长出新枝' : '你的极光，已经可以被发现',
+        leaves: cards.slice(0, 8).map((card, index) => ({ id: card.id, collected: index < tree.uniqueCount })),
         moreLeafCount: Math.max(0, cards.length - 8),
         filteredCards: this.data.category === 'all' ? cards : cards.filter(c => c.category === this.data.category)
       });
       this.loadThemeImage(themeId);
+      this.loadCardImages(cards);
     } catch (error) {
       this.setData({ error: '暂时无法读取本机档案。请重试，你的记录不会被自动覆盖。' });
     }
   },
   loadThemeImage(themeId) {
     const request = this._themeAssetRequest = (this._themeAssetRequest || 0) + 1;
-    this.setData({ themeImage: '' });
+    this.setData({ themeImage: '', artState: 'loading' });
     Promise.resolve(themeAssets.resolveThemeAsset(themeId)).then(url => {
-      if (request === this._themeAssetRequest) this.setData({ themeImage: url || '' });
-    }).catch(() => {});
+      if (!this._hidden && request === this._themeAssetRequest) this.setData({ themeImage: url || '', artState: url ? 'ready' : 'unavailable' });
+    }).catch(() => {
+      if (!this._hidden && request === this._themeAssetRequest) this.setData({ artState: 'unavailable' });
+    });
   },
+  loadCardImages(cards) {
+    const request = this._cardAssetRequest = (this._cardAssetRequest || 0) + 1;
+    this._cardImages = this._cardImages || {};
+    cards.forEach(card => {
+      Promise.resolve(themeAssets.resolveThemeAsset(card.artThemeId)).then(url => {
+        if (!url || this._hidden || request !== this._cardAssetRequest) return;
+        this._cardImages[card.id] = url;
+        const next = this.data.cards.map(item => item.id === card.id ? Object.assign({}, item, { image: url }) : item);
+        this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
+      }).catch(() => {});
+    });
+  },
+  retryThemeImage() { this.loadThemeImage(this.data.themeId); this.loadCardImages(this.data.cards); },
   themeImageFailed(event) {
-    if (event.currentTarget.dataset.theme === this.data.themeId) this.setData({ themeImage: '' });
+    if (event.currentTarget.dataset.theme === this.data.themeId) this.setData({ themeImage: '', artState: 'unavailable' });
   },
-  onUnload() { this._themeAssetRequest = (this._themeAssetRequest || 0) + 1; },
+  cardImageFailed(event) {
+    const id = event.currentTarget.dataset.id;
+    if (this._cardImages) delete this._cardImages[id];
+    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
+    this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
+  },
+  onHide() { this._hidden = true; this._themeAssetRequest = (this._themeAssetRequest || 0) + 1; this._cardAssetRequest = (this._cardAssetRequest || 0) + 1; },
+  onUnload() { this.onHide(); },
   selectCategory(event) {
     const category = event.currentTarget.dataset.id;
     this.setData({
-      category,
+      category, filterOpen: false,
       filteredCards: category === 'all' ? this.data.cards : this.data.cards.filter(c => c.category === category)
     });
   },
+  toggleFilters() { this.setData({ filterOpen: !this.data.filterOpen }); },
   openTest(event) {
     const card = this.data.cards.find(c => c.id === event.currentTarget.dataset.id);
     if (!card) return;

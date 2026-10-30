@@ -1,0 +1,7 @@
+<view class="tab-bar" aria-role="tablist">
+  <view wx:for="{{tabs}}" wx:key="label" class="tab-item {{selected === index ? 'tab-selected' : ''}}" data-index="{{index}}" bindtap="switchTab" hover-class="tab-pressed" aria-role="tab" aria-label="{{item.label}}" aria-selected="{{selected === index}}">
+    <view class="tab-symbol symbol-{{item.icon}}"><view class="symbol-part part-one"></view><view class="symbol-part part-two"></view><view class="symbol-part part-three"></view><view class="symbol-part part-four"></view></view>
+    <text>{{item.label}}</text>
+    <view wx:if="{{selected === index}}" class="tab-dot"></view>
+  </view>
+</view>
