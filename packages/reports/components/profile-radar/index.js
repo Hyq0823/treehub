@@ -50,13 +50,13 @@ Component({
           if (fill) { context.fillStyle = fill; context.fill(); }
           if (stroke) { context.strokeStyle = stroke; context.lineWidth = lineWidth || 1; context.stroke(); }
         };
-        [1, 0.75, 0.5, 0.25].forEach(scale => polygon(scale, '', 'rgba(92, 119, 98, 0.28)', 1));
+        [1, 0.75, 0.5, 0.25].forEach(scale => polygon(scale, '', 'rgba(77, 128, 201, 0.24)', 1));
         dimensions.forEach((item, index) => {
           const outer = point(index, 1);
           context.beginPath();
           context.moveTo(centerX, centerY);
           context.lineTo(outer.x, outer.y);
-          context.strokeStyle = 'rgba(92, 119, 98, 0.22)';
+          context.strokeStyle = 'rgba(77, 128, 201, 0.18)';
           context.lineWidth = 1;
           context.stroke();
         });
@@ -68,20 +68,20 @@ Component({
         });
         context.closePath();
         const gradient = context.createLinearGradient(0, 0, field.width, field.height);
-        gradient.addColorStop(0, 'rgba(80, 130, 95, 0.62)');
-        gradient.addColorStop(1, 'rgba(210, 166, 75, 0.64)');
+        gradient.addColorStop(0, 'rgba(92, 168, 255, 0.48)');
+        gradient.addColorStop(1, 'rgba(142, 139, 241, 0.38)');
         context.fillStyle = gradient;
         context.fill();
-        context.strokeStyle = '#b48a3d';
+        context.strokeStyle = '#467fff';
         context.lineWidth = 2;
         context.stroke();
         values.forEach((value, index) => {
           const current = point(index, value);
           context.beginPath();
           context.arc(current.x, current.y, 4, 0, Math.PI * 2);
-          context.fillStyle = '#f8e5a8';
+          context.fillStyle = '#ffffff';
           context.fill();
-          context.strokeStyle = '#8a6a31';
+          context.strokeStyle = '#467fff';
           context.lineWidth = 1.5;
           context.stroke();
         });

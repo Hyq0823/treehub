@@ -1,6 +1,7 @@
 App({
   onLaunch() {
     this.recordEnterScene();
+    // No assessment leaves the device until cloud backup is explicitly enabled.
     require('./utils/cloud-sync.js').start();
   },
   onShow() {

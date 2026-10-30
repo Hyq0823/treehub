@@ -156,6 +156,20 @@ test('when every write fails, a completed view remains recoverable across page i
   assert.equal(reopened.ad.stats.show, 0);
 });
 
+test('explicit local-data deletion invalidates the in-memory completed-report receipt', async () => {
+  const saved = record();
+  const { page, ad } = openPage(saved);
+  writeFailure = 'archive';
+  await finishVideo(page, ad);
+  const helper = require(helperPath);
+  assert.ok(helper.getPendingGrant(saved.id));
+  writeFailure = '';
+  memory.delete(helper.PENDING_KEY);
+  global.getApp = () => ({ globalData: { privacyResetRevision: 1 } });
+  try { assert.equal(helper.getPendingGrant(saved.id), null); }
+  finally { delete global.getApp; }
+});
+
 test('returning to a pending report retries persistence after storage recovers', async () => {
   const saved = record();
   const { page, ad } = openPage(saved);
@@ -223,6 +237,23 @@ test('retry display failure is caught, restores the button and permits a subsequ
   assert.equal(archive.getRecord(saved.id).premiumUnlockedAt, undefined);
   await finishVideo(page, ad);
   assert.equal(ad.stats.show, 3);
+  assert.ok(archive.getRecord(saved.id).premiumUnlockedAt);
+});
+
+test('an error after video display releases the button and old callbacks cannot unlock a new attempt', async () => {
+  const saved = record();
+  const { page, ad } = openPage(saved);
+  const staleClose = [...ad.handlers.close][0];
+  await page.showPremiumAd();
+  ad.emit('error', { errMsg: 'display interrupted' });
+  assert.equal(page.data.adWatching, false);
+  assert.equal(ad.stats.destroy, 1);
+  const nextAd = makeAd();
+  wx.createRewardedVideoAd = () => nextAd;
+  await page.showPremiumAd();
+  staleClose({ isEnded: true });
+  assert.equal(archive.getRecord(saved.id).premiumUnlockedAt, undefined);
+  nextAd.emit('close', { isEnded: true });
   assert.ok(archive.getRecord(saved.id).premiumUnlockedAt);
 });
 

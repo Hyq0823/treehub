@@ -13,7 +13,8 @@
     <view class="snapshot-meaning" wx:if="{{item.tree.meaning}}">{{item.tree.meaning}}</view>
     <view class="snapshot-story" wx:if="{{item.tree.message}}">{{item.tree.message}}</view>
     <view wx:if="{{item.legacy}}" class="legacy-note">早期版本记录 · 树形暂不据此推断</view>
+    <view wx:if="{{item.tree.restoredFromSummary}}" class="legacy-note">由云端结果摘要还原的成长意象，并非当时截图</view>
     <view class="snapshot-footer" data-id="{{item.id}}" data-test-id="{{item.testId}}" bindtap="openReport" role="button"><text>{{item.testName}}</text><text>回看当时的报告 →</text></view>
   </view>
-  <view wx:if="{{snapshots.length && !error}}" class="local-note">快照会随档案同步到微信云端。不同测评版本的结果不宜直接比较，树形寓意用于自我探索。</view>
+  <view wx:if="{{snapshots.length && !error}}" class="local-note">本机保留当时的树形快照；开启云备份后，其他设备可根据结果摘要还原成长意象。不同测评版本的结果不宜直接比较。</view>
 </view>

@@ -16,6 +16,10 @@
         "type": "folder"
       },
       {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
         "value": "README.md",
         "type": "file"
       }

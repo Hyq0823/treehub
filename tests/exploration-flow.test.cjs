@@ -104,11 +104,14 @@ test('hall preserves invalid local archive and renders recoverable state', () =>
 });
 test('all registered pages, components and packaged assets exist within main-package budget', () => {
   const config = JSON.parse(fs.readFileSync(path.join(root, 'app.json')));
-  assert.equal(config.tabBar.list.length, 2);
+  assert.deepEqual(config.tabBar.list.map(item => item.pagePath), [
+    'pages/test-hall/index', 'pages/my-tree/index', 'pages/user-center/index'
+  ]);
   assert.equal(config.lazyCodeLoading, 'requiredComponents');
   const subPackages = config.subPackages || config.subpackages || [];
   const subRoutes = subPackages.flatMap(subPackage => subPackage.pages.map(route => `${subPackage.root}/${route}`));
   assert.ok(subRoutes.includes('packages/reports/index'), 'report page belongs to its downloaded subpackage');
+  assert.ok(config.pages.includes('pages/privacy/index'), 'privacy controls are reachable in the app');
   for (const route of [...config.pages, ...subRoutes]) {
     for (const ext of ['js', 'json', 'wxml', 'wxss']) assert.ok(fs.existsSync(path.join(root, route + '.' + ext)), route + ext);
     const pageConfig = JSON.parse(fs.readFileSync(path.join(root, route + '.json')));

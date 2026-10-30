@@ -44,7 +44,7 @@
         <view><text>行动方案</text><text>3 个具体练习</text></view>
       </view>
       <button class="premium-unlock-button" bindtap="showPremiumAd" loading="{{adWatching}}" disabled="{{adWatching}}">
-        {{adWatching ? '正在打开视频…' : '看视频，永久解锁本次报告'}}
+        {{adWatching ? '正在打开视频…' : '观看视频，解锁本次深度报告'}}
       </button>
       <view class="premium-rule">完整观看 1 次激励视频 · 仅解锁当前这次测评 · 以后可直接回看</view>
       <view wx:if="{{adError}}" class="ad-error">{{adError}}</view>
@@ -124,7 +124,7 @@
       <view><view class="archive-title">你的人格树，留下了新记录</view><view class="archive-subtitle">查看成长档案与历次测评</view></view>
       <text class="archive-arrow">→</text>
     </view>
-    <view class="local-note">报告保留在本地缓存，并在云端可用时同步到当前微信账号。测评仅供自我探索，不作心理诊断。</view>
+    <view class="local-note">报告默认保留在本机。开启云备份后，仅同步结果摘要与解锁记录，不上传逐题选项。测评用于自我探索，不作心理诊断。</view>
     <view class="result-actions">
       <button class="secondary-button" bindtap="retakeTest">再测一次</button>
       <button class="primary-button" bindtap="goToArchive">我的档案</button>

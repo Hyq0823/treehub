@@ -4,8 +4,18 @@ const archive = require('../../utils/archive.js');
 // Memory keeps the completed view available within this app session if storage is full.
 const PENDING_KEY = 'personalityTreePremiumPending.v1';
 const pending = new Map();
+function resetRevision() {
+  try { return typeof getApp === 'function' && getApp().globalData.privacyResetRevision || 0; }
+  catch (error) { return 0; }
+}
+let lastResetRevision = resetRevision();
 
 function readReceipts() {
+  const revision = resetRevision();
+  if (revision !== lastResetRevision) {
+    pending.clear();
+    lastResetRevision = revision;
+  }
   try {
     const stored = wx.getStorageSync(PENDING_KEY);
     if (stored === '' || stored === undefined) return true;
@@ -61,4 +71,10 @@ function persistPendingGrant(recordId) {
   return updated;
 }
 
-module.exports = { PENDING_KEY, getPendingGrant, rememberCompletedGrant, persistPendingGrant };
+function clearAllReceipts() {
+  // Clear the in-process copy as well as disk on an explicit local-data deletion.
+  wx.removeStorageSync(PENDING_KEY);
+  pending.clear();
+}
+
+module.exports = { PENDING_KEY, getPendingGrant, rememberCompletedGrant, persistPendingGrant, clearAllReceipts };

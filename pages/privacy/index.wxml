@@ -1,0 +1,54 @@
+<view class="privacy-page">
+  <view class="eyebrow">YOUR CHOICES MATTER</view>
+  <view class="page-title">隐私，由你决定</view>
+  <view class="lead">不打开云备份，也可以完成测试、查看报告和收藏主题。</view>
+  <view wx:if="{{!settings.releaseReady}}" class="development-note">开发预览版本：运营主体与联系信息尚待补充，完善前不可正式发布。</view>
+
+  <view class="panel choice-panel">
+    <view class="panel-title">我的数据选择</view>
+    <view class="status"><text>{{settings.cloudBackup ? '云备份已开启' : '仅保存在本机'}}</text><text class="status-dot {{settings.cloudBackup ? 'enabled' : ''}}"></text></view>
+    <view class="body-copy">{{cloudStatus.message}}</view>
+    <button wx:if="{{!settings.policyAccepted}}" class="primary" bindtap="agreePolicy" disabled="{{busy}}">已阅读，同意下方隐私政策</button>
+    <view wx:else class="accepted-note">已同意隐私政策 · {{settings.policyVersion}}</view>
+    <button wx:if="{{settings.cloudBackup}}" class="secondary" bindtap="disableCloud" disabled="{{busy}}">关闭云备份</button>
+    <block wx:else>
+      <button wx:if="{{wechatPrivacyNeeded && nativePrivacySupported}}" id="cloud-backup-privacy" class="primary" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="enableCloud" disabled="{{busy || !settings.policyAccepted}}" loading="{{busy}}">同意微信隐私指引并开启云备份</button>
+      <button wx:else class="primary" bindtap="enableCloud" disabled="{{busy || !settings.policyAccepted}}" loading="{{busy}}">单独选择开启云备份</button>
+    </block>
+    <button class="text-button" bindtap="continueLocal">继续在本机探索</button>
+    <button class="text-button" bindtap="openWeChatPrivacy">查看{{policyName}}</button>
+  </view>
+
+  <view wx:if="{{message}}" class="message" aria-role="alert">{{message}}</view>
+
+  <view class="panel">
+    <view class="panel-title">导出与删除</view>
+    <view class="body-copy">导出只在你主动操作时生成文件，请保管好包含个人结果的文件。关闭备份不会自动删除已有云端内容。</view>
+    <view class="action-grid"><button class="secondary" bindtap="exportLocal" disabled="{{busy}}">导出本机数据</button><button class="secondary" bindtap="exportCloud" disabled="{{busy}}">导出云端数据</button></view>
+    <button class="danger" bindtap="deleteCloud" disabled="{{busy}}">{{cloudStatus.state === 'delete_pending' ? '重试删除云端数据' : '删除云端数据'}}</button>
+    <button class="danger subtle" bindtap="deleteLocal" disabled="{{busy}}">删除本机档案与主题收藏</button>
+  </view>
+
+  <view class="panel policy-panel">
+    <view class="panel-title">人格测试树隐私政策</view>
+    <view class="policy-version">生效版本：{{policy.policyVersion}}</view>
+    <view class="policy-heading">1. 谁在提供服务</view>
+    <view class="body-copy">运营主体：{{policy.operatorName || '待补充（开发版本）'}}。隐私联系方式：{{policy.contactEmail || policy.contactPhone || '待补充（开发版本）'}}。如需联系或行使权利，请使用小程序正式发布后展示的运营者联系方式。</view>
+    <view class="policy-heading">2. 本机测评需要哪些数据</view>
+    <view class="body-copy">你选择的逐题选项、维度分数、结果类型、测评时间、树形快照、主题收藏及报告解锁状态保存在本机，用于生成报告、复测对照与成长记录。本机功能不要求提供姓名、手机号、精确位置、通讯录或身份证信息，也不请求微信昵称和头像。</view>
+    <view class="policy-heading">3. 云备份是可选的</view>
+    <view class="body-copy">只有在你同意本政策、微信隐私保护指引，并单独选择云备份后，才会将结果摘要和收藏权益关联到当前微信账号进行备份。结果摘要包含测试标识与版本、分数、结果类型、完成时间、树种子、已解锁主题和报告状态。逐题原始答案、自由文本与历史树图片不上传。微信云开发会提供账号隔离所需的 OpenID；它用于本人数据恢复，不展示给其他用户。</view>
+    <view class="body-copy">若你曾使用旧版云备份，旧版可能已保存逐题选项或树形快照。新版不再上传这些内容；你重新选择备份并完成同步时，会按本人记录分批清理旧字段。你也可直接删除云端数据。仅升级程序不代表旧数据已完成清理。</view>
+    <view class="policy-heading">4. 图片、视频广告与保存海报</view>
+    <view class="body-copy">主题图片由微信云开发空间加载；网络服务提供方可能处理提供内容所必需的网络请求信息。你主动播放激励视频时，微信广告服务会按其隐私规则处理广告播放和必要设备、网络、互动信息。我们不主动向广告服务发送你的答题选项、分数或人格结果。主题解锁与本次深度报告分别提示；不观看视频也可使用基础报告和已获得主题。</view>
+    <view class="body-copy">本版本生成临时海报供微信预览，由你在预览界面自行保存或分享；小程序不主动请求相册写入权限。分享内容由你主动选择，我们不会自动发送给好友，也不会将私人的测评记录链接公开给朋友。</view>
+    <view class="policy-heading">5. 保存期限与安全</view>
+    <view class="body-copy">{{policy.retentionDescription}} 本机缓存由你或微信管理。云端数据存放于微信云开发服务；客户端不直接读写测评数据库，云函数依据当前微信身份隔离记录。请妥善保管微信账号与导出文件。服务故障时优先保留本机数据，未完成的云端删除会显示重试入口。</view>
+    <view class="policy-heading">6. 撤回、访问、导出和删除</view>
+    <view class="body-copy">你可以在本页关闭云备份、导出本人数据、删除本机档案，或删除云端结果、树种子和收藏权益。关闭备份停止后续同步，已有备份须单独删除。云端删除后，仅保留用于阻止旧设备再次上传的最小授权撤回标记，不含答案、分数、主题、树种子或 OpenID 明文。若以后重新开启备份，需再次明确选择。已向好友发送的导出文件或海报由接收方保管，删除小程序数据不会撤回已分享内容。</view>
+    <view class="policy-heading">7. 未成年人、用途与政策变更</view>
+    <view class="body-copy">本工具面向自我探索，不能作为心理诊断、治疗或人员选拔依据。未成年人应在监护人指导下使用；未满十四周岁请勿开启云端备份，监护人可联系运营者申请删除相关数据。政策实质变化时会更新版本，并在继续云备份前再次征求你的选择；拒绝不影响本机测评。</view>
+    <view class="policy-heading">8. 微信平台隐私指引</view>
+    <view class="body-copy">本政策与微信展示的用户隐私保护指引共同说明数据处理。你可以通过上方入口查看微信指引；正式发布的运营主体、实际使用的数据类型与用途应与指引一致。</view>
+  </view>
+</view>

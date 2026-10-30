@@ -1,11 +1,11 @@
 <view class="answer-page">
   <view class="ambient ambient-one"></view><view class="ambient ambient-two"></view><view class="tech-grid"></view>
   <view wx:if="{{error}}" class="loading-container glass-panel"><view class="error-core">!</view><text class="loading-text">{{error}}</text><button class="return-button" bindtap="goToHome">返回探索大厅</button></view>
-  <view wx:elif="{{!test.id}}" class="loading-container"><view class="loading-orbit"><view class="loading-core"></view></view><text class="loading-text">正在连接人格探索舱…</text></view>
+  <view wx:elif="{{!test.id}}" class="loading-container"><view class="loading-orbit"><view class="loading-core"></view></view><text class="loading-text">正在展开这次探索…</text></view>
 
   <view wx:else class="answer-shell">
     <view class="session-header">
-      <view class="session-meta"><view><text class="live-dot"></text><text>ASSESSMENT SESSION</text></view><text>{{test.name}}</text></view>
+      <view class="session-meta"><view><text class="live-dot"></text><text>慢慢来，听听自己的答案</text></view><text>{{test.name}}</text></view>
       <view class="progress-console">
         <view class="progress-numbers"><view><text class="current-number">{{currentQuestionIndex + 1}}</text><text class="total-number"> / {{test.questionsCount}}</text></view><text>{{progressPercent}}%</text></view>
         <view class="progress-track"><view class="progress-fill" style="width:{{progressPercent}}%;"><view class="progress-scan"></view></view></view>
@@ -14,7 +14,7 @@
     </view>
 
     <view class="question-card motion-{{motionKey}}">
-      <view class="question-topline"><view class="question-number">NODE {{currentQuestionIndex + 1}}</view><view class="signal"><text></text><text></text><text></text></view></view>
+      <view class="question-topline"><view class="question-number">QUESTION {{currentQuestionIndex + 1}}</view><view class="signal"><text></text><text></text><text></text></view></view>
       <view class="question-content">{{question.text}}</view>
       <view class="question-hint">选择更接近此刻真实反应的一项</view>
       <view class="options-list">
@@ -31,6 +31,6 @@
       <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}"><text>←</text> 上一题</button>
       <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}" loading="{{submitting}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '确认并继续'}} <text wx:if="{{!submitting}}">→</text></button>
     </view>
-    <view class="privacy-line"><text>●</text> 你的选择会先安全保存在本地</view>
+    <view class="privacy-line"><text>●</text> 原始选项保留在本机，云备份由你选择</view>
   </view>
 </view>

@@ -70,3 +70,11 @@ page {
 button::after { border: 0; }
 @keyframes reportConnect { 0%, 18% { left: -40%; } 78%, 100% { left: 125%; } }
 @keyframes reportPulse { 0%, 100% { transform: scale(.96); opacity: .72; } 50% { transform: scale(1.03); opacity: 1; } }
+page { color: #203a65; background: #f4f8ff; }
+.report-redirect { background: radial-gradient(circle at 50% 0, #e6f1ff, transparent 50%), #ffffff; border-color: #dfeafb; box-shadow: 0 20rpx 55rpx rgba(65, 112, 187, .08); }
+.report-redirect::before { background: linear-gradient(90deg, transparent, rgba(108, 170, 255, .1), transparent); }
+.report-redirect-icon { color: #5f9fff; background: #edf5ff; box-shadow: 0 0 0 1rpx #dceaff, 0 0 42rpx #ddebff; }
+.report-redirect-title { color: #203a65; }
+.report-redirect-error { color: #7b91ae; }
+.report-redirect-retry { color: #ffffff; background: linear-gradient(100deg, #58a4ff, #2974ff); }
+.report-redirect-home { color: #5e8fd4; }

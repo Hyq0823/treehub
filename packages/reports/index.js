@@ -111,11 +111,14 @@ Page({
     try {
       const videoAd = wx.createRewardedVideoAd({ adUnitId: REWARDED_AD_UNIT_ID });
       this._videoAd = videoAd;
+      const generation = (this._adGeneration || 0) + 1;
+      this._adGeneration = generation;
+      const currentInstance = () => !this._disposed && this._videoAd === videoAd && this._adGeneration === generation;
       this._onAdLoad = () => {
-        if (!this._disposed) this.setData({ adReady: true, adLoading: false, adError: '' });
+        if (currentInstance()) this.setData({ adReady: true, adLoading: false, adError: '' });
       };
       this._onAdError = error => {
-        if (this._disposed) return;
+        if (!currentInstance()) return;
         console.error('激励视频广告加载失败', error);
         this.setData({
           adReady: false,
@@ -123,11 +126,16 @@ Page({
         });
         // A failed initial show can still be retried by load(). Keep that attempt locked.
         if (!this._adAttempt) this.setData({ adLoading: false, adWatching: false });
+        else if (this._adAttempt.phase === 'displayed') {
+          this.retireRewardedVideo();
+          this.setData({ adLoading: false, adWatching: false });
+        }
       };
       this._onAdClose = result => {
+        if (!currentInstance()) return;
         const attempt = this._adAttempt;
         if (!this.isCurrentAdAttempt(attempt)) return;
-        this._adAttempt = null;
+        this.retireRewardedVideo();
         this.setData({ adWatching: false, adLoading: false });
         if (result && result.isEnded === true) {
           this.completePremiumUnlock(attempt.recordId);
@@ -165,7 +173,7 @@ Page({
       }
     }
     const videoAd = this._videoAd;
-    const attempt = { ad: videoAd, recordId: this.data.record.id };
+    const attempt = { ad: videoAd, recordId: this.data.record.id, phase: 'showing' };
     this._adAttempt = attempt;
     this.setData({ adWatching: true, adLoading: true, adError: '' });
     report(EVENTS.PREMIUM_AD_START, { testId: this.data.test.id, recordId: this.data.record.id });
@@ -174,13 +182,16 @@ Page({
         await videoAd.show();
       } catch (error) {
         if (!this.isCurrentAdAttempt(attempt)) return;
+        attempt.phase = 'loading';
         await videoAd.load();
         if (!this.isCurrentAdAttempt(attempt)) return;
+        attempt.phase = 'showing';
         await videoAd.show();
       }
+      if (this.isCurrentAdAttempt(attempt)) attempt.phase = 'displayed';
     } catch (error) {
       if (!this.isCurrentAdAttempt(attempt)) return;
-      this._adAttempt = null;
+      this.retireRewardedVideo();
       console.error('激励视频广告显示失败', error);
       this.setData({
         adReady: false, adLoading: false, adWatching: false,
@@ -222,9 +233,9 @@ Page({
     const page = event.currentTarget.dataset.page;
     if (['portrait', 'insights', 'actions'].includes(page)) this.setData({ premiumPage: page });
   },
-  onUnload() {
-    this._disposed = true;
+  retireRewardedVideo() {
     this._adAttempt = null;
+    this._adGeneration = (this._adGeneration || 0) + 1;
     const videoAd = this._videoAd;
     this._videoAd = null;
     if (!videoAd) return;
@@ -232,6 +243,10 @@ Page({
     if (videoAd.offError && this._onAdError) videoAd.offError(this._onAdError);
     if (videoAd.offClose && this._onAdClose) videoAd.offClose(this._onAdClose);
     if (videoAd.destroy) videoAd.destroy();
+  },
+  onUnload() {
+    this._disposed = true;
+    this.retireRewardedVideo();
   },
   retakeTest() {
     if (!this.data.test.id) return;

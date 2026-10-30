@@ -1,0 +1,35 @@
+<view class="tree-page" style="--theme-color:{{current.color || '#318aff'}};--theme-pale:{{current.pale || '#e9f5ff'}};--theme-accent:{{current.accent || '#ffd56b'}};">
+  <view class="page-orb orb-a"></view><view class="page-orb orb-b"></view>
+  <view wx:if="{{error}}" class="error-panel"><view>你的小世界暂时还没打开</view><text>{{error}}</text><button bindtap="loadCollection">重新打开</button></view>
+  <block wx:elif="{{loaded && current}}">
+    <view class="page-heading"><view><text class="eyebrow">MY TREE · MY LITTLE WORLD</text><view class="page-title">我的树</view></view><view class="collection-count"><text>{{state.unlocked.length}}</text><text> / 9 主题</text></view></view>
+    <view wx:if="{{visitorPreview}}" class="visitor-banner">这是朋友分享的主题小世界，你也可以探索自己的树。</view>
+    <view class="hero-card {{current.id === 'moon' ? 'hero-night' : ''}} {{current.hidden && !current.discovered ? 'hero-mystery' : ''}}">
+      <view class="hero-top"><view><view class="hero-title">{{current.hidden && !current.discovered ? '未发现的极光' : current.name}}</view><view class="hero-english">{{current.english}}</view></view><view wx:if="{{current.hidden}}" class="hidden-badge">✦ 隐藏主题</view><view wx:elif="{{current.recommended}}" class="recommend-badge">本次为你推荐</view></view>
+      <view class="hero-scene">
+        <image wx:if="{{heroUrl}}" class="hero-image" src="{{heroUrl}}" mode="aspectFit" binderror="onHeroError" />
+        <view wx:else class="scene-fallback"><view class="scene-halo"></view><view class="fallback-trunk"></view><view class="fallback-branch branch-a"></view><view class="fallback-branch branch-b"></view><view class="leaf leaf-a"></view><view class="leaf leaf-b"></view><view class="leaf leaf-c"></view><view class="leaf leaf-d"></view><view class="leaf leaf-e"></view><view class="leaf leaf-f"></view><view class="cloud-island"><text>{{current.companions[0].emoji}}</text><view>✦</view><text>{{current.companions[1].emoji}}</text></view><view class="scene-star star-a">✦</view><view class="scene-star star-b">✧</view><view class="scene-star star-c">✦</view></view>
+        <view wx:if="{{current.hidden && !current.discovered}}" class="mystery-cover"><view>✦</view><text>让五种探索，在你的树上相遇</text><text>{{state.uniqueCount}} / 5 类不同测试</text></view>
+        <view wx:if="{{imageLoading}}" class="loading-art">正在唤醒你的小世界…</view>
+      </view>
+      <view class="hero-quote">“{{current.quote}}”</view>
+      <view class="tag-list"><text wx:for="{{current.tags}}" wx:key="*this">{{item}}</text></view>
+    </view>
+
+    <view class="growth-card"><view class="growth-heading"><text>每一次了解，都在生长</text><text>{{state.uniqueCount}} / {{state.catalogCount}}</text></view><view class="leaf-trail"><view wx:for="{{leaves}}" wx:key="index" class="trail-leaf {{item.collected ? 'leaf-collected' : ''}}">{{item.collected ? '✓' : item.index + 1}}</view></view><view class="next-reward"><text>✦</text>{{nextReward}}</view></view>
+    <view class="section-tabs"><view class="{{tab === 'themes' ? 'tab-active' : ''}}" data-tab="themes" bindtap="selectTab">主题图鉴</view><view class="{{tab === 'companions' ? 'tab-active' : ''}}" data-tab="companions" bindtap="selectTab">我的伙伴</view><view class="{{tab === 'history' ? 'tab-active' : ''}}" data-tab="history" bindtap="selectTab">成长记录</view></view>
+
+    <view wx:if="{{tab === 'themes'}}" class="theme-grid"><view wx:for="{{gallery}}" wx:key="id" class="theme-tile {{item.id === current.id ? 'theme-current' : ''}} {{item.hidden && !item.discovered ? 'theme-undiscovered' : ''}}" style="background:{{item.pale}};" data-id="{{item.id}}" bindtap="inspectTheme"><image wx:if="{{item.thumbnailUrl}}" class="tile-art" src="{{item.thumbnailUrl}}" mode="aspectFit" lazy-load="{{true}}" /><view wx:else class="tile-companions"><text>{{item.hidden && !item.discovered ? '✦' : item.companions[0].emoji}}</text><text>{{item.hidden && !item.discovered ? '？' : item.companions[1].emoji}}</text></view><view class="tile-name">{{item.hidden && !item.discovered ? '隐藏的极光' : item.name}}</view><view class="tile-status">{{item.unlocked ? (item.selected ? '当前主题 ✓' : '已收藏') : item.hidden && !item.discovered ? '探索 5 类后发现' : item.starter && !state.starterClaimed ? '首测可免费领取' : '看视频解锁'}}</view></view></view>
+    <view wx:elif="{{tab === 'companions'}}" class="companion-list"><view class="companion-card" wx:for="{{current.companions}}" wx:key="name"><view class="companion-portrait"><image wx:if="{{companionSprite && current.discovered}}" class="companion-sprite" src="{{companionSprite}}" mode="scaleToFill" style="left:-{{item.spriteColumn * 100}}%;top:-{{item.spriteRow * 100}}%;" binderror="onCompanionError" /><text wx:else>{{current.discovered ? item.emoji : '？'}}</text></view><view><view class="companion-name">{{current.discovered ? item.name : '尚未相遇的伙伴'}}</view><view class="companion-line">{{current.discovered ? item.line : '继续探索，让极光带来惊喜。'}}</view></view><text class="companion-mark">{{current.unlocked ? '陪伴中' : '待相遇'}}</text></view><view class="section-note">解锁主题后，这两位伙伴会一起住进你的树。不同的主题，没有高低之分。</view></view>
+    <view wx:else class="history-list"><view wx:if="{{!history.length}}" class="history-empty"><text>🌱</text><view>第一枚年轮，等你来留下</view><text>完成测试后，记录会保留在自己的档案里。</text><button bindtap="explore">开始第一次探索</button></view><block wx:else><view class="history-card" wx:for="{{history}}" wx:key="id"><view class="history-dot"></view><view><view>{{item.title}}</view><text>{{item.date}}</text></view><text class="history-leaf">✦</text></view><view class="history-tip">复测会留下新的记录；完成不同测试，才会点亮新的探索叶片。</view><button class="history-button" bindtap="openHistory">查看树的历史快照 →</button></block></view>
+
+    <view wx:if="{{pendingSave || saveError}}" class="pending-card"><view>视频已完成，主题等待保存</view><text>{{saveError || '稍后可直接重试，无需重新看视频。'}}</text><button bindtap="retryThemeSave" loading="{{saving}}" disabled="{{saving}}">重试保存主题</button></view>
+    <button class="theme-action" bindtap="useOrUnlockTheme" loading="{{busy || saving}}" disabled="{{busy || saving}}">{{pendingSave ? '保存已完成的解锁' : current.unlocked ? (current.selected ? '这就是我的小世界 ✓' : '邀请伙伴住进我的树') : !current.discovered ? '继续探索，寻找隐藏极光' : current.starter && !state.starterClaimed ? (state.uniqueCount ? '免费领取这套树与伙伴' : '完成首测，领取树与伙伴') : '看视频，解锁这套主题与伙伴'}}</button>
+    <view class="unlock-rule">{{current.unlocked ? '已收藏主题可随时切换。清除本地数据前，可在隐私设置中选择云端备份。' : '主题与深度报告分别解锁 · 完整看完 1 次视频只解锁当前主题'}}</view>
+    <view wx:if="{{adError}}" class="ad-error">{{adError}}</view>
+    <view class="share-card"><view><view>你的树，会是什么样？</view><text>收藏一张属于自己的树与伙伴海报</text></view><view class="share-actions"><button open-type="share">邀请朋友来看看</button><button bindtap="createPoster" loading="{{posterBusy}}" disabled="{{posterBusy}}">{{current.unlocked ? '生成我的海报' : '先解锁再生成海报'}}</button></view></view>
+    <view class="privacy-note">主题是自我探索的视觉意象，可自由选择与切换。分享内容不包含答题记录、分数或微信身份。</view>
+  </block>
+  <view wx:else class="page-loading">正在打开你的主题收藏…</view>
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
+</view>

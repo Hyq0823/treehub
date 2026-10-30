@@ -250,3 +250,21 @@ test('real scoring output can be archived and resolved for every catalog test', 
   assert.equal(archive.getArchive().records.length, catalog.length);
   assert.equal(getTree(archive.getArchive(), catalog).stage.id, 'growing');
 });
+
+test('summary-only cloud recovery rebuilds labelled historical growth without overwriting local snapshots', () => {
+  setup();
+  const local = archive.saveResult(assessment());
+  const original = clone(local.treeSnapshot);
+  const older = { id: 'cloud-older', ...assessment('ie', 'I', { EI: 0 }), scoringVersion: '2', completedAt: '2026-01-01T00:00:00Z' };
+  const newer = { id: 'cloud-newer', ...assessment('enneagram', '5', { '5': 9 }), scoringVersion: '2', completedAt: '2026-02-01T00:00:00Z' };
+  archive.mergeCloudArchive({ seed: 'restored-seed', records: [newer, older] });
+  assert.equal(archive.getRecord(older.id).treeSnapshot.uniqueCount, 1);
+  assert.equal(archive.getRecord(newer.id).treeSnapshot.uniqueCount, 2);
+  assert.equal(archive.getRecord(newer.id).treeSnapshot.totalCount, 2);
+  assert.equal(archive.getRecord(newer.id).treeSnapshot.restoredFromSummary, true);
+  assert.equal(archive.getRecord(newer.id).answers, undefined);
+  assert.deepEqual(archive.getRecord(local.id).treeSnapshot, original);
+  const recovered = clone(archive.getRecord(newer.id).treeSnapshot);
+  archive.mergeCloudArchive({ seed: 'restored-seed', records: [newer, older] });
+  assert.deepEqual(archive.getRecord(newer.id).treeSnapshot, recovered);
+});

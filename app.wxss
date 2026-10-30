@@ -1,6 +1,7 @@
 /* 全局样式 */
 page {
-  background-color: #06121c;
+  background-color: #f4f8ff;
+  color: #203a65;
   font-family:
     "PingFang SC",
     -apple-system,
@@ -14,22 +15,22 @@ page {
 
 /* 配色变量 */
 page {
-  --deep-blue: #0b2935;
-  --sky-blue: #63e3c5;
-  --light-blue: #14343e;
-  --emerald: #62e4c6;
-  --white: #102934;
-  --warm-gray: #06121c;
-  --dark-gray: #eafff9;
-  --medium-gray: #809b9e;
-  --light-gray: #607c82;
+  --deep-blue: #203a65;
+  --sky-blue: #468cff;
+  --light-blue: #e8f2ff;
+  --emerald: #2974ff;
+  --white: #ffffff;
+  --warm-gray: #f4f8ff;
+  --dark-gray: #203a65;
+  --medium-gray: #7486a5;
+  --light-gray: #98aac3;
 }
 
 /* 卡片样式 */
 .card {
-  color: #eafff9;
-  background: rgba(14, 38, 49, .92);
-  border: 1px solid rgba(100, 229, 204, .16);
+  color: #203a65;
+  background: rgba(255, 255, 255, .94);
+  border: 1px solid rgba(109, 162, 248, .16);
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
@@ -38,8 +39,8 @@ page {
 
 /* 按钮样式 */
 .btn-primary {
-  background: linear-gradient(100deg, #62e4c6, #b3e5aa);
-  color: #06201e;
+  background: linear-gradient(110deg, #54a0ff, #2164fa);
+  color: #ffffff;
   border-radius: 30px;
   height: 48px;
   display: flex;

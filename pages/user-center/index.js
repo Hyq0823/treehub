@@ -1,5 +1,6 @@
 const archive = require('../../utils/archive.js');
 const cloudSync = require('../../utils/cloud-sync.js');
+const privacy = require('../../utils/privacy.js');
 const { getTree } = require('../../utils/personality-tree.js');
 const { resolveReport } = require('../../utils/scoring.js');
 const { STAGES: ALL_STAGES } = require('../../data/trees.js');
@@ -17,7 +18,7 @@ Page({
     loaded: false, error: '', tree: null, groups: [], stages: [], expandedTests: {},
     totalCount: 0, uniqueCount: 0, repeatCount: 0, catalogCount: catalog.length,
     coveragePercent: 0, evidence: [],
-    cloudState: 'idle', cloudTitle: '云端备份已开启', cloudDetail: '本地记录会在联网后自动同步。'
+    cloudState: 'local', cloudTitle: '测评记录仅保存在本机', cloudDetail: '是否启用云备份，由你选择。'
   },
   onShow() {
     this.loadArchive();
@@ -33,17 +34,28 @@ Page({
     const state = status && status.state || 'pending';
     const titles = {
       syncing: '正在同步到微信云端', synced: '云端档案已同步',
-      pending: '等待云端同步', unavailable: '当前版本暂不支持云同步', idle: '云端备份已开启'
+      pending: '等待云端同步', unavailable: '当前版本暂不支持云同步', idle: '云端备份已开启',
+      local: '测评记录仅保存在本机', disabled: '测评记录仅保存在本机', paused: '云备份已暂停',
+      delete_pending: '云端数据删除待完成'
     };
-    let detail = status && status.message || '本地记录会在联网后自动同步。';
+    let detail = status && status.message || '是否启用云备份，由你选择。';
     if (state === 'synced' && status.lastSyncedAt) detail += ` · ${this.formatSyncTime(status.lastSyncedAt)}`;
     this.setData({ cloudState: state, cloudTitle: titles[state] || titles.pending, cloudDetail: detail });
   },
   refreshCloud() {
+    const request = this._cloudRequest = (this._cloudRequest || 0) + 1;
+    if (!privacy.isCloudBackupEnabled()) {
+      const status = cloudSync.getStatus();
+      this.applyCloudStatus(status.state === 'delete_pending' ? status : Object.assign({}, status, { state: 'local', message: '云备份默认关闭。你可以在隐私与数据管理中自主开启。' }));
+      return;
+    }
     this.applyCloudStatus(Object.assign({}, cloudSync.getStatus(), { state: 'syncing', message: '正在合并本地与云端档案…' }));
     cloudSync.syncArchive().then(status => {
+      if (request !== this._cloudRequest) return;
       this.applyCloudStatus(status);
       if (status.state === 'synced') this.loadArchive();
+    }).catch(() => {
+      if (request === this._cloudRequest) this.applyCloudStatus(cloudSync.getStatus());
     });
   },
   retryCloudSync() { this.refreshCloud(); },
@@ -97,5 +109,8 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/test-answer/index?id=${encodeURIComponent(id)}` });
   },
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); },
+  openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
+  openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
+  onUnload() { this._cloudRequest = (this._cloudRequest || 0) + 1; },
   openGrowthHistory() { wx.navigateTo({ url: '/pages/tree-history/index' }); }
 });

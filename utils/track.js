@@ -27,7 +27,11 @@ function appendLocal(eventId, params) {
 
 function report(eventId, params) {
   const app = getApp();
-  const payload = Object.assign({ enterScene: (app && app.globalData.enterScene) || 0 }, params || {});
+  const payload = { enterScene: (app && app.globalData.enterScene) || 0 };
+  // Product counts need neither individual choices nor personality/result IDs.
+  ['testId', 'reachedIndex', 'totalCount', 'unanswered'].forEach(key => {
+    if (params && params[key] !== undefined) payload[key] = params[key];
+  });
   appendLocal(eventId, payload);
 
 }

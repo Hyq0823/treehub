@@ -141,6 +141,15 @@ function unlockPremium(recordId) {
   return clone(record);
 }
 
+function clearLocalArchive() {
+  // The caller must stop cloud backup first, so remote data cannot refill it.
+  try {
+    for (const key of [STORAGE_KEY, 'testResult', 'trackLog']) wx.removeStorageSync(key);
+  } catch (error) {
+    throw storageError('本机记录未能全部清除，请稍后重试。');
+  }
+}
+
 function mergeCloudArchive(remote) {
   if (!plainObject(remote) || typeof remote.seed !== 'string' || !remote.seed || !Array.isArray(remote.records) ||
       !remote.records.every(recordIsValid)) {
@@ -166,11 +175,24 @@ function mergeCloudArchive(remote) {
       return time || first.id.localeCompare(second.id);
     })
   });
+  // Cloud backup intentionally excludes visual snapshots and raw answers. A new
+  // device can still rebuild a labelled growth view from the summaries it owns.
+  // Use at most one historical result per test to avoid quadratic work.
+  const historicalLatest = {};
+  for (let index = next.records.length - 1; index >= 0; index--) {
+    const record = next.records[index];
+    historicalLatest[record.testId] = record;
+    if (!record.treeSnapshot) {
+      record.treeSnapshot = getTree({ seed: next.seed, records: Object.values(historicalLatest) }, catalog);
+      record.treeSnapshot.totalCount = next.records.length - index;
+      record.treeSnapshot.restoredFromSummary = true;
+    }
+  }
   validateArchive(next);
   if (JSON.stringify(next) !== JSON.stringify(archive)) write(next);
   return clone(next);
 }
 
 module.exports = {
-  STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord, unlockPremium, mergeCloudArchive
+  STORAGE_KEY, getArchive, saveResult, getRecords, getLatest, getRecord, unlockPremium, mergeCloudArchive, clearLocalArchive
 };

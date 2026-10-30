@@ -1,69 +1,20 @@
 <view class="archive-page">
-  <view class="page-heading">
-    <text class="eyebrow">MY EXPLORATION</text>
-    <view class="page-title">我的档案</view>
-    <view class="page-subtitle">每一次探索，都在这里留下痕迹。</view>
-  </view>
-  <view wx:if="{{error}}" class="empty-panel">
-    <view class="empty-symbol">!</view>
-    <view class="section-title">档案暂时无法读取</view>
-    <view class="body-copy">{{error}}</view>
-    <button class="primary-action" bindtap="loadArchive">重新读取</button>
-    <view class="footnote">为保护已有记录，不会自动重置本地数据。</view>
-  </view>
+  <view class="page-heading"><view><text class="eyebrow">MY EXPLORATION</text><view class="page-title">我的档案</view></view><view class="privacy-button" bindtap="openPrivacy" role="button">隐私设置 ↗</view></view>
+  <view class="page-subtitle">把每次认真了解自己的时刻，轻轻收藏。</view>
+  <view wx:if="{{error}}" class="empty-panel"><view class="empty-symbol">!</view><view class="section-title">档案暂时无法读取</view><view class="body-copy">{{error}}</view><button class="primary-action" bindtap="loadArchive">重新读取</button><view class="footnote">为保护已有记录，不会自动重置本地数据。</view></view>
   <block wx:elif="{{loaded}}">
-    <view class="tree-panel">
-      <view class="tree-panel-header"><text class="tree-caption">我的人格树</text><text class="stage-badge">{{tree.stage.name}}</text></view>
-      <personality-tree tree="{{tree}}" size="large" />
-      <view class="tree-name">{{tree.name}}</view>
-      <view wx:if="{{tree.meaning}}" class="tree-meaning">{{tree.meaning}}</view>
-      <view class="tree-story">{{tree.message}}</view>
-      <view class="tree-panel-bottom" wx:if="{{totalCount}}" bindtap="openGrowthHistory" role="button" aria-label="查看人格树成长记录"><text>查看成长记录</text><text>年轮与每一次变化 →</text></view>
-    </view>
-    <view class="stats-panel">
-      <view class="stat"><view class="stat-number">{{uniqueCount}}<text> / {{catalogCount}}</text></view><view class="stat-label">已探索项目</view></view>
-      <view class="stat"><view class="stat-number">{{totalCount}}</view><view class="stat-label">测评记录</view></view>
-      <view class="stat"><view class="stat-number">{{repeatCount}}</view><view class="stat-label">再次认识自己</view></view>
-    </view>
-    <view class="growth-panel">
-      <view class="section-heading"><view class="section-title">树的成长</view><text class="section-aside">新测试长枝叶</text></view>
-      <view class="growth-track"><view class="growth-fill" style="width: {{coveragePercent}}%;"></view></view>
-      <view wx:if="{{tree.nextStage}}" class="growth-hint">再探索 <text>{{tree.remaining}}</text> 项新测试，迈入「{{tree.nextStage.name}}」</view>
-      <view wx:elif="{{uniqueCount}}" class="growth-hint">已点亮当前开放的成长阶段，复测继续留下年轮。</view>
-      <view wx:else class="growth-hint">完成第一项测试，让属于你的树开始生长。</view>
-      <scroll-view scroll-x class="stage-scroll" enhanced show-scrollbar="{{false}}">
-        <view class="stage-list">
-          <view wx:for="{{stages}}" wx:key="threshold" class="stage-item {{item.reached ? 'stage-reached' : ''}} {{item.planned ? 'stage-planned' : ''}}">
-            <view class="stage-dot">{{item.reached ? '✓' : '·'}}</view><view class="stage-name">{{item.name}}</view><view class="stage-threshold">{{item.threshold}} 项</view><view wx:if="{{item.planned}}" class="stage-later">未来开放</view>
-          </view>
-        </view>
-      </scroll-view>
-      <view class="footnote">后续阶段随题库扩充开放，成长记录探索积累。</view>
-    </view>
-    <view wx:if="{{evidence.length}}" class="evidence-panel">
-      <view class="section-title">这棵树从哪里来</view>
-      <view wx:for="{{evidence}}" wx:key="*this" class="evidence-line"><text class="evidence-dot">·</text><text>{{item}}</text></view>
-      <view class="footnote">树形与寓意是探索的视觉表达，不是心理诊断。</view>
-    </view>
-    <view class="section-heading records-heading"><view class="section-title">我的测评记录</view><text class="section-aside">复测也会被珍藏</text></view>
-    <view wx:if="{{!groups.length}}" class="empty-panel">
-      <view class="empty-symbol">✧</view><view class="empty-title">从一份好奇开始</view>
-      <view class="body-copy">完成测试后，报告与成长记录会留在这里。</view>
-      <view class="body-copy">以后再测，也能回看过去的自己。</view>
-      <button class="primary-action" bindtap="explore">开始第一次探索 →</button>
-    </view>
+    <view class="stats-panel"><view class="stat"><view class="stat-number">{{uniqueCount}}<text> / {{catalogCount}}</text></view><view class="stat-label">探索项目</view></view><view class="stat"><view class="stat-number">{{totalCount}}</view><view class="stat-label">测评记录</view></view><view class="stat"><view class="stat-number">{{repeatCount}}</view><view class="stat-label">再次认识自己</view></view></view>
+    <view class="tree-entry" bindtap="openTree" role="button"><view class="tree-entry-symbol">❧</view><view class="tree-entry-copy"><view class="tree-entry-title">去我的树，看看新的风景</view><view class="tree-entry-note">主题、陪伴伙伴和成长印记都在那里。</view></view><text>→</text></view>
+    <view class="section-heading records-heading"><view class="section-title">我的测评记录</view><text class="section-aside">每次复测都会保留</text></view>
+    <view wx:if="{{!groups.length}}" class="empty-panel"><view class="empty-symbol">✦</view><view class="empty-title">从一份好奇开始</view><view class="body-copy"><view>完成测试后，报告与成长记录会留在这里。</view><view>以后再测，也能回看过去的自己。</view></view><button class="primary-action" bindtap="explore">开始第一次探索 →</button></view>
     <view wx:for="{{groups}}" wx:key="id" wx:for-item="group" class="record-group">
-      <view class="group-heading"><view class="group-name">{{group.icon}} {{group.name}}</view><text class="record-count">{{group.count}} 次</text></view>
-      <view class="latest-record" bindtap="openRecord" data-id="{{group.id}}" data-record-id="{{group.latest.id}}" role="button"><view class="latest-label">最近一次 <text wx:if="{{group.latest.premiumUnlocked}}" class="premium-history-badge">VIP 已解锁</text></view><view class="latest-title">{{group.latest.title}}<text class="record-arrow">→</text></view><view class="record-date">{{group.latest.date}}</view></view>
+      <view class="group-heading"><view class="group-name">{{group.name}}</view><text class="record-count">{{group.count}} 次</text></view>
+      <view class="latest-record" bindtap="openRecord" data-id="{{group.id}}" data-record-id="{{group.latest.id}}" role="button"><view class="latest-label">最近一次 <text wx:if="{{group.latest.premiumUnlocked}}" class="premium-history-badge">深度版已解锁</text></view><view class="latest-title">{{group.latest.title}}<text class="record-arrow">→</text></view><view class="record-date">{{group.latest.date}}</view></view>
       <view class="group-actions"><button class="text-action" data-id="{{group.id}}" bindtap="retakeTest">再测一次 ↗</button><button class="text-action muted-action" data-id="{{group.id}}" bindtap="toggleHistory">{{expandedTests[group.id] ? '收起记录 −' : '全部记录 ＋'}}</button></view>
-      <view wx:if="{{expandedTests[group.id]}}" class="record-history">
-        <view wx:for="{{group.history}}" wx:key="id" wx:for-item="record" class="history-row" data-id="{{group.id}}" data-record-id="{{record.id}}" bindtap="openRecord" role="button"><view class="history-info"><view class="history-title">{{record.title}} <text wx:if="{{record.premiumUnlocked}}" class="premium-history-badge">VIP</text></view><view class="record-date">{{record.date}}</view></view><text class="record-arrow">→</text></view>
-      </view>
+      <view wx:if="{{expandedTests[group.id]}}" class="record-history"><view wx:for="{{group.history}}" wx:key="id" wx:for-item="record" class="history-row" data-id="{{group.id}}" data-record-id="{{record.id}}" bindtap="openRecord" role="button"><view class="history-info"><view class="history-title">{{record.title}} <text wx:if="{{record.premiumUnlocked}}" class="premium-history-badge">深度版</text></view><view class="record-date">{{record.date}}</view></view><text class="record-arrow">→</text></view></view>
     </view>
     <button wx:if="{{groups.length}}" class="explore-more" bindtap="explore">去发现更多测试 →</button>
-    <view class="cloud-note cloud-{{cloudState}}">
-      <view class="cloud-note-heading"><view><view class="cloud-note-title">{{cloudTitle}}</view><view class="cloud-note-detail">{{cloudDetail}}</view></view><button wx:if="{{cloudState === 'pending'}}" class="cloud-retry" bindtap="retryCloudSync">重试</button></view>
-      <view class="local-note-extra">本地仍保留缓存，离线完成的测评会在联网后补传。测评用于自我探索，不替代专业评估。</view>
-    </view>
+    <view class="cloud-note cloud-{{cloudState}}"><view class="cloud-note-heading"><view><view class="cloud-note-title">{{cloudTitle}}</view><view class="cloud-note-detail">{{cloudDetail}}</view></view><button wx:if="{{cloudState === 'pending'}}" class="cloud-retry" bindtap="retryCloudSync">重试</button></view><view class="cloud-management" bindtap="openPrivacy">隐私政策 · 数据导出与删除 <text>→</text></view></view>
+    <view class="archive-footnote"><view>档案默认私密，分享内容由你主动选择。</view><view>测评用于自我探索，不作心理诊断。</view></view>
   </block>
 </view>

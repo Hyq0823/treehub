@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "成长记录",
-  "navigationBarBackgroundColor": "#07141d",
-  "navigationBarTextStyle": "white",
+  "navigationBarBackgroundColor": "#f4f8ff",
+  "navigationBarTextStyle": "black",
   "usingComponents": {
     "personality-tree": "/components/personality-tree/index"
   }
