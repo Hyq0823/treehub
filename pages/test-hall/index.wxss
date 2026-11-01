@@ -27,3 +27,4 @@ button { margin: 0; }button::after { border: 0; }
 .welcome-art image { animation: hall-tree-drift 7s ease-in-out infinite; }.welcome-art image, .tree-shortcut, .explore-card { will-change: transform; }
 @keyframes hall-tree-drift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5rpx); } }
 @media (prefers-reduced-motion: reduce) { .welcome-art image { animation: none; } }
+.share-canvas { position:fixed; left:-3000px; top:0; width:500px; height:400px; pointer-events:none; }

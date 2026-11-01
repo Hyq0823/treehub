@@ -1,5 +1,6 @@
 const { report, EVENTS } = require('../../utils/track.js');
 const display = require('../../data/exploration.js');
+const { DEFAULT_SHARE_IMAGE } = require('../../utils/share-card.js');
 
 Page({
   data: {
@@ -37,7 +38,8 @@ Page({
     const test = this.data.test;
     return {
       title: `${test.displayName || '人格测试树'}｜认识自己，让人格树长出新叶`,
-      path: test.id ? `/pages/test-detail/index?id=${encodeURIComponent(test.id)}` : '/pages/test-hall/index'
+      path: test.id ? `/pages/test-detail/index?id=${encodeURIComponent(test.id)}` : '/pages/test-hall/index',
+      imageUrl: DEFAULT_SHARE_IMAGE
     };
   },
   onShareTimeline() {

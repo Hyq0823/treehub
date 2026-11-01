@@ -3,6 +3,7 @@ const themes = require('../../utils/themes.js');
 const { getTheme } = require('../../data/themes.js');
 const { createRewardedVideo } = require('../../utils/rewarded-video.js');
 const assets = require('../../utils/theme-assets.js');
+const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 
 function dateLabel(value) {
   const date = new Date(value);
@@ -20,7 +21,7 @@ Page({
     heroUrl: '', imageLoading: false, assetError: false, busy: false, adError: '',
     pendingSave: false, saving: false, saveError: '', visitorPreview: false,
     history: [], leaves: [], nextReward: '', posterBusy: false, companionSprite: '',
-    pickerOpen: false, worldPaused: false
+    pickerOpen: false, worldPaused: false, shareImagePath: DEFAULT_SHARE_IMAGE
   },
   onLoad(options = {}) {
     this._disposed = false;
@@ -30,6 +31,7 @@ Page({
     this._galleryRequest = 0;
     this._galleryUrls = {};
     this._posterRequest = 0;
+    this._shareRequest = 0;
     this.setupVideo();
   },
   setupVideo() {
@@ -69,6 +71,7 @@ Page({
       this.setData({
         loaded: true, error: '', state, current, gallery: state.catalog.map(theme => Object.assign({}, theme, { thumbnailUrl: theme.discovered && this._galleryUrls[theme.id] || '' })),
         visitorPreview: !!this._previewThemeId, history,
+        shareImagePath: DEFAULT_SHARE_IMAGE,
         pendingSave: !!themes.getPendingGrant(current.id),
         leaves: Array.from({ length: Math.min(state.catalogCount, 12) }, (_, index) => ({ index, collected: index < count })),
         nextReward: count === 0 ? '完成首测，免费领取一套基础主题与伙伴' :
@@ -107,11 +110,26 @@ Page({
       const heroUrl = await assets.resolveThemeAsset(themeId);
       if (this._disposed || this._hidden || request !== this._assetRequest) return;
       this.setData({ heroUrl: heroUrl || '', imageLoading: false });
+      if (heroUrl) this.prepareThemeShare(themeId, heroUrl);
     } catch (error) {
       if (!this._disposed && !this._hidden && request === this._assetRequest) this.setData({ heroUrl: '', imageLoading: false, assetError: true });
     }
   },
   onHeroError() { this.setData({ heroUrl: '', assetError: true, imageLoading: false }); },
+  async prepareThemeShare(themeId, heroUrl) {
+    const request = ++this._shareRequest;
+    const theme = getTheme(themeId);
+    if (!theme || !heroUrl) return;
+    try {
+      const shareImagePath = await buildShareCard(this, {
+        selector: '#shareCanvas', heroUrl, title: theme.name,
+        subtitle: theme.quote, pale: theme.pale, color: theme.color
+      });
+      if (!this._disposed && !this._hidden && request === this._shareRequest && this.data.current && this.data.current.id === themeId) {
+        this.setData({ shareImagePath });
+      }
+    } catch (error) { /* The bundled 5:4 cover remains available for sharing. */ }
+  },
   retryHero() {
     const current = this.data.current;
     if (!current || !current.discovered || this.data.imageLoading) return;
@@ -153,10 +171,9 @@ Page({
     const current = this.data.current;
     if (!current || this.data.busy || this.data.saving) return;
     if (current.unlocked && current.selected && !themes.getPendingGrant(current.id)) {
-      this.openThemePicker();
-      return;
+      return this.openThemePicker();
     }
-    this.useOrUnlockTheme();
+    return this.useOrUnlockTheme();
   },
   async useOrUnlockTheme() {
     const theme = this.data.current;
@@ -182,11 +199,17 @@ Page({
         wx.showToast({ title: '树与伙伴已领取', icon: 'success' });
         return;
       }
-      wx.showModal({
-        title: `解锁${theme.name}`, content: '完整观看 1 次激励视频，即可长期使用这套主题与两位伙伴。只解锁当前主题，深度报告需单独解锁。', confirmText: '看视频解锁',
-        success: result => { if (result.confirm && !this._disposed && !this._hidden && !this.data.busy && this._ad) this._ad.play(theme.id); }
-      });
+      return this.playThemeAd(theme);
     } catch (error) { wx.showToast({ title: error.message || '暂时无法保存主题', icon: 'none' }); }
+  },
+  async playThemeAd(theme) {
+    if (!theme || this._disposed || this._hidden || this.data.busy) return false;
+    this.setupVideo();
+    const started = this._ad ? await this._ad.play(theme.id) : false;
+    if (!started && !this._disposed && !this._hidden && !this.data.busy && !this.data.adError) {
+      wx.showModal({ title: '暂时无法播放', content: '当前环境暂不支持激励视频，请在手机微信中重试。', showCancel: false });
+    }
+    return started;
   },
   completeThemeUnlock(themeId) {
     if (this._disposed || this._hidden) return;
@@ -223,6 +246,7 @@ Page({
     this._assetRequest++;
     this._galleryRequest++;
     this._posterRequest++;
+    this._shareRequest++;
     if (this._ad) this._ad.dispose();
     this._ad = null;
   },
@@ -232,7 +256,11 @@ Page({
   },
   onShareAppMessage() {
     const theme = this.data.current || getTheme('adventurer');
-    return { title: `${theme.name}｜你的树，会是什么样？`, path: `/pages/my-tree/index?theme=${encodeURIComponent(theme.id)}` };
+    return {
+      title: `${theme.name}｜你的树，会是什么样？`,
+      path: `/pages/my-tree/index?theme=${encodeURIComponent(theme.id)}`,
+      imageUrl: this.data.shareImagePath || DEFAULT_SHARE_IMAGE
+    };
   },
   onShareTimeline() {
     const theme = this.data.current || getTheme('adventurer');

@@ -6,6 +6,7 @@ const display = require('../../data/exploration.js');
 const themes = require('../../utils/themes.js');
 const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
+const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const catalogModule = require('../../data/tests/index.js');
 const catalog = catalogModule.default || catalogModule;
 const CARD_THEMES = { mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
@@ -17,7 +18,7 @@ Page({
     tree: null, leaves: [], recommendation: null, error: '',
     themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
     themeColor: '#318aff', themePale: '#e9f5ff',
-    artState: 'loading', rewardTitle: ''
+    artState: 'loading', rewardTitle: '', shareImagePath: DEFAULT_SHARE_IMAGE
   },
   onLoad() { report(EVENTS.HALL_VIEW); },
   onShow() {
@@ -74,10 +75,24 @@ Page({
     const request = this._themeAssetRequest = (this._themeAssetRequest || 0) + 1;
     this.setData({ themeImage: '', artState: 'loading' });
     Promise.resolve(themeAssets.resolveThemeAsset(themeId)).then(url => {
-      if (!this._hidden && request === this._themeAssetRequest) this.setData({ themeImage: url || '', artState: url ? 'ready' : 'unavailable' });
+      if (this._hidden || request !== this._themeAssetRequest) return;
+      this.setData({ themeImage: url || '', artState: url ? 'ready' : 'unavailable', shareImagePath: DEFAULT_SHARE_IMAGE });
+      if (url) this.prepareThemeShare(themeId, url);
     }).catch(() => {
       if (!this._hidden && request === this._themeAssetRequest) this.setData({ artState: 'unavailable' });
     });
+  },
+  async prepareThemeShare(themeId, heroUrl) {
+    const request = this._shareRequest = (this._shareRequest || 0) + 1;
+    const theme = getTheme(themeId);
+    if (!theme || !heroUrl) return;
+    try {
+      const shareImagePath = await buildShareCard(this, {
+        selector: '#hallShareCanvas', heroUrl, title: theme.name,
+        subtitle: '探索不同的测试，遇见更多面的自己', pale: theme.pale, color: theme.color
+      });
+      if (!this._hidden && request === this._shareRequest && this.data.themeId === themeId) this.setData({ shareImagePath });
+    } catch (error) { /* Keep the bundled 5:4 share cover. */ }
   },
   loadCardImages(cards) {
     const request = this._cardAssetRequest = (this._cardAssetRequest || 0) + 1;
@@ -101,7 +116,7 @@ Page({
     const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
   },
-  onHide() { this._hidden = true; this._themeAssetRequest = (this._themeAssetRequest || 0) + 1; this._cardAssetRequest = (this._cardAssetRequest || 0) + 1; },
+  onHide() { this._hidden = true; this._themeAssetRequest = (this._themeAssetRequest || 0) + 1; this._cardAssetRequest = (this._cardAssetRequest || 0) + 1; this._shareRequest = (this._shareRequest || 0) + 1; },
   onUnload() { this.onHide(); },
   selectCategory(event) {
     const category = event.currentTarget.dataset.id;
@@ -126,5 +141,10 @@ Page({
   openArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
   openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
-  onShareAppMessage() { return { title: '人格测试树｜MBTI、大五与九型性格测试，收集独特的你', path: '/pages/test-hall/index' }; }
+  onShareAppMessage() {
+    return {
+      title: '人格测试树｜MBTI、大五与九型性格测试，收集独特的你',
+      path: '/pages/test-hall/index', imageUrl: this.data.shareImagePath || DEFAULT_SHARE_IMAGE
+    };
+  }
 });

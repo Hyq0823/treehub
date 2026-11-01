@@ -33,12 +33,11 @@ function createRewardedVideo(options = {}) {
       attempt.onLoad = () => { if (current(attempt)) update({ ready: true, error: '' }); };
       attempt.onError = error => {
         if (!current(attempt)) return;
-        update({ ready: false, error: '视频暂时没有准备好，请稍后重试。' });
-        if (attempt.phase === 'displayed') {
-          retire(attempt);
-          update({ busy: false });
-          if (options.onError) options.onError(error);
-        }
+        // Some WeChat versions emit onError without rejecting show()/load().
+        // Treat the event as terminal so the page never stays permanently busy.
+        retire(attempt);
+        update({ busy: false, ready: false, error: '视频暂时没有准备好，请稍后重试。' });
+        if (options.onError) options.onError(error);
       };
       attempt.onClose = result => {
         if (!current(attempt)) return;

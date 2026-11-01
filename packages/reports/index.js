@@ -4,6 +4,7 @@ const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
 const { buildDeepReport, basicDimensions } = require('./deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
 const premiumAccess = require('./premium-access.js');
+const { DEFAULT_SHARE_IMAGE } = require('../../utils/share-card.js');
 
 function formatTime(value) {
   const date = new Date(value);
@@ -281,7 +282,8 @@ Page({
     this.instrumentShare();
     return {
       title: `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
-      path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index'
+      path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
+      imageUrl: DEFAULT_SHARE_IMAGE
     };
   },
   onShareTimeline() {

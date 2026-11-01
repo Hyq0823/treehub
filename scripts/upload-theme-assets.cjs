@@ -10,6 +10,7 @@ const value = flag => args.includes(flag) ? args[args.indexOf(flag) + 1] : '';
 const source = path.resolve(value('--source') || path.join(root, '..', 'treehub-cloud-assets'));
 const manifestPath = value('--import-manifest');
 const dryRun = args.includes('--dry-run');
+const MAX_MEDIA_BYTES = 200000;
 
 function validate(files) {
   for (const id of Object.keys(config.files)) {
@@ -37,6 +38,10 @@ async function main() {
   const uploads = Object.keys(config.files).map(id => ({ id, cloudPath: `themes/v1/${id}.webp`, localPath: path.join(source, 'themes/v1', `${id}.webp`) }));
   const missing = uploads.filter(item => !fs.existsSync(item.localPath));
   if (missing.length) throw new Error('缺少美术资源：' + missing.map(item => item.id).join(', '));
+  const oversized = uploads.filter(item => fs.statSync(item.localPath).size > MAX_MEDIA_BYTES);
+  if (oversized.length) {
+    throw new Error('素材必须不超过 200000 bytes：' + oversized.map(item => `${item.id} (${fs.statSync(item.localPath).size})`).join(', '));
+  }
   if (dryRun) {
     uploads.forEach(item => console.log(`${item.cloudPath} (${fs.statSync(item.localPath).size} bytes)`));
     console.log('Dry run complete. No files uploaded.');

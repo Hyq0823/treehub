@@ -172,19 +172,16 @@ test('unload during retry load never displays another video', async () => {
   assert.equal(ad.stats.show, 1);
 });
 
-test('retry-load error retains the lock; display error restores ability to retry', async () => {
+test('an ad error releases the lock even when WeChat leaves load pending', async () => {
   const loading = deferred();
   const { video, ad, errors } = controller(adMock({ show: [() => Promise.reject(new Error('load first'))], load: [loading.promise] }));
   const pending = video.play('moon');
   await new Promise(done => setImmediate(done));
   ad.emit('error', new Error('loading'));
-  assert.equal(video.isBusy(), true);
-  assert.equal(await video.play('observer'), false);
-  loading.resolve(); await pending;
-  ad.emit('error', new Error('display failed'));
   assert.equal(video.isBusy(), false);
   assert.equal(errors.length, 1);
   assert.equal(await video.play('observer'), true);
+  loading.resolve(); await pending;
 });
 
 test('late close from failed display A cannot unlock a later display B', async () => {
@@ -226,14 +223,14 @@ test('switching away from my-tree while retry loading cancels replay and late gr
   page.setData = value => { updates++; Object.assign(page.data, value); };
   page.onLoad({}); page.onShow();
   page.inspectTheme({ currentTarget: { dataset: { id: 'moon' } } });
-  await page.useOrUnlockTheme();
+  const pendingUnlock = page.handleThemeAction();
   await new Promise(done => setImmediate(done));
   const lateClose = [...first.listeners.close][0];
   assert.equal(first.stats.load, 1);
   page.onHide();
   const count = updates;
   loading.resolve();
-  await new Promise(done => setImmediate(done));
+  await pendingUnlock;
   lateClose({ isEnded: true });
   assert.equal(first.stats.show, 1);
   assert.equal(updates, count);
@@ -241,7 +238,7 @@ test('switching away from my-tree while retry loading cancels replay and late gr
   assert.equal(first.stats.destroy, 1);
   page.onShow();
   page.inspectTheme({ currentTarget: { dataset: { id: 'moon' } } });
-  await page.useOrUnlockTheme();
+  await page.handleThemeAction();
   assert.equal(second.stats.show, 1, 'returning creates a fresh usable controller');
   page.onUnload();
 });
@@ -261,6 +258,7 @@ test('my-tree sharing includes only a public theme id and no private record or i
   const direct = page.onShareAppMessage();
   const timeline = page.onShareTimeline();
   assert.equal(direct.path, '/pages/my-tree/index?theme=moon');
+  assert.equal(direct.imageUrl, '/assets/share-cover.webp');
   assert.equal(timeline.query, 'theme=moon');
   assert.equal(JSON.stringify([direct, timeline]).includes('private'), false);
   page.onUnload();
