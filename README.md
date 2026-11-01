@@ -6,9 +6,9 @@
 
 使用微信开发者工具导入本目录，沿用 `project.config.json` 中的项目配置。底部标签页为「探索｜我的树｜档案」。当前云机器没有微信开发者工具，原生布局、广告、平台隐私授权与海报需在真机验收。
 
-云环境 ID 为 `cloud1-d2ghbskq3663254ce`。按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，再按 [`素材与发布.md`](docs/素材与发布.md) 上传仓库外的九套透明美术并填写真实 fileID。用户明确开启备份后才会同步，网络失败保留本机记录。
+云环境 ID 为 `cloud1-d2ghbskq3663254ce`。十个主题素材 File ID 已写入 `config/theme-assets.js`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。用户明确开启备份后才会同步，网络失败保留本机记录。
 
-发布前执行 `node scripts/check-release.cjs`。未配置素材云 ID、真实运营主体及联系方式时，该检查有意失败；代码不会虚构已上传文件或已完成备案。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
+发布前执行 `node scripts/check-release.cjs`。素材云 ID 已通过静态检查；真实运营主体及联系方式尚未配置，因此当前检查仍会有意失败。代码不会虚构备案资料。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
 
 无需 npm 安装。逻辑测试使用 Node.js 24（读取原有 ESM 题库）：
 

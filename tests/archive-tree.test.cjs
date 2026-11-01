@@ -125,13 +125,14 @@ test('cloud merge is append-only, adopts the account seed and preserves the earl
   setup();
   const local = archive.saveResult(assessment('mbti', 'INTJ'));
   const localUnlock = archive.unlockPremium(local.id).premiumUnlockedAt;
+  const laterRemoteUnlock = new Date(Date.parse(localUnlock) + 60 * 1000).toISOString();
   const remoteOnly = Object.assign(assessment('ie', 'I', { EI: 0 }), {
     id: 'assessment-from-another-device', testVersion: '1', scoringVersion: '2',
     completedAt: '2026-10-28T10:00:00.000Z'
   });
   const merged = archive.mergeCloudArchive({
     seed: 'account-seed',
-    records: [Object.assign({}, local, { premiumUnlockedAt: '2026-10-30T10:00:00.000Z' }), remoteOnly]
+    records: [Object.assign({}, local, { premiumUnlockedAt: laterRemoteUnlock }), remoteOnly]
   });
   assert.equal(merged.seed, 'account-seed');
   assert.equal(merged.records.length, 2);
