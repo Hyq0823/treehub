@@ -37,6 +37,18 @@
       <view wx:if="{{result.note}}" class="report-note">{{result.note}}</view>
     </view>
 
+    <view wx:if="{{comparison}}" class="comparison-card">
+      <view class="comparison-kicker"><text>◎</text> 新的年轮</view>
+      <view class="comparison-title">和上次相比，你变了什么？</view>
+      <view class="comparison-context"><text>{{comparison.previousLabel}}</text><text>→</text><text>{{comparison.currentLabel}}</text></view>
+      <view class="comparison-headline">{{comparison.headline}}</view>
+      <view class="comparison-list">
+        <view class="comparison-row" wx:for="{{comparison.basicChanges}}" wx:key="id"><view><text>{{item.label}}</text><text>更靠近·{{item.toward}}</text></view><view class="comparison-delta {{item.delta > 0 ? 'delta-up' : item.delta < 0 ? 'delta-down' : ''}}">{{item.deltaText}}</view></view>
+      </view>
+      <view class="comparison-note">{{comparison.note}}这张卡可以直接截图保存。</view>
+      <button open-type="share" class="comparison-share">分享这次变化给朋友</button>
+    </view>
+
     <view wx:if="{{premiumAvailable && !premiumUnlocked}}" class="premium-lock-card">
       <view class="premium-kicker"><text class="premium-crown">✦</text> VIP 深度版</view>
       <view class="premium-title">不止看见结果，更看懂自己</view>
@@ -93,6 +105,11 @@
             <view class="portrait-summary-title">本次画像关键词</view>
             <view class="highlight-list"><view wx:for="{{deepReport.highlights}}" wx:key="id" class="highlight-chip">{{item.preference}}</view></view>
             <view wx:if="{{deepReport.balancedCount}}" class="balance-note">其中 {{deepReport.balancedCount}} 个维度接近中间，说明你可能会随情境调整。</view>
+          </view>
+          <view wx:if="{{comparison}}" class="premium-comparison">
+            <view class="portrait-summary-title">完整变化对比</view>
+            <view class="premium-change" wx:for="{{comparison.changes}}" wx:key="id"><text>{{item.label}}</text><text>{{item.before}}% → {{item.after}}%</text><text>{{item.deltaText}}</text></view>
+            <view class="premium-reflection">{{comparison.reflection}}</view>
           </view>
           <view class="capture-footer"><text>人格测试树</text><text>{{savedAt}}</text></view>
         </view>

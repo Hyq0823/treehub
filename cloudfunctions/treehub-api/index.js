@@ -5,7 +5,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const MAX_BATCH_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
-const POLICY_VERSION = '2026-10-30';
+const POLICY_VERSION = '2026-11-04';
 const THEME_IDS = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora'];
 const TEST_IDS = ['sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const SUMMARY_FIELDS = ['id', 'testId', 'testVersion', 'scoringVersion', 'scores', 'resultType', 'completedAt', 'premiumUnlockedAt', 'migrated'];

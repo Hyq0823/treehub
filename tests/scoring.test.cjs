@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const catalog = require('../data/tests/index.js').default;
 const { scoreTest, resolveReport } = require('../utils/scoring.js');
-const { buildDeepReport, basicDimensions } = require('../packages/reports/deep-report.js');
+const { buildDeepReport, basicDimensions, buildComparison } = require('../packages/reports/deep-report.js');
 const get = id => catalog.find(item => item.id === id);
 function result(id, choice) {
   const selected = get(id);
@@ -86,12 +86,12 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   const absolute = path.join(__dirname, '..', relative);
   const nativeRequire = createRequire(absolute);
   let page;
-  const calls = { saved: [], redirect: [], switch: [], toast: [], modal: [] };
+  const calls = { saved: [], redirect: [], navigate: [], switch: [], toast: [], modal: [] };
   const timers = new Map();
   let timerId = 0;
   const archive = Object.assign({
     saveResult: input => { calls.saved.push(input); return Object.assign({ id: 'record-1' }, input); },
-    getRecord: () => null, getLatest: () => null
+    getRecord: () => null, getLatest: () => null, getRecords: () => []
   }, archiveOverrides);
   const pendingGrants = new Map();
   const premiumAccess = {
@@ -108,7 +108,7 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
     }
   };
   const wx = Object.assign({
-    redirectTo: value => calls.redirect.push(value), switchTab: value => calls.switch.push(value),
+    redirectTo: value => calls.redirect.push(value), navigateTo: value => calls.navigate.push(value), switchTab: value => calls.switch.push(value),
     showToast: value => calls.toast.push(value), showModal: value => calls.modal.push(value)
   }, wxOverrides);
   vm.runInNewContext(fs.readFileSync(absolute, 'utf8'), {
@@ -123,16 +123,41 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   return { page, calls, timers };
 }
 
+test('test detail requires one bounded life context before starting', () => {
+  const { page, calls } = loadPage('pages/test-detail/index.js');
+  page.onLoad({ id: 'ie' });
+  page.startTest();
+  assert.equal(calls.navigate.length, 0);
+  assert.match(calls.toast[0].title, /选择/);
+  page.selectContext({ currentTarget: { dataset: { id: 'overthinking' } } });
+  page.startTest();
+  assert.equal(calls.navigate[0].url, '/pages/test-answer/index?id=ie&context=overthinking');
+});
+
 test('answer page saves once, persists version metadata, redirects to exact record', () => {
   const { page, calls } = loadPage('pages/test-answer/index.js');
-  page.onLoad({ id: 'ie' });
+  page.onLoad({ id: 'ie', context: 'work' });
   page.data.answers = page.data.questions.map(() => 0);
   page.submitTest(); page.submitTest();
   assert.equal(calls.saved.length, 1);
   assert.equal(calls.saved[0].scoringVersion, '2');
+  assert.equal(calls.saved[0].lifeContext, 'work');
   assert.equal(calls.saved[0].answers[0].questionId, 1);
   assert.equal(calls.redirect[0].url, '/packages/reports/index?id=ie&recordId=record-1');
   assert.equal(page.data.submitted, true);
+});
+
+test('same-version retest comparison describes movement without ranking it as improvement', () => {
+  const selected = get('ie');
+  const previous = Object.assign(result('ie', 1), { testId: 'ie', scoringVersion: '2', lifeContext: 'ordinary' });
+  const current = Object.assign(result('ie', 0), { testId: 'ie', scoringVersion: '2', lifeContext: 'work' });
+  const comparison = buildComparison(selected, current, previous);
+  assert.equal(comparison.currentLabel, '工作变化');
+  assert.equal(comparison.previousLabel, '普通记录');
+  assert.equal(comparison.changes[0].delta, 100);
+  assert.match(comparison.headline, /更靠近/);
+  assert.match(comparison.note, /不代表能力升降/);
+  assert.equal(buildComparison(selected, current, Object.assign({}, previous, { scoringVersion: 'legacy' })), null);
 });
 
 test('storage failure preserves answers and allows retry without navigation', () => {

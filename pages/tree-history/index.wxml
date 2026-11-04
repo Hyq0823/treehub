@@ -5,8 +5,9 @@
   <view class="page-subtitle secondary-subtitle">这是一棵树，也是一段慢慢认识自己的旅程。</view>
   <view wx:if="{{error}}" class="empty-panel"><view class="empty-title">暂时无法读取</view><view class="body-copy">{{error}}</view><button class="primary-action" bindtap="loadHistory">重新读取</button></view>
   <view wx:elif="{{loaded && !snapshots.length}}" class="empty-panel"><view class="empty-title">等待第一片叶子</view><view class="body-copy">完成测试后，每一次树的模样都会记录在这里。</view><button class="primary-action" bindtap="explore">去探索 →</button></view>
-  <view wx:if="{{!error}}" wx:for="{{snapshots}}" wx:key="id" class="snapshot-card">
-    <view class="snapshot-heading"><text class="snapshot-number">第 {{item.number}} 次测评</text><text class="snapshot-date">{{item.date}}</text></view>
+  <view wx:if="{{!error}}" wx:for="{{snapshots}}" wx:key="id" class="snapshot-card {{item.isRing ? 'year-ring-card' : ''}}">
+    <view class="snapshot-heading"><view class="snapshot-number-wrap"><view wx:if="{{item.isRing}}" class="ring-symbol"><view></view><view></view></view><text class="snapshot-number">{{item.isRing ? '第 ' + item.ringNumber + ' 圈年轮' : '第 ' + item.number + ' 次探索'}}</text></view><text class="snapshot-date">{{item.date}}</text></view>
+    <view wx:if="{{item.contextLabel}}" class="context-badge">{{item.contextLabel}}时的我</view>
     <view class="snapshot-art" wx:if="{{item.tree}}"><personality-tree tree="{{item.tree}}" size="large" /></view>
     <view wx:if="{{item.tree}}" class="snapshot-name">{{item.tree.name}}<text>{{item.tree.stage.name}}</text></view>
     <view wx:else class="missing-snapshot">这份早期记录尚未保存树形快照。</view>
@@ -16,5 +17,5 @@
     <view wx:if="{{item.tree.restoredFromSummary}}" class="legacy-note">由云端结果摘要还原的成长意象，并非当时截图</view>
     <view class="snapshot-footer" data-id="{{item.id}}" data-test-id="{{item.testId}}" bindtap="openReport" role="button"><text>{{item.testName}}</text><text>回看当时的报告 →</text></view>
   </view>
-  <view wx:if="{{snapshots.length && !error}}" class="local-note">本机保留当时的树形快照；开启云备份后，其他设备可根据结果摘要还原成长意象。不同测评版本的结果不宜直接比较。</view>
+  <view wx:if="{{snapshots.length && !error}}" class="local-note">状态标签和当时的树形快照仅保留在本机。不同测评或评分版本的结果不会直接比较。</view>
 </view>

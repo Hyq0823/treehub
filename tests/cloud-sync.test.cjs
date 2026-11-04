@@ -15,7 +15,7 @@ function fixture() {
     records: [{
       id: 'record-1', testId: 'ie', testVersion: '1', scoringVersion: '2',
       completedAt: '2026-10-29T08:00:00.000Z', scores: { EI: 0 }, resultType: 'I',
-      answers: [{ questionId: 1, optionIndex: 1 }], treeSnapshot: { private: 'historic snapshot' }, notes: 'private note'
+      answers: [{ questionId: 1, optionIndex: 1 }], treeSnapshot: { private: 'historic snapshot' }, notes: 'private note', lifeContext: 'overthinking'
     }]
   };
   let themeState = { version: 1, selectedId: 'adventurer', starterClaimed: true, unlocked: [{ themeId: 'adventurer', unlockedAt: '2026-10-29T08:00:00.000Z', source: 'starter' }] };
@@ -111,12 +111,14 @@ test('explicit backup sends result summaries and theme grants, preserving privat
   assert.equal(push.data.records[0].id, 'record-1');
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'answers'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'treeSnapshot'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'lifeContext'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'notes'), false);
   assert.equal(push.data.themeState.unlocked[0].themeId, 'adventurer');
   const merged = f.archive.getArchive();
   assert.equal(merged.seed, 'cloud-seed');
   assert.deepEqual(merged.records[0].answers, before.records[0].answers);
   assert.deepEqual(merged.records[0].treeSnapshot, before.records[0].treeSnapshot);
+  assert.equal(merged.records[0].lifeContext, 'overthinking');
   assert.equal(merged.records[0].premiumUnlockedAt, '2026-10-29T10:00:00.000Z');
   const pushes = f.apiCalls().filter(call => call.data.operation === 'push').length;
   await f.sync.syncArchive();
@@ -188,5 +190,6 @@ test('cloud export includes theme rights and never expands the result field whit
   assert.equal(result.themeState.selectedId, 'adventurer');
   assert.equal(result.records.length, 1);
   assert.equal(Object.prototype.hasOwnProperty.call(result.records[0], 'answers'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.records[0], 'lifeContext'), false);
   assert.equal(f.privacy.isCloudBackupEnabled(), false);
 });

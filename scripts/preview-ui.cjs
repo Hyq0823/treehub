@@ -70,10 +70,10 @@ function page(route) {
   instance.setData = update => Object.assign(instance.data, update);
   return instance;
 }
-function complete(testId) {
+function complete(testId, lifeContext = '', offset = 0) {
   const test = catalog.find(item => item.id === testId);
-  const indices = test.questions.map((question, index) => index % question.options.length);
-  return archive.saveResult({ testId, ...scoring.scoreTest(test, test.questions, indices) });
+  const indices = test.questions.map((question, index) => (index + offset) % question.options.length);
+  return archive.saveResult({ testId, lifeContext: lifeContext || undefined, ...scoring.scoreTest(test, test.questions, indices) });
 }
 function localArt(id) {
   const webp = path.join(artRoot, id + '.webp');
@@ -188,7 +188,7 @@ function output(route, name, data) {
 }
 
 async function fixtures() {
-  ['mbti', 'ie', 'enneagram'].forEach(complete);
+  ['mbti', 'ie', 'enneagram'].forEach(id => complete(id));
   themes.claimStarter('adventurer');
   const scenarios = [];
   const add = (route, name, value) => {
@@ -220,11 +220,14 @@ async function fixtures() {
     add('pages/test-answer/index', 'answer-' + count, answer.data);
   }
   const detail = page('pages/test-detail/index'); detail.onLoad({ id: 'mbti' }); add('pages/test-detail/index', 'detail', detail.data);
-  const result = complete('bigfive'); archive.unlockPremium(result.id);
+  complete('bigfive', 'ordinary', 0);
+  const result = complete('bigfive', 'work', 1); archive.unlockPremium(result.id);
   const report = page('packages/reports/index'); report.onLoad({ id: 'bigfive', recordId: result.id });
   await Promise.resolve();
   Object.assign(report.data, { themeHeroUrl: localArt('adventurer'), themeId: 'adventurer', themeName: '柔软的冒险家', themeQuote: themeList[0].quote, companionNames: '云朵小狗与地图精灵' });
   for (const section of ['portrait', 'insights', 'actions']) { report.data.premiumPage = section; add('packages/reports/index', 'report-' + section, report.data); }
+  const journal = page('pages/tree-history/index'); journal.onShow();
+  add('pages/tree-history/index', 'year-rings', journal.data);
   const policy = page('pages/privacy/index'); policy.onLoad(); add('pages/privacy/index', 'privacy', policy.data);
   return scenarios;
 }

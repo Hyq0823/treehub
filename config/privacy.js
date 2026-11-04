@@ -1,7 +1,7 @@
 // Fill these fields with the registered mini-program operator before release.
 // Do not substitute a developer's or an invented identity.
 module.exports = {
-  policyVersion: '2026-10-30',
+  policyVersion: '2026-11-04',
   operatorName: '',
   contactEmail: '',
   contactPhone: '',

@@ -4,6 +4,7 @@ const { getTheme } = require('../../data/themes.js');
 const { createRewardedVideo } = require('../../utils/rewarded-video.js');
 const assets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
+const { getContextLabel } = require('../../utils/life-context.js');
 
 function dateLabel(value) {
   const date = new Date(value);
@@ -63,10 +64,22 @@ Page({
       const state = themes.getState(records);
       const id = (typeof previewId === 'string' && previewId) || this._previewThemeId || state.selectedId;
       const current = state.catalog.find(theme => theme.id === id) || state.catalog[0];
-      const history = records.slice(0, 12).map((record, index) => ({
-        id: record.id, date: dateLabel(record.completedAt), title: record.migrated ? '早期成长记录' : `第 ${records.length - index} 次探索`,
-        initial: index === records.length - 1, testId: record.testId
-      }));
+      const seen = {}, ringById = {};
+      records.slice().reverse().forEach(record => {
+        if (record.migrated || record.scoringVersion === 'legacy') { ringById[record.id] = 0; return; }
+        const key = `${record.testId}:${record.testVersion || ''}:${record.scoringVersion}`;
+        ringById[record.id] = seen[key] || 0;
+        seen[key] = ringById[record.id] + 1;
+      });
+      const history = records.slice(0, 12).map((record, index) => {
+        const ringNumber = ringById[record.id];
+        const contextLabel = getContextLabel(record.lifeContext);
+        return {
+          id: record.id, date: dateLabel(record.completedAt), testId: record.testId,
+          title: record.migrated ? '早期成长记录' : ringNumber ? `第 ${ringNumber} 圈年轮${contextLabel ? ` · ${contextLabel}` : ''}` : `第 ${records.length - index} 次探索`,
+          initial: index === records.length - 1, isRing: ringNumber > 0
+        };
+      });
       const count = state.uniqueCount;
       this.setData({
         loaded: true, error: '', state, current, gallery: state.catalog.map(theme => Object.assign({}, theme, { thumbnailUrl: theme.discovered && this._galleryUrls[theme.id] || '' })),

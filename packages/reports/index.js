@@ -1,7 +1,7 @@
 const { report, EVENTS } = require('../../utils/track.js');
 const archive = require('../../utils/archive.js');
 const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
-const { buildDeepReport, basicDimensions } = require('./deep-report.js');
+const { buildDeepReport, basicDimensions, buildComparison } = require('./deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
 const premiumAccess = require('./premium-access.js');
 const { DEFAULT_SHARE_IMAGE } = require('../../utils/share-card.js');
@@ -43,7 +43,7 @@ Page({
     basicDimensions: [], deepReport: null, premiumAvailable: false,
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
-    premiumSavePending: false, premiumSaving: false, premiumSaveError: '',
+    premiumSavePending: false, premiumSaving: false, premiumSaveError: '', comparison: null,
     premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: ''
   },
   onLoad(options) {
@@ -76,13 +76,18 @@ Page({
         return;
       }
       const deepReport = decorateDeepReport(buildDeepReport(test, record, result));
+      const history = archive.getRecords(test.id);
+      const currentIndex = history.findIndex(item => item.id === record.id);
+      const previous = currentIndex >= 0 ? history.slice(currentIndex + 1).find(item =>
+        item.scoringVersion === record.scoringVersion && item.testVersion === record.testVersion) : null;
+      const comparison = buildComparison(test, record, previous);
       const pendingGrant = !record.premiumUnlockedAt && premiumAccess.getPendingGrant(record.id);
       this.setData({
-        record: { id: record.id, treeSnapshot: record.treeSnapshot || null },
+        record: { id: record.id, treeSnapshot: record.treeSnapshot || null, lifeContext: record.lifeContext || '' },
         result, savedAt: record.migrated || record.scoringVersion === 'legacy'
           ? '旧版导入 · 原测评时间未知' : formatTime(record.completedAt),
         legacy: record.scoringVersion !== SCORING_VERSION,
-        basicDimensions: basicDimensions(result), deepReport,
+        basicDimensions: basicDimensions(result), deepReport, comparison,
         premiumAvailable: !!deepReport,
         premiumUnlocked: !!record.premiumUnlockedAt || !!pendingGrant,
         premiumUnlockedAt: record.premiumUnlockedAt ? formatTime(record.premiumUnlockedAt) :
@@ -270,7 +275,7 @@ Page({
   },
   retakeTest() {
     if (!this.data.test.id) return;
-    wx.redirectTo({ url: `/pages/test-answer/index?id=${encodeURIComponent(this.data.test.id)}` });
+    wx.redirectTo({ url: `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` });
   },
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   goToArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
@@ -281,7 +286,7 @@ Page({
   onShareAppMessage() {
     this.instrumentShare();
     return {
-      title: `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
+      title: this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
       imageUrl: DEFAULT_SHARE_IMAGE
     };

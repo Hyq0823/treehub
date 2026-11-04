@@ -107,7 +107,7 @@ Page({
   },
   retakeTest(event) {
     const id = event.currentTarget.dataset.id;
-    if (id) wx.navigateTo({ url: `/pages/test-answer/index?id=${encodeURIComponent(id)}` });
+    if (id) wx.navigateTo({ url: `/pages/test-detail/index?id=${encodeURIComponent(id)}` });
   },
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },

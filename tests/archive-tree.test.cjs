@@ -70,6 +70,15 @@ test('same-test repeats retain every result, latest order and original tree snap
   assert.notEqual(archive.getRecord(first.id).treeSnapshot.name, 'mutated');
 });
 
+test('life context is a validated local record field for later year-ring comparison', () => {
+  setup();
+  const saved = archive.saveResult(Object.assign(assessment('ie', 'I', { EI: 1 }), { lifeContext: 'work' }));
+  assert.equal(saved.lifeContext, 'work');
+  assert.equal(archive.getRecord(saved.id).lifeContext, 'work');
+  assert.throws(() => archive.saveResult(Object.assign(assessment('ie', 'E', { EI: 12 }), { lifeContext: 'private-free-text' })), /状态无效/);
+  assert.equal(archive.getRecords('ie').length, 1);
+});
+
 test('new test grows coverage while repeating it only adds history', () => {
   setup();
   archive.saveResult(assessment());

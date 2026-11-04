@@ -1,5 +1,6 @@
 const { getTree } = require('./personality-tree.js');
 const testsModule = require('../data/tests/index.js');
+const { getContext } = require('./life-context.js');
 const catalog = testsModule.default || testsModule;
 
 const STORAGE_KEY = 'personalityTreeArchive.v1';
@@ -30,6 +31,7 @@ function recordIsValid(record) {
     typeof record.completedAt === 'string' && Number.isFinite(Date.parse(record.completedAt)) &&
     (record.premiumUnlockedAt === undefined ||
       typeof record.premiumUnlockedAt === 'string' && Number.isFinite(Date.parse(record.premiumUnlockedAt))) &&
+    (record.lifeContext === undefined || !!getContext(record.lifeContext)) &&
     finiteScores(record.scores) && validType(record.resultType);
 }
 function validateArchive(archive) {
@@ -100,6 +102,9 @@ function saveResult(input) {
     throw storageError('测评结果不完整，无法保存到档案。');
   }
   validateAnswers(input, catalog.find(test => test.id === input.testId));
+  if (input.lifeContext !== undefined && !getContext(input.lifeContext)) {
+    throw storageError('本次状态无效，请返回重新选择。');
+  }
   const archive = getArchive();
   const completedAt = new Date().toISOString();
   const record = {
@@ -114,6 +119,7 @@ function saveResult(input) {
   if (Array.isArray(input.answers)) {
     record.answers = clone(input.answers);
   }
+  if (input.lifeContext) record.lifeContext = input.lifeContext;
   archive.records.unshift(record);
   record.treeSnapshot = getTree(archive, catalog);
   write(archive);

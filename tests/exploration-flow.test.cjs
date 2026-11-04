@@ -32,9 +32,9 @@ function page(route) {
   value.setData = changes => Object.assign(value.data, changes);
   return value;
 }
-function complete(id, choice = 0) {
+function complete(id, choice = 0, context = '') {
   const answer = page('pages/test-answer');
-  answer.onLoad({ id });
+  answer.onLoad({ id, context });
   answer.data.answers = answer.data.questions.map(q => Math.min(choice, q.options.length - 1));
   answer.submitTest();
   assert.equal(answer.data.submitted, true, `${id} persisted`);
@@ -51,7 +51,7 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(hall.data.tree.stage.id, 'seed');
   assert.equal(hall.data.cards.length, 6);
   assert.ok(hall.data.cards.every(c => !c.collected));
-  const first = complete('mbti', 0);
+  const first = complete('mbti', 0, 'ordinary');
   hall.onShow();
   assert.equal(hall.data.tree.uniqueCount, 1);
   assert.equal(hall.data.tree.stage.id, 'sprout');
@@ -63,7 +63,7 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(hall.data.tree.stage.id, 'growing');
   assert.equal(hall.data.tree.uniqueCount, 5);
   assert.equal(hall.data.tree.nextStage, null, 'do not advertise unavailable tenth test');
-  const again = complete('mbti', 1);
+  const again = complete('mbti', 1, 'work');
   const reload = page('pages/test-hall'); reload.onShow();
   assert.equal(reload.data.tree.uniqueCount, 5);
   assert.equal(reload.data.tree.totalCount, 6);
@@ -71,6 +71,9 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.deepEqual(archive.getRecord(first.id).treeSnapshot, original);
   const historical = page('packages/reports'); historical.onLoad({ id: 'mbti', recordId: first.id });
   assert.equal(historical.data.result.type, first.resultType);
+  const changed = page('packages/reports'); changed.onLoad({ id: 'mbti', recordId: again.id });
+  assert.equal(changed.data.comparison.currentLabel, '工作变化');
+  assert.ok(changed.data.comparison.changes.length);
   const personal = page('pages/user-center'); personal.onShow();
   assert.equal(personal.data.totalCount, 6);
   assert.equal(personal.data.repeatCount, 1);
@@ -78,6 +81,8 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(personal.data.groups.find(g => g.id === 'mbti').history[1].premiumUnlocked, true);
   const journal = page('pages/tree-history'); journal.onShow();
   assert.equal(journal.data.snapshots.length, 6);
+  assert.equal(journal.data.snapshots[0].isRing, true);
+  assert.equal(journal.data.snapshots[0].contextLabel, '工作变化');
   assert.equal(journal.data.snapshots[journal.data.snapshots.length - 1].tree.stage.id, 'sprout');
   assert.equal(networkCalls, 0, 'local-only analytics never upload results');
   assert.equal(notifications.length, 0);

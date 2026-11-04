@@ -40,6 +40,7 @@ page {
   align-items: center;
   gap: 18rpx;
 }
+.snapshot-number-wrap { display:flex; align-items:center; gap:11rpx; }.year-ring-card { border-color:#c9def8; background:linear-gradient(155deg,#fff,#f0f7ff); }.ring-symbol { position:relative; width:34rpx; height:34rpx; border:2rpx solid #72a2df; border-radius:50%; }.ring-symbol > view:first-child { position:absolute; inset:6rpx; border:2rpx solid #9abce9; border-radius:50%; }.ring-symbol > view:last-child { position:absolute; inset:13rpx; border-radius:50%; background:#5d91d5; }.context-badge { display:inline-block; margin-top:16rpx; padding:7rpx 14rpx; border-radius:18rpx; color:#587eab; background:#e6f1ff; font-size:20rpx; }
 .snapshot-number {
   font-size: 24rpx;
   color: #497455;

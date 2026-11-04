@@ -87,7 +87,7 @@ Page({
   },
   async deleteLocal() {
     if (this.data.busy) return;
-    if (!await confirm('删除本机档案', '这会关闭云备份，并删除此设备的答案、结果、主题收藏和待保存解锁记录。已有云端备份不会被删除；如需同时删除，请再使用“删除云端数据”。', '删除本机')) return;
+    if (!await confirm('删除本机档案', '这会关闭云备份，并删除此设备的状态标签、答案、结果、主题收藏和待保存解锁记录。已有云端备份不会被删除；如需同时删除，请再使用“删除云端数据”。', '删除本机')) return;
     try {
       privacy.revokeCloudBackup(); cloudSync.stop();
       archive.clearLocalArchive();

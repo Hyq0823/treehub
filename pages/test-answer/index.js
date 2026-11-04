@@ -1,6 +1,7 @@
 const { report, EVENTS } = require('../../utils/track.js');
 const { scoreTest, SCORING_VERSION, TEST_VERSION } = require('../../utils/scoring.js');
 const archive = require('../../utils/archive.js');
+const { getContext } = require('../../utils/life-context.js');
 
 Page({
   data: {
@@ -11,6 +12,7 @@ Page({
   },
   onLoad(options) {
     this._unloaded = false;
+    this._lifeContext = getContext(options && options.context) ? options.context : '';
     report(EVENTS.TEST_START, { testId: options.id });
     this.loadTestData(options.id);
     this.loadThemeWorld();
@@ -128,6 +130,7 @@ Page({
       const result = scoreTest(this._test, this.data.questions, this.data.answers);
       const saved = archive.saveResult(Object.assign({
         testId: this.data.test.id, testVersion: TEST_VERSION, scoringVersion: SCORING_VERSION,
+        lifeContext: this._lifeContext || undefined,
         // Store canonical question IDs because SBTI question order is shuffled.
         answers: this.data.questions.map((question, index) => ({ questionId: question.id, optionIndex: this.data.answers[index] }))
       }, result));

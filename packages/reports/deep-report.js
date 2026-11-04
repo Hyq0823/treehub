@@ -115,6 +115,53 @@ function shadowDimensions(record) {
     `本次原始分为 ${raw} / 40。它描述答题选择，不代表“阴影”好坏或临床程度。`)];
 }
 
+function dimensionsFor(test, record) {
+  if (!test || !record || record.scoringVersion !== '2') return [];
+  if (test.id === 'mbti') return mbtiDimensions(test, record);
+  if (test.id === 'bigfive') return bigFiveDimensions(test, record);
+  if (test.id === 'enneagram') return enneagramDimensions(record);
+  if (test.id === 'sbti') return sbtiDimensions(record);
+  if (test.id === 'ie') return ieDimensions(record);
+  if (test.id === 'shadow') return shadowDimensions(record);
+  return [];
+}
+
+function buildComparison(test, current, previous) {
+  if (!test || !current || !previous || current.testId !== previous.testId ||
+      current.scoringVersion !== previous.scoringVersion || current.scoringVersion !== '2' ||
+      current.testVersion !== previous.testVersion) return null;
+  const before = new Map(dimensionsFor(test, previous).map(item => [item.id, item]));
+  const changes = dimensionsFor(test, current).map(item => {
+    const prior = before.get(item.id);
+    if (!prior) return null;
+    const delta = item.percent - prior.percent;
+    return {
+      id: item.id, label: item.label, before: prior.percent, after: item.percent, delta,
+      magnitude: Math.abs(delta), toward: delta > 0 ? item.right : delta < 0 ? item.left : '保持稳定',
+      deltaText: delta > 0 ? `+${delta}%` : `${delta}%`
+    };
+  }).filter(Boolean).sort((a, b) => b.magnitude - a.magnitude);
+  if (!changes.length) return null;
+  const top = changes[0];
+  const currentLabel = require('../../utils/life-context.js').getContextLabel(current.lifeContext) || '这次记录';
+  const previousLabel = require('../../utils/life-context.js').getContextLabel(previous.lifeContext) || '上次记录';
+  const stable = top.magnitude < 5;
+  const prompts = {
+    relationship: '把这些变化放回最近的关系里，想想什么时候你更敢表达真实需要。',
+    breakup: '变化不一定意味着已经完全放下，它也可能是你正在重新找回自己的边界。',
+    work: '观察这些变化是来自新环境、工作节奏，还是你对自己的期待变了。',
+    overthinking: '先不把波动当成退步。回想最近压力最明显的场景，看看你在保护什么。',
+    ordinary: '这是一次阶段记录。比起追求更好的数字，更值得留意哪个变化最像真实的你。'
+  };
+  return {
+    currentLabel, previousLabel, stable, changes, basicChanges: changes.slice(0, 2),
+    headline: stable ? '这一次，你的整体倾向和上次比较接近。' :
+      `这段时间，“${top.label}”更靠近“${top.toward}” ${top.magnitude}%。`,
+    reflection: prompts[current.lifeContext] || prompts.ordinary,
+    note: '对比展示两次自评位置的差异，可能受近期情境影响，不代表能力升降。'
+  };
+}
+
 function strongest(dimensions) {
   return dimensions.slice().sort((a, b) => Math.abs(b.percent - 50) - Math.abs(a.percent - 50))[0];
 }
@@ -232,14 +279,8 @@ function buildSimple(test, record, base, dimensions) {
 
 function buildDeepReport(test, record, base) {
   if (!test || !record || !base || record.scoringVersion !== '2') return null;
-  let dimensions;
-  if (test.id === 'mbti') dimensions = mbtiDimensions(test, record);
-  else if (test.id === 'bigfive') dimensions = bigFiveDimensions(test, record);
-  else if (test.id === 'enneagram') dimensions = enneagramDimensions(record);
-  else if (test.id === 'sbti') dimensions = sbtiDimensions(record);
-  else if (test.id === 'ie') dimensions = ieDimensions(record);
-  else if (test.id === 'shadow') dimensions = shadowDimensions(record);
-  else return null;
+  const dimensions = dimensionsFor(test, record);
+  if (!dimensions.length) return null;
 
   let report;
   if (test.id === 'mbti') report = buildMbti(test, record, base, dimensions);
@@ -259,4 +300,4 @@ function basicDimensions(result) {
   ).slice(0, 2);
 }
 
-module.exports = { buildDeepReport, basicDimensions };
+module.exports = { buildDeepReport, basicDimensions, buildComparison };
