@@ -8,7 +8,7 @@ function confirm(title, content, confirmText) {
 
 Page({
   data: {
-    settings: {}, policy: privacy.POLICY_CONFIG, cloudStatus: {}, busy: false,
+    settings: {}, cloudStatus: {}, busy: false,
     message: '', wechatPrivacyNeeded: true, nativePrivacySupported: false,
     policyName: '微信隐私保护指引'
   },
@@ -33,13 +33,6 @@ Page({
       }
     });
   },
-  agreePolicy() {
-    try {
-      privacy.acceptPolicy();
-      this.setData({ message: '隐私政策选择已保存。云备份仍由你单独决定。' });
-      this.refresh();
-    } catch (error) { this.showError(error); }
-  },
   continueLocal() {
     if (wx.navigateBack) wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/test-hall/index' }) });
     else wx.switchTab({ url: '/pages/test-hall/index' });
@@ -50,10 +43,6 @@ Page({
   },
   async enableCloud() {
     if (this.data.busy) return;
-    if (!privacy.getSettings().policyAccepted) {
-      this.showError(new Error('请先阅读并同意本页隐私政策；不启用云备份也能完成测试。'));
-      return;
-    }
     const accepted = await confirm('单独选择云备份', '仅备份测试名称、结果类型、维度分数、完成时间、树种子和主题/报告解锁状态，用于同一微信账号恢复。原始逐题选项不上传。你可以随时关闭并删除云端数据。', '同意并开启');
     if (!accepted || this._disposed) return;
     this.setData({ busy: true, message: '' });
@@ -87,7 +76,7 @@ Page({
   },
   async deleteLocal() {
     if (this.data.busy) return;
-    if (!await confirm('删除本机档案', '这会关闭云备份，并删除此设备的状态标签、答案、结果、主题收藏和待保存解锁记录。已有云端备份不会被删除；如需同时删除，请再使用“删除云端数据”。', '删除本机')) return;
+    if (!await confirm('删除本机档案', '这会关闭云备份，并删除此设备的答案、结果、主题收藏和待保存解锁记录。已有云端备份不会被删除；如需同时删除，请再使用“删除云端数据”。', '删除本机')) return;
     try {
       privacy.revokeCloudBackup(); cloudSync.stop();
       archive.clearLocalArchive();

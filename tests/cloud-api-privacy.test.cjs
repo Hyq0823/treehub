@@ -62,7 +62,7 @@ function fixture() {
     rows(name) { return clone(Array.from(tables(() => database)(name).values())); },
     async call(action, data = {}) { return clone(await exports.main(Object.assign({ action, clientSchemaVersion: 1 }, data))); },
     async authorize(id = 'consent-device-a-123456') {
-      return this.call('authorizeBackup', { consent: { id, policyVersion: '2026-11-04', acceptedAt: this.time() }, seed: 'seed-local' });
+      return this.call('authorizeBackup', { consent: { id, policyVersion: '2026-10-30', acceptedAt: this.time() }, seed: 'seed-local' });
     }
   };
 }
@@ -170,7 +170,7 @@ test('deletion removes result data, seed and themes and rejects old or delayed p
   for (const field of ['owner', 'seed', 'scores', 'themeState', 'consentHashes']) assert.equal(Object.prototype.hasOwnProperty.call(tombstone, field), false);
   const replay = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record()] });
   assert.equal(replay.ok, false);
-  const delayed = await f.call('authorizeBackup', { consent: { id: 'consent-delayed-device-123456', policyVersion: '2026-11-04', acceptedAt: delayedAcceptedAt }, seed: 'must-not-restore' });
+  const delayed = await f.call('authorizeBackup', { consent: { id: 'consent-delayed-device-123456', policyVersion: '2026-10-30', acceptedAt: delayedAcceptedAt }, seed: 'must-not-restore' });
   assert.equal(delayed.ok, false);
   assert.equal(f.rows('treehub_assessments').length, 0);
   f.advance(1000);
@@ -179,7 +179,7 @@ test('deletion removes result data, seed and themes and rejects old or delayed p
 
 test('obviously future-dated authorization is rejected rather than bypassing a deletion cutoff', async () => {
   const f = fixture();
-  const response = await f.call('authorizeBackup', { consent: { id: 'consent-future-date-123456', policyVersion: '2026-11-04', acceptedAt: '2036-10-30T08:00:00.000Z' }, seed: 'seed' });
+  const response = await f.call('authorizeBackup', { consent: { id: 'consent-future-date-123456', policyVersion: '2026-10-30', acceptedAt: '2036-10-30T08:00:00.000Z' }, seed: 'seed' });
   assert.equal(response.ok, false);
   assert.equal(f.rows('treehub_users').length, 0);
 });

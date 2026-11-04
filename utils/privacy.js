@@ -15,14 +15,12 @@ function getSettings() {
   value.policyAccepted = value.policyVersion === policy.policyVersion && typeof value.acceptedAt === 'string' && Number.isFinite(Date.parse(value.acceptedAt));
   value.cloudBackup = value.policyAccepted && value.cloudBackup === true && typeof value.cloudConsentId === 'string' &&
     /^[a-zA-Z0-9_-]{16,160}$/.test(value.cloudConsentId) && typeof value.cloudAcceptedAt === 'string' && Number.isFinite(Date.parse(value.cloudAcceptedAt));
-  value.releaseReady = !!(policy.operatorName.trim() && (policy.contactEmail.trim() || policy.contactPhone.trim()));
   return value;
 }
 
 function save(update) {
   const value = Object.assign({}, getSettings(), update);
   delete value.policyAccepted;
-  delete value.releaseReady;
   try { wx.setStorageSync(SETTINGS_KEY, value); }
   catch (error) { throw new Error('隐私选择暂时无法保存，请恢复设备存储后重试。'); }
   return getSettings();
@@ -36,12 +34,13 @@ function acceptPolicy() {
 function setCloudBackup(enabled) {
   const current = getSettings();
   if (!enabled) return revokeCloudBackup();
-  if (!current.policyAccepted) throw new Error('请先阅读并同意隐私政策，再选择是否开启云备份。');
   if (current.cloudBackup) return current;
+  const acceptedAt = new Date().toISOString();
   return save({
+    policyVersion: policy.policyVersion, acceptedAt,
     cloudBackup: true,
     cloudConsentId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 14)}`,
-    cloudAcceptedAt: new Date().toISOString(), revision: current.revision + 1
+    cloudAcceptedAt: acceptedAt, revision: current.revision + 1
   });
 }
 

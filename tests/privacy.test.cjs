@@ -16,15 +16,12 @@ function fixture(overrides = {}) {
   return { privacy: module.exports, memory, wx };
 }
 
-test('privacy policy acceptance and optional backup are separate choices', () => {
+test('explicitly enabling optional backup creates a current consent in one step', () => {
   const { privacy } = fixture();
   assert.equal(privacy.getSettings().policyAccepted, false);
   assert.equal(privacy.isCloudBackupEnabled(), false);
-  assert.throws(() => privacy.setCloudBackup(true), /先阅读/);
-  privacy.acceptPolicy();
-  assert.equal(privacy.getSettings().policyAccepted, true);
-  assert.equal(privacy.isCloudBackupEnabled(), false);
   privacy.setCloudBackup(true);
+  assert.equal(privacy.getSettings().policyAccepted, true);
   assert.equal(privacy.isCloudBackupEnabled(), true);
   assert.ok(privacy.getCloudConsent().id);
   const firstId = privacy.getCloudConsent().id;
@@ -43,7 +40,6 @@ test('a policy version change disables previous backup until an explicit new cho
 
 test('refusing native WeChat privacy authorization does not turn on backup', async () => {
   const { privacy } = fixture({ requirePrivacyAuthorize: options => options.fail({ errMsg: 'user declined' }) });
-  privacy.acceptPolicy();
   await assert.rejects(privacy.authorizeWeChatPrivacy(), /云备份没有开启/);
   assert.equal(privacy.isCloudBackupEnabled(), false);
 });
@@ -56,7 +52,6 @@ test('an older WeChat without privacy APIs can continue locally and cannot silen
 
 test('unavailable local storage fails consent persistence instead of pretending backup was enabled', () => {
   const { privacy, wx } = fixture();
-  privacy.acceptPolicy();
   wx.setStorageSync = () => { throw new Error('storage full'); };
   assert.throws(() => privacy.setCloudBackup(true), /无法保存/);
   assert.equal(privacy.isCloudBackupEnabled(), false);
