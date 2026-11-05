@@ -1,12 +1,18 @@
 # 小红书小工具版
 
-这是人格测试树的离线 H5 小工具实现，独立于微信小程序运行。首版包含五套正式量表、九套主题原画、首测主题、主题图鉴、本地年轮、结果图片、保存相册和发布笔记入口。
+这是人格测试树的离线 H5 小工具实现，独立于微信小程序运行。当前包含“一二 / 布布”原创熊熊趣味测试、五套正式量表、九套主题原画、首测主题、主题图鉴、本地年轮、结果图片、保存相册和发布笔记入口。
 
 ## 构建
 
 ```bash
 node minitool/scripts/build.cjs
 node .agents/skills/minitool-zip-builder/scripts/write_manifest.mjs minitool/dist false
+```
+
+Windows PowerShell 可一键构建、生成 manifest、使用正斜杠路径打包并审计：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\minitool\scripts\package.ps1
 ```
 
 `dist/` 是待打包目录，入口 `index.html` 位于根目录。代码没有 Worker、OffscreenCanvas、WebAssembly、Unity 或 Cocos，因此 `mini_tool.json` 标记为非高消耗场景。

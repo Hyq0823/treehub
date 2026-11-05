@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '../..');
 const source = path.join(root, 'minitool/src');
 const output = path.join(root, 'minitool/dist');
-const testIds = ['mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
+const testIds = ['yierbubu', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 
 function readDefaultExport(file) {
   const module = { exports: {} };

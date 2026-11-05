@@ -12,6 +12,9 @@
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]; }); }
   function getTheme(id) { return themes.find(function (item) { return item.id === id; }) || themes[0]; }
   function testById(id) { return catalog.find(function (item) { return item.id === id; }); }
+  function bearCompanion(type) {
+    return type === 'Y' ? { name: '元气一二熊', art: './assets/companions/yier.webp', line: '拉着你出发，也提醒你照顾自己的电量。', color: '#4c9ee9' } : { name: '温柔布布熊', art: './assets/companions/bubu.webp', line: '陪你慢慢感受，也鼓励你说出真实需要。', color: '#b77bc8' };
+  }
   function validRecords() { return state.records.filter(function (item) { return !!testById(item.testId); }); }
   function uniqueTests() { return Array.from(new Set(validRecords().map(function (item) { return item.testId; }))); }
   function latestRecord(testId) { return validRecords().find(function (item) { return item.testId === testId; }); }
@@ -80,11 +83,14 @@
   function renderHome() {
     var theme = getTheme(state.selectedTheme);
     var count = uniqueTests().length;
-    var cards = catalog.map(function (test) {
+    var featuredTest = catalog.find(function (test) { return test.featured; });
+    var featuredDone = featuredTest && !!latestRecord(featuredTest.id);
+    var featuredCard = featuredTest ? '<button class="featured-test" data-test="' + esc(featuredTest.id) + '"><span class="featured-copy"><i>NEW · 今日 C 位测试</i><strong>' + esc(featuredTest.name) + '</strong><em>' + esc(featuredTest.description) + '</em><b>' + (featuredDone ? '再测一次，看今天的我 →' : '11 题解锁同频伙伴 →') + '</b><small>原创角色 · 非官方趣味测试</small></span><span class="featured-bears"><img class="bear-yier" src="./assets/companions/yier.webp" alt="元气一二型小熊" /><img class="bear-bubu" src="./assets/companions/bubu.webp" alt="温柔布布型小熊" /></span></button>' : '';
+    var cards = catalog.filter(function (test) { return !test.featured; }).map(function (test) {
       var done = !!latestRecord(test.id);
       return '<button class="test-card" data-test="' + esc(test.id) + '"><span class="test-icon">' + esc(test.icon) + '</span><h3>' + esc(test.name) + '</h3><p>' + esc(test.description.slice(0, 48)) + '…</p><span class="test-meta"><span>' + esc(test.time) + '</span><span>' + (done ? '已留下年轮' : test.questions.length + ' 题') + '</span></span></button>';
     }).join('');
-    app.innerHTML = '<main class="page">' + topbar(false) + '<section class="hero"><span class="eyebrow">收集每一种独特的你</span><h1 class="hero-title">今天，也认真生活呀</h1><p class="hero-copy">从关系、情绪和性格里，看见此刻的自己。每次测试，都会让你的树长出新的主题与年轮。</p><div class="hero-tree-wrap">' + treeScene(theme, false) + '</div><button class="primary" data-action="quick-start">' + (count ? '继续探索新的自己' : '开始第一次探索') + '</button></section>' +
+    app.innerHTML = '<main class="page">' + topbar(false) + featuredCard + '<section class="hero asset-hero"><span class="eyebrow">收集每一种独特的你</span><h1 class="hero-title">今天，也认真生活呀</h1><p class="hero-copy">从关系、情绪和性格里，看见此刻的自己。每次测试，都会让你的树长出新的主题与年轮。</p><div class="hero-tree-wrap">' + treeScene(theme, false) + '</div><button class="primary" data-action="quick-start">' + (count ? '继续探索新的自己' : '开始第一次探索') + '</button></section>' +
       '<div class="section-head"><h2>我的探索进度</h2><span>' + count + ' / ' + catalog.length + '</span></div><section class="progress-card"><div class="progress-row"><div><strong>' + (state.starterClaimed ? esc(theme.name) : '第一棵树正在等你') + '</strong><div style="color:var(--muted);font-size:12px;margin-top:5px">' + (count ? '每一份结果都保存在本地' : '首测即可免费领取完整主题') + '</div></div><span class="progress-value">' + count + '</span></div><div class="progress-track"><div class="progress-fill" style="width:' + Math.round(count / catalog.length * 100) + '%"></div></div></section>' +
       '<div class="section-head"><h2>今天想了解什么？</h2><span>全部离线测试</span></div><section class="test-grid">' + cards + '</section></main>' + nav('home');
   }
@@ -92,7 +98,8 @@
     var test = state.activeTest;
     if (!test) { state.view = 'home'; return render(); }
     var question = test.questions[state.question];
-    app.innerHTML = '<main class="page answer-page">' + topbar(true) + '<div class="answer-head"><span class="answer-title">' + esc(test.name) + '</span><strong>' + (state.question + 1) + ' / ' + test.questions.length + '</strong></div><div class="answer-progress"><div style="width:' + Math.round((state.question + 1) / test.questions.length * 100) + '%"></div></div><section class="question-card"><span class="question-number">QUESTION ' + String(state.question + 1).padStart(2, '0') + '</span><h1>' + esc(question.text) + '</h1>' + question.options.map(function (option, index) { return '<button class="option" data-answer="' + index + '">' + esc(option.text) + '</button>'; }).join('') + '</section><p style="color:var(--muted);font-size:11px;text-align:center;line-height:1.7;margin:22px 12px">凭第一感觉选择，没有标准答案。结果用于自我探索，不作心理诊断。</p></main>';
+    var bears = test.id === 'yierbubu' ? '<div class="answer-bears"><img src="./assets/companions/yier.webp" alt="" /><span>此刻的你，会更靠近谁？</span><img src="./assets/companions/bubu.webp" alt="" /></div>' : '';
+    app.innerHTML = '<main class="page answer-page">' + topbar(true) + '<div class="answer-head"><span class="answer-title">' + esc(test.name) + '</span><strong>' + (state.question + 1) + ' / ' + test.questions.length + '</strong></div><div class="answer-progress"><div style="width:' + Math.round((state.question + 1) / test.questions.length * 100) + '%"></div></div>' + bears + '<section class="question-card"><span class="question-number">QUESTION ' + String(state.question + 1).padStart(2, '0') + '</span><h1>' + esc(question.text) + '</h1>' + question.options.map(function (option, index) { return '<button class="option" data-answer="' + index + '">' + esc(option.text) + '</button>'; }).join('') + '</section><p style="color:var(--muted);font-size:11px;text-align:center;line-height:1.7;margin:22px 12px">凭第一感觉选择，没有标准答案。结果用于自我探索，不作心理诊断。</p></main>';
   }
   function score(test, answers) {
     var scores = {}; test.scoring.dimensions.forEach(function (dim) { scores[dim] = 0; });
@@ -113,6 +120,7 @@
     var resultType;
     if (test.id === 'mbti') resultType = (scores.EI >= 0 ? 'E' : 'I') + (scores.SN >= 0 ? 'S' : 'N') + (scores.TF >= 0 ? 'T' : 'F') + (scores.JP >= 0 ? 'J' : 'P');
     else if (test.id === 'ie') resultType = scores.EI > test.questions.length / 2 ? 'E' : scores.EI < test.questions.length / 2 ? 'I' : 'E/I';
+    else if (test.id === 'yierbubu') resultType = scores.YB > 0 ? 'Y' : 'B';
     else if (test.id === 'enneagram') resultType = Object.keys(scores).sort(function (a, b) { return scores[b] - scores[a] || Number(a) - Number(b); })[0];
     else if (test.id === 'shadow') resultType = scores.shadow <= 20 ? 'low' : scores.shadow <= 30 ? 'medium' : 'high';
     else resultType = 'profile';
@@ -142,13 +150,15 @@
     var record = state.records[0], test = record && testById(record.testId);
     if (!test) { state.view = 'home'; return render(); }
     var report = reportFor(test, record), theme = getTheme(state.draftTheme || state.selectedTheme);
+    var bear = test.id === 'yierbubu' ? bearCompanion(record.resultType) : null;
     var dimensionHtml = (report.dimensions || []).map(function (item) { return '<div class="dimension"><div class="dimension-head"><span>' + esc(item.label) + '</span><span>' + esc(item.score) + ' / 5</span></div><div class="dimension-bar"><div style="width:' + item.percent + '%"></div></div></div>'; }).join('');
     var starter = '';
     if (!state.starterClaimed) {
       var starterThemes = themes.filter(function (item) { return item.starter; });
       starter = '<section class="starter-panel"><span class="eyebrow">FIRST TREE · 首测礼物</span><h2>免费领取你的第一棵树</h2><p>已根据本次结果推荐主题，也可以选择更心动的一棵。领取不需要看视频。</p><div class="theme-choices">' + starterThemes.map(function (item) { return '<button class="theme-chip ' + (item.id === theme.id ? 'selected' : '') + '" data-theme-choice="' + item.id + '"><img src="' + esc(item.art) + '" alt="" /><strong>' + esc(item.name) + '</strong><span>' + esc(item.tags.join(' · ')) + '</span></button>'; }).join('') + '</div><button class="primary" data-action="claim-theme">免费领取「' + esc(theme.name) + '」</button></section>';
     }
-    app.innerHTML = '<main class="page">' + topbar(true) + '<section class="result-hero"><span class="result-code">' + esc(test.name) + ' · 本次结果</span><h1>' + esc(report.title) + '</h1><p class="result-summary">' + esc(report.summary) + '</p><div style="position:relative;height:255px;margin-top:4px">' + treeScene(theme, true) + '</div><strong>' + esc(theme.name) + '</strong><div style="color:var(--muted);font-size:12px;margin-top:5px">' + esc(theme.quote) + '</div></section>' + starter + '<section class="result-card"><h2>这一次，看见自己</h2><p>' + esc(report.description) + '</p>' + dimensionHtml + '<div class="advice"><strong>给自己的小提醒</strong><br>' + esc(report.advice) + '</div></section><div class="share-actions"><button class="secondary" data-action="save-card">保存结果图</button><button class="primary" data-action="post-note">去小红书晒一晒</button></div><button class="secondary" data-action="home">继续探索其他测试</button></main>';
+    var resultVisual = bear ? '<div class="unlocked-bear" style="--bear-color:' + esc(bear.color) + '"><span>已解锁 · 同频伙伴</span><img src="' + esc(bear.art) + '" alt="' + esc(bear.name) + '" /><strong>' + esc(bear.name) + '</strong><small>' + esc(bear.line) + '</small></div>' : '<div style="position:relative;height:255px;margin-top:4px">' + treeScene(theme, true) + '</div><strong>' + esc(theme.name) + '</strong><div style="color:var(--muted);font-size:12px;margin-top:5px">' + esc(theme.quote) + '</div>';
+    app.innerHTML = '<main class="page">' + topbar(true) + '<section class="result-hero ' + (bear ? 'bear-result-hero' : '') + '"><span class="result-code">' + esc(test.name) + ' · 本次结果</span><h1>' + esc(report.title) + '</h1><p class="result-summary">' + esc(report.summary) + '</p>' + resultVisual + '</section>' + starter + '<section class="result-card"><h2>这一次，看见自己</h2><p>' + esc(report.description) + '</p>' + dimensionHtml + '<div class="advice"><strong>给自己的小提醒</strong><br>' + esc(report.advice) + '</div></section><div class="share-actions"><button class="secondary" data-action="save-card">保存结果图</button><button class="primary" data-action="post-note">去小红书晒一晒</button></div><button class="secondary" data-action="home">继续探索其他测试</button></main>';
   }
   function renderTree() {
     var current = getTheme(state.selectedTheme), earned = earnedThemes();
@@ -165,14 +175,15 @@
   }
   async function drawShareCard() {
     var record = state.records[0], test = testById(record.testId), report = reportFor(test, record), theme = getTheme(state.draftTheme || state.selectedTheme);
+    var bear = test.id === 'yierbubu' ? bearCompanion(record.resultType) : null;
     var canvas = document.getElementById('shareCanvas'), ctx = canvas.getContext('2d');
     var gradient = ctx.createLinearGradient(0, 0, 750, 1000); gradient.addColorStop(0, theme.pale); gradient.addColorStop(1, '#ffffff'); ctx.fillStyle = gradient; ctx.fillRect(0, 0, 750, 1000);
     ctx.fillStyle = '#4278b8'; ctx.font = '24px sans-serif'; ctx.fillText('人格测试树 · ' + test.name, 55, 70);
     ctx.fillStyle = '#17375f'; ctx.font = 'bold 54px sans-serif'; ctx.fillText(report.title, 55, 145);
     ctx.fillStyle = '#5d7694'; ctx.font = '25px sans-serif'; wrapText(ctx, report.summary, 55, 198, 640, 38, 3);
-    var art = await loadImage(theme.art); ctx.save(); ctx.shadowColor = 'rgba(42,91,145,.18)'; ctx.shadowBlur = 28; ctx.drawImage(art, 110, 280, 530, 530); ctx.restore();
-    ctx.textAlign = 'center'; ctx.fillStyle = '#17375f'; ctx.font = 'bold 37px sans-serif'; ctx.fillText(theme.name, 375, 855); ctx.fillStyle = '#557391'; ctx.font = '24px sans-serif'; wrapText(ctx, theme.quote, 375, 900, 590, 34, 1, true);
-    ctx.fillStyle = '#3d84d4'; ctx.font = '22px sans-serif'; ctx.fillText(theme.tags.join('  ·  '), 375, 946); ctx.fillStyle = '#8295aa'; ctx.font = '17px sans-serif'; ctx.fillText('人格测试树 · 收集每一种独特的你', 375, 980); ctx.textAlign = 'left';
+    var art = await loadImage(bear ? bear.art : theme.art); ctx.save(); ctx.shadowColor = 'rgba(42,91,145,.18)'; ctx.shadowBlur = 28; ctx.drawImage(art, 110, 280, 530, 530); ctx.restore();
+    ctx.textAlign = 'center'; ctx.fillStyle = '#17375f'; ctx.font = 'bold 37px sans-serif'; ctx.fillText(bear ? bear.name : theme.name, 375, 855); ctx.fillStyle = '#557391'; ctx.font = '24px sans-serif'; wrapText(ctx, bear ? bear.line : theme.quote, 375, 900, 590, 34, 1, true);
+    ctx.fillStyle = bear ? bear.color : '#3d84d4'; ctx.font = '22px sans-serif'; ctx.fillText(bear ? '原创熊熊人格 · 非官方趣味测试' : theme.tags.join('  ·  '), 375, 946); ctx.fillStyle = '#8295aa'; ctx.font = '17px sans-serif'; ctx.fillText('人格测试树 · 收集每一种独特的你', 375, 980); ctx.textAlign = 'left';
     return canvas.toDataURL('image/png');
   }
   function wrapText(ctx, text, x, y, width, lineHeight, maxLines, centered) {
@@ -185,7 +196,10 @@
   async function postNote() {
     var bridge = miniTool(); if (!bridge || typeof bridge.postNote !== 'function') return toast('请在小红书客户端中发布');
     var record = state.records[0], test = testById(record.testId), report = reportFor(test, record);
-    try { var data = await drawShareCard(); var filePath = data; if (typeof bridge.writeTempFile === 'function') { var written = await bridge.writeTempFile({ data: data }); filePath = written.filePath; } await bridge.postNote({ title: '我的人格树是' + getTheme(state.draftTheme || state.selectedTheme).name, content: '做完「' + test.name + '」，我收到了「' + report.title + '」。你的人格树会是什么样？', pageType: 'photo_publish', mediaInfo: { image_resources: [{ url: filePath }] } }); } catch (error) { toast('发布页暂时没有打开，请稍后再试'); }
+    var bear = test.id === 'yierbubu' ? bearCompanion(record.resultType) : null;
+    var title = bear ? '测出来我是' + bear.name : '我的人格树是' + getTheme(state.draftTheme || state.selectedTheme).name;
+    var content = bear ? '做完「你是一二还是布布」，我解锁了「' + bear.name + '」。你会和哪只熊熊同频？' : '做完「' + test.name + '」，我收到了「' + report.title + '」。你的人格树会是什么样？';
+    try { var data = await drawShareCard(); var filePath = data; if (typeof bridge.writeTempFile === 'function') { var written = await bridge.writeTempFile({ data: data }); filePath = written.filePath; } await bridge.postNote({ title: title, content: content, pageType: 'photo_publish', mediaInfo: { image_resources: [{ url: filePath }] } }); } catch (error) { toast('发布页暂时没有打开，请稍后再试'); }
   }
   function render() { if (state.view === 'answer') renderAnswer(); else if (state.view === 'result') renderResult(); else if (state.view === 'tree') renderTree(); else if (state.view === 'archive') renderArchive(); else renderHome(); }
   app.addEventListener('click', function (event) {
