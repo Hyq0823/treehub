@@ -20,9 +20,21 @@ export default {
     { id: 11, text: '你希望陪伴你的小熊更像？', type: 'single', options: [{ text: '拉着我出发，给我勇气和新鲜感', value: 1 }, { text: '陪我慢下来，接住细腻的小情绪', value: -1 }] }
   ],
   scoring: {
-    dimensions: ['YB'],
-    mapping: Array.from({ length: 11 }, (_, index) => ({ q: index + 1, dim: 'YB', direction: 1 })),
-    resultRule: scores => scores.YB > 0 ? 'Y' : 'B'
+    dimensions: ['action', 'expression', 'relation', 'emotion', 'explore'],
+    mapping: [
+      { q: 1, dim: 'action', direction: 1 },
+      { q: 2, dim: 'expression', direction: 1 },
+      { q: 3, dim: 'relation', direction: 1 },
+      { q: 4, dim: 'emotion', direction: 1 },
+      { q: 5, dim: 'explore', direction: 1 },
+      { q: 6, dim: 'expression', direction: 1 },
+      { q: 7, dim: 'action', direction: 1 },
+      { q: 8, dim: 'relation', direction: 1 },
+      { q: 9, dim: 'emotion', direction: 1 },
+      { q: 10, dim: 'relation', direction: 1 },
+      { q: 11, dim: 'explore', direction: 1 }
+    ],
+    resultRule: scores => Object.values(scores).reduce((sum, value) => sum + value, 0) > 0 ? 'Y' : 'B'
   },
   reports: [
     {
