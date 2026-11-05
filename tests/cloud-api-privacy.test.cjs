@@ -144,6 +144,23 @@ test('the hidden theme requires five distinct current-version explorations on th
   assert.equal((await f.call('exportMyData')).themeState.selectedId, 'aurora');
 });
 
+test('the server accepts exploration-grown themes only after their matching test', async () => {
+  const f = fixture(); await f.authorize();
+  const moon = { version: 1, selectedId: 'moon', starterClaimed: false, unlocked: [{ themeId: 'moon', source: 'exploration', unlockedAt: f.time() }] };
+  const rejected = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record('r1', 'mbti')], themeState: moon });
+  assert.equal(rejected.ok, false);
+  const accepted = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record('r2', 'shadow')], themeState: moon });
+  assert.equal(accepted.ok, true);
+  assert.equal((await f.call('exportMyData')).themeState.unlocked[0].source, 'exploration');
+});
+
+test('the quiet observer is a valid free starter theme', async () => {
+  const f = fixture(); await f.authorize();
+  const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record()], themeState: starter('observer') });
+  assert.equal(response.ok, true);
+  assert.equal((await f.call('exportMyData')).themeState.selectedId, 'observer');
+});
+
 test('two legitimate starter choices on separate offline devices merge without blocking report recovery', async () => {
   const f = fixture(); await f.authorize('consent-device-a-123456');
   await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record()], themeState: starter('adventurer') });

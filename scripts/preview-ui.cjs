@@ -188,12 +188,20 @@ function output(route, name, data) {
 }
 
 async function fixtures() {
-  ['mbti', 'ie', 'enneagram'].forEach(id => complete(id));
+  const firstResult = complete('mbti');
+  const firstReport = page('packages/reports/index');
+  firstReport.onLoad({ id: 'mbti', recordId: firstResult.id });
+  await Promise.resolve();
+  firstReport.data.starterImages = Object.fromEntries(firstReport.data.starterThemes.map(item => [item.id, localArt(item.id)]));
+  firstReport.data.starterImage = localArt(firstReport.data.starterThemeId);
+  const starterRevealFixture = structuredClone(firstReport.data);
+  ['ie', 'enneagram'].forEach(id => complete(id));
   themes.claimStarter('adventurer');
   const scenarios = [];
   const add = (route, name, value) => {
     if (!selected.length || selected.includes(name)) scenarios.push(output(route, name, JSON.parse(JSON.stringify(value))));
   };
+  add('packages/reports/index', 'starter-reveal', starterRevealFixture);
   const hall = page('pages/test-hall/index'); hall.onLoad(); hall.onShow();
   await Promise.resolve();
   hall.data.themeImage = localArt('adventurer'); hall.data.artState = 'ready';
@@ -238,7 +246,7 @@ async function screenshot(scenarios) {
   const metrics = [];
   try {
     for (const scenario of scenarios) {
-      const scenarioWidths = ['hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden', 'answer-2', 'answer-3', 'answer-5'].includes(scenario.name) ? widths : [390];
+      const scenarioWidths = ['hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden', 'answer-2', 'answer-3', 'answer-5', 'starter-reveal'].includes(scenario.name) ? widths : [390];
       for (const width of scenarioWidths) {
         const browserPage = await browser.newPage({ viewport: { width, height: width === 430 ? 932 : width === 360 ? 800 : 844 }, deviceScaleFactor: 1 });
         await browserPage.setContent(fs.readFileSync(scenario.file, 'utf8'), { waitUntil: 'load' });

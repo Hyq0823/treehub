@@ -34,6 +34,30 @@ test('first completed test allows one free starter choice; theme grants never to
   assert.equal(memory.has('personalityTreePremiumPending.v1'), false);
 });
 
+test('all result recommendations stay inside the three free starter themes', () => {
+  const starters = new Set(['adventurer', 'romantic', 'observer']);
+  const scenarios = [
+    [{ testId: 'mbti', scoringVersion: '2', resultType: 'INFP' }, 'romantic'],
+    [{ testId: 'mbti', scoringVersion: '2', resultType: 'INTJ' }, 'observer'],
+    [{ testId: 'mbti', scoringVersion: '2', resultType: 'ENFP' }, 'adventurer'],
+    [{ testId: 'ie', scoringVersion: '2', resultType: 'I' }, 'observer']
+  ];
+  scenarios.forEach(([record, expected]) => {
+    assert.ok(starters.has(themes.recommendedTheme([record])));
+    assert.equal(themes.recommendedTheme([record]), expected);
+  });
+  assert.equal(require('../data/themes.js').THEMES.filter(theme => theme.starter).length, 3);
+});
+
+test('new explorations grow matching themes without creating a rewarded video', () => {
+  let adCreates = 0;
+  global.wx.createRewardedVideoAd = () => { adCreates++; throw new Error('theme ads must not be created'); };
+  const state = themes.getState(completed(['shadow', 'sbti', 'bigfive', 'mbti', 'ie']));
+  const grants = new Map(state.unlocked.map(grant => [grant.themeId, grant.source]));
+  for (const id of ['moon', 'dreamer', 'collector', 'wanderer', 'listener', 'aurora']) assert.equal(grants.get(id), 'exploration');
+  assert.equal(adCreates, 0);
+});
+
 test('a completed video is mandatory and scoped to the exact theme', () => {
   const records = completed(['ie']);
   assert.throws(() => themes.persistPendingGrant('moon', records), /完整观看/);
@@ -55,9 +79,10 @@ test('hidden theme requires five different current tests, not repeated or migrat
   assert.throws(() => themes.rememberCompletedGrant('aurora', four.concat(legacy)), /5 类/);
   const five = four.concat(completed(['shadow']));
   assert.equal(themes.getState(five).catalog.find(theme => theme.id === 'aurora').discovered, true);
-  assert.equal(themes.getState(five).catalog.find(theme => theme.id === 'aurora').unlocked, false);
-  themes.rememberCompletedGrant('aurora', five);
-  assert.equal(themes.persistPendingGrant('aurora', five).selectedId, 'aurora');
+  const aurora = themes.getState(five).catalog.find(theme => theme.id === 'aurora');
+  assert.equal(aurora.unlocked, true);
+  assert.equal(memory.get(themes.STORAGE_KEY).unlocked.find(grant => grant.themeId === 'aurora').source, 'exploration');
+  assert.equal(themes.selectTheme('aurora', five).selectedId, 'aurora');
 });
 
 test('a completed theme video survives failed state writes and helper reload without replay', () => {
@@ -203,43 +228,27 @@ test('late close from failed display A cannot unlock a later display B', async (
   assert.deepEqual(completed, ['observer']);
 });
 
-test('switching away from my-tree while retry loading cancels replay and late grants', async () => {
+test('a locked my-tree theme routes back to exploration without creating an ad', async () => {
   let page;
   const file = path.join(root, 'pages/my-tree/index.js');
   const nativeRequire = createRequire(file);
   const records = completed(['ie']);
-  const loading = deferred();
-  const first = adMock({ show: [() => Promise.reject(new Error('load first'))], load: [loading.promise] });
-  const second = adMock();
-  const instances = [first, second];
-  global.wx.createRewardedVideoAd = () => instances.shift();
+  let adCreates = 0, switched = '';
+  global.wx.createRewardedVideoAd = () => { adCreates++; throw new Error('theme ads must not be created'); };
+  global.wx.switchTab = value => { switched = value.url; };
   global.wx.showModal = value => value.success({ confirm: true });
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx, console,
     require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? { resolveThemeAsset: async () => '' } : nativeRequire(name)
   }, { filename: file });
   page.data = structuredClone(page.data);
-  let updates = 0;
-  page.setData = value => { updates++; Object.assign(page.data, value); };
+  page.setData = value => Object.assign(page.data, value);
   page.onLoad({}); page.onShow();
   page.inspectTheme({ currentTarget: { dataset: { id: 'moon' } } });
-  const pendingUnlock = page.handleThemeAction();
-  await new Promise(done => setImmediate(done));
-  const lateClose = [...first.listeners.close][0];
-  assert.equal(first.stats.load, 1);
-  page.onHide();
-  const count = updates;
-  loading.resolve();
-  await pendingUnlock;
-  lateClose({ isEnded: true });
-  assert.equal(first.stats.show, 1);
-  assert.equal(updates, count);
-  assert.equal(themes.getPendingGrant('moon'), null);
-  assert.equal(first.stats.destroy, 1);
-  page.onShow();
-  page.inspectTheme({ currentTarget: { dataset: { id: 'moon' } } });
   await page.handleThemeAction();
-  assert.equal(second.stats.show, 1, 'returning creates a fresh usable controller');
+  assert.equal(switched, '/pages/test-hall/index');
+  assert.equal(adCreates, 0);
+  assert.equal(themes.getPendingGrant('moon'), null);
   page.onUnload();
 });
 

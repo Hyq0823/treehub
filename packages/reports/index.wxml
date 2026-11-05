@@ -1,4 +1,46 @@
 <view class="result-page report-theme-{{themeId || 'adventurer'}}">
+  <view wx:if="{{starterReveal}}" class="starter-reveal-mask">
+    <scroll-view scroll-y class="starter-reveal-sheet">
+      <view class="starter-reveal-topline"><text>FIRST TREE · 首测礼物</text><text wx:if="{{!starterClaimedNow}}" class="starter-reveal-skip" bindtap="closeStarterReveal">先看报告</text></view>
+      <view class="starter-reveal-kicker">{{starterClaimedNow ? '你的第一棵树，已经收藏' : '第一次认识自己，值得留下一棵树'}}</view>
+      <view class="starter-reveal-title">{{starterClaimedNow ? '欢迎来到你的小世界' : '选一棵喜欢的，免费带走'}}</view>
+      <view class="starter-reveal-copy">{{starterClaimedNow ? '以后每完成一种新的探索，树都会长出新的主题、伙伴和年轮。' : '已根据本次结果为你推荐。三套基础主题都可以自由选择，不需要看视频。'}}</view>
+
+      <view class="starter-scene" style="background: linear-gradient(180deg, {{starterCurrent.pale || '#e9f5ff'}} 0%, #ffffff 100%);">
+        <view class="starter-scene-orbit starter-orbit-one"></view><view class="starter-scene-orbit starter-orbit-two"></view>
+        <image wx:if="{{starterImage}}" class="starter-scene-image" src="{{starterImage}}" mode="aspectFit" />
+        <view wx:else class="starter-scene-fallback"><text>{{starterCurrent.companions[0].emoji}}</text><text class="starter-fallback-tree">♧</text><text>{{starterCurrent.companions[1].emoji}}</text></view>
+        <view wx:if="{{starterCurrent.recommended && !starterClaimedNow}}" class="starter-recommend-badge">本次结果推荐</view>
+      </view>
+
+      <view class="starter-theme-name">{{starterCurrent.name}}</view>
+      <view class="starter-theme-quote">“{{starterCurrent.quote}}”</view>
+      <view class="starter-theme-description">{{starterCurrent.description}}</view>
+      <view class="starter-tags"><text wx:for="{{starterCurrent.tags}}" wx:key="*this">{{item}}</text></view>
+      <view class="starter-companions">
+        <view wx:for="{{starterCurrent.companions}}" wx:key="name"><text class="starter-companion-emoji">{{item.emoji}}</text><view><text class="starter-companion-name">{{item.name}}</text><text class="starter-companion-line">{{item.line}}</text></view></view>
+      </view>
+
+      <view wx:if="{{!starterClaimedNow}}" class="starter-choice-title">也可以换一棵更心动的</view>
+      <scroll-view wx:if="{{!starterClaimedNow}}" scroll-x class="starter-choice-scroll">
+        <view class="starter-choice-row">
+          <view wx:for="{{starterThemes}}" wx:key="id" data-id="{{item.id}}" bindtap="selectStarterTheme" class="starter-choice {{starterThemeId === item.id ? 'starter-choice-active' : ''}}">
+            <image wx:if="{{starterImages[item.id]}}" src="{{starterImages[item.id]}}" mode="aspectFill" />
+            <view wx:else class="starter-choice-placeholder">{{item.companions[0].emoji}}</view>
+            <text>{{item.name}}</text><text wx:if="{{item.recommended}}" class="starter-choice-recommended">推荐</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view wx:if="{{starterError}}" class="starter-error">{{starterError}}</view>
+      <button wx:if="{{!starterClaimedNow}}" class="starter-claim-button" bindtap="claimStarterTheme" loading="{{starterBusy}}" disabled="{{starterBusy}}">{{starterBusy ? '正在收藏…' : '免费领取这棵树'}}</button>
+      <block wx:else>
+        <button open-type="share" data-kind="starter" class="starter-claim-button">分享我的第一棵树</button>
+        <button class="starter-tree-button" bindtap="openStarterTree">去看我的树</button>
+      </block>
+      <view class="starter-reveal-footnote">主题是你的探索意象，不用于心理诊断 · 后续可在“我的树”查看成长</view>
+    </scroll-view>
+  </view>
   <view wx:if="{{state === 'loading'}}" class="state-card">正在展开你的报告…</view>
   <view wx:elif="{{state !== 'ready'}}" class="state-card">
     <view class="state-leaf">❧</view>
@@ -154,4 +196,5 @@
     <button open-type="share" class="text-button">邀请朋友一起探索 ↗</button>
     <button class="text-button muted" bindtap="goToHome">返回探索大厅</button>
   </block>
+  <canvas type="2d" id="starterShareCanvas" class="starter-share-canvas"></canvas>
 </view>

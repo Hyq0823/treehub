@@ -4,7 +4,7 @@ const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
 const { buildDeepReport, basicDimensions, buildComparison } = require('./deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
 const premiumAccess = require('./premium-access.js');
-const { DEFAULT_SHARE_IMAGE } = require('../../utils/share-card.js');
+const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 
 function formatTime(value) {
   const date = new Date(value);
@@ -44,7 +44,9 @@ Page({
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
     premiumSavePending: false, premiumSaving: false, premiumSaveError: '', comparison: null,
-    premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: ''
+    premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: '',
+    starterReveal: false, starterClaimedNow: false, starterBusy: false, starterError: '',
+    starterThemeId: '', starterThemes: [], starterCurrent: null, starterImages: {}, starterImage: '', starterShareImage: DEFAULT_SHARE_IMAGE
   },
   onLoad(options) {
     this._disposed = false;
@@ -95,6 +97,7 @@ Page({
         premiumSavePending: !!pendingGrant,
         state: 'ready'
       });
+      this.prepareStarterReveal();
       this.loadReportTheme();
       if (deepReport && !record.premiumUnlockedAt && !pendingGrant) this.setupRewardedVideoAd();
       report(EVENTS.RESULT_VIEW, { testId: test.id, resultType: record.resultType });
@@ -105,6 +108,71 @@ Page({
   onShow() {
     if (!this._disposed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
   },
+  prepareStarterReveal() {
+    try {
+      const themes = require('../../utils/themes.js');
+      const state = themes.getState();
+      if (state.starterClaimed || state.uniqueCount < 1) return;
+      const starterThemes = state.catalog.filter(item => item.starter).map(item => ({
+        id: item.id, name: item.name, quote: item.quote, description: item.description,
+        color: item.color, pale: item.pale, tags: item.tags, companions: item.companions,
+        recommended: item.id === state.recommendation
+      }));
+      const selected = starterThemes.find(item => item.recommended) || starterThemes[0];
+      if (!selected) return;
+      this.setData({ starterReveal: true, starterThemes, starterCurrent: selected, starterThemeId: selected.id, starterClaimedNow: false, starterError: '' });
+      this.loadStarterAssets(starterThemes);
+    } catch (error) {
+      // A theme reveal cannot prevent access to the saved report.
+    }
+  },
+  async loadStarterAssets(starterThemes) {
+    const request = this._starterRequest = (this._starterRequest || 0) + 1;
+    const themeAssets = require('../../utils/theme-assets.js');
+    const pairs = await Promise.all(starterThemes.map(async item => {
+      try { return [item.id, await themeAssets.resolveThemeAsset(item.id)]; }
+      catch (error) { return [item.id, '']; }
+    }));
+    if (this._disposed || request !== this._starterRequest) return;
+    const starterImages = Object.fromEntries(pairs);
+    this.setData({ starterImages, starterImage: starterImages[this.data.starterThemeId] || '' });
+    const current = starterThemes.find(item => item.id === this.data.starterThemeId);
+    if (current && starterImages[current.id]) this.prepareStarterShare(current, starterImages[current.id]);
+  },
+  async prepareStarterShare(theme, heroUrl) {
+    const request = this._starterShareRequest = (this._starterShareRequest || 0) + 1;
+    try {
+      const starterShareImage = await buildShareCard(this, {
+        selector: '#starterShareCanvas', heroUrl, title: theme.name,
+        subtitle: theme.quote, pale: theme.pale, color: theme.color
+      });
+      if (!this._disposed && request === this._starterShareRequest && this.data.starterThemeId === theme.id) this.setData({ starterShareImage });
+    } catch (error) {
+      // The bundled 5:4 cover remains available if Canvas is not ready.
+    }
+  },
+  selectStarterTheme(event) {
+    if (this.data.starterBusy || this.data.starterClaimedNow) return;
+    const id = event.currentTarget.dataset.id;
+    if (!this.data.starterThemes.some(item => item.id === id)) return;
+    const starterCurrent = this.data.starterThemes.find(item => item.id === id);
+    const starterImage = this.data.starterImages[id] || '';
+    this.setData({ starterCurrent, starterThemeId: id, starterImage, starterShareImage: DEFAULT_SHARE_IMAGE, starterError: '' });
+    if (starterImage) this.prepareStarterShare(starterCurrent, starterImage);
+  },
+  claimStarterTheme() {
+    if (this.data.starterBusy || this.data.starterClaimedNow || !this.data.starterThemeId) return;
+    this.setData({ starterBusy: true, starterError: '' });
+    try {
+      require('../../utils/themes.js').claimStarter(this.data.starterThemeId);
+      this.setData({ starterBusy: false, starterClaimedNow: true });
+      this.loadReportTheme();
+    } catch (error) {
+      this.setData({ starterBusy: false, starterError: error.message || '树与伙伴暂时未能收藏，请重试。' });
+    }
+  },
+  closeStarterReveal() { this.setData({ starterReveal: false }); },
+  openStarterTree() { this.setData({ starterReveal: false }); wx.switchTab({ url: '/pages/my-tree/index' }); },
   async loadReportTheme() {
     const request = ++this._themeRequest;
     try {
@@ -271,6 +339,8 @@ Page({
   onUnload() {
     this._disposed = true;
     this._themeRequest++;
+    this._starterRequest = (this._starterRequest || 0) + 1;
+    this._starterShareRequest = (this._starterShareRequest || 0) + 1;
     this.retireRewardedVideo();
   },
   retakeTest() {
@@ -283,8 +353,16 @@ Page({
   instrumentShare() {
     report(EVENTS.SHARE_TAP, { testId: this.data.test.id || '', resultType: this.data.result.type || '' });
   },
-  onShareAppMessage() {
+  onShareAppMessage(options = {}) {
     this.instrumentShare();
+    if (options.target && options.target.dataset && options.target.dataset.kind === 'starter') {
+      const theme = this.data.starterThemes.find(item => item.id === this.data.starterThemeId);
+      if (theme) return {
+        title: `${theme.name}｜这是我的第一棵人格树`,
+        path: `/pages/my-tree/index?theme=${encodeURIComponent(theme.id)}`,
+        imageUrl: this.data.starterShareImage || DEFAULT_SHARE_IMAGE
+      };
+    }
     return {
       title: this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',

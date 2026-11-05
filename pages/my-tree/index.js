@@ -1,7 +1,6 @@
 const archive = require('../../utils/archive.js');
 const themes = require('../../utils/themes.js');
 const { getTheme } = require('../../data/themes.js');
-const { createRewardedVideo } = require('../../utils/rewarded-video.js');
 const assets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { getContextLabel } = require('../../utils/life-context.js');
@@ -33,26 +32,9 @@ Page({
     this._galleryUrls = {};
     this._posterRequest = 0;
     this._shareRequest = 0;
-    this.setupVideo();
-  },
-  setupVideo() {
-    if (this._ad || this._disposed || this._hidden) return;
-    this._ad = createRewardedVideo({
-      onState: state => {
-        if (this._disposed || this._hidden) return;
-        const update = {};
-        if (state.busy !== undefined) update.busy = state.busy;
-        if (state.error !== undefined) update.adError = state.error;
-        this.setData(update);
-      },
-      onComplete: themeId => this.completeThemeUnlock(themeId),
-      onPartial: () => wx.showToast({ title: '完整看完视频才能解锁这套主题', icon: 'none' }),
-      onError: () => wx.showToast({ title: '视频暂时无法播放', icon: 'none' })
-    });
   },
   onShow() {
     this._hidden = false;
-    this.setupVideo();
     this.setData({ busy: false, posterBusy: false, worldPaused: false });
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/my-tree/index');
     this.loadCollection();
@@ -88,7 +70,8 @@ Page({
         pendingSave: !!themes.getPendingGrant(current.id),
         leaves: Array.from({ length: Math.min(state.catalogCount, 12) }, (_, index) => ({ index, collected: index < count })),
         nextReward: count === 0 ? '完成首测，免费领取一套基础主题与伙伴' :
-          count < 5 ? `再探索 ${5 - count} 类不同测试，发现隐藏的极光` :
+          count < 3 ? '新的测试，会让树长出新主题与伙伴' :
+          count < 5 ? `再探索 ${5 - count} 类不同测试，与隐藏的极光相遇` :
             '极光水镜已发现，去主题图鉴看看吧'
       });
       if (wx.setNavigationBarColor) {
@@ -212,28 +195,12 @@ Page({
         wx.showToast({ title: '树与伙伴已领取', icon: 'success' });
         return;
       }
-      return this.playThemeAd(theme);
+      wx.showModal({
+        title: '这个小世界还在生长',
+        content: theme.unlockHint || '继续探索新的测试，树会自然长出这套主题。',
+        confirmText: '去探索', success: result => { if (result.confirm) this.explore(); }
+      });
     } catch (error) { wx.showToast({ title: error.message || '暂时无法保存主题', icon: 'none' }); }
-  },
-  async playThemeAd(theme) {
-    if (!theme || this._disposed || this._hidden || this.data.busy) return false;
-    this.setupVideo();
-    const started = this._ad ? await this._ad.play(theme.id) : false;
-    if (!started && !this._disposed && !this._hidden && !this.data.busy && !this.data.adError) {
-      wx.showModal({ title: '暂时无法播放', content: '当前环境暂不支持激励视频，请在手机微信中重试。', showCancel: false });
-    }
-    return started;
-  },
-  completeThemeUnlock(themeId) {
-    if (this._disposed || this._hidden) return;
-    try {
-      themes.rememberCompletedGrant(themeId);
-      this._pendingThemeId = themeId;
-      this.setData({ pendingSave: true, saveError: '' });
-      this.retryThemeSave();
-    } catch (error) {
-      this.setData({ saveError: error.message || '解锁凭据暂未保存，请稍后重试。' });
-    }
   },
   retryThemeSave(options = {}) {
     if (this._disposed || this.data.saving) return;
@@ -260,8 +227,6 @@ Page({
     this._galleryRequest++;
     this._posterRequest++;
     this._shareRequest++;
-    if (this._ad) this._ad.dispose();
-    this._ad = null;
   },
   onUnload() {
     this._disposed = true;
@@ -285,8 +250,8 @@ Page({
     if (!theme.unlocked || !theme.discovered) {
       wx.showModal({
         title: theme.hidden && !theme.discovered ? '隐藏的极光，还在等你发现' : '先收藏这套树与伙伴',
-        content: theme.hidden && !theme.discovered ? '完成 5 类不同测试后发现隐藏主题，再看视频解锁，就能生成自己的极光海报。' : '解锁主题后，可以生成自己的树与伙伴海报。普通主题可以先预览，也可以把主题入口分享给朋友。',
-        confirmText: theme.hidden && !theme.discovered ? '继续探索' : '去解锁',
+        content: theme.hidden && !theme.discovered ? '完成 5 类不同测试后，就能与极光相遇并生成自己的主题海报。' : `${theme.unlockHint || '完成对应探索后，这套主题会自然长出。'}获得后即可生成自己的树与伙伴海报。`,
+        confirmText: '继续探索',
         success: result => { if (result.confirm && !this._disposed && !this._hidden) this.useOrUnlockTheme(); }
       });
       return;

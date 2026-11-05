@@ -37,7 +37,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 
 ## 产品规则
 
-- 首次有效测评可免费选择「柔软的冒险家」或「慢热的浪漫家」之一；普通主题完整看一次视频解锁当前主题，极光水镜需先探索五类不同测试再视频解锁。主题与报告权益分别保存，不相互代替。两台设备各自选择的合法基础主题可在备份时合并。
+- 首次有效测评会推荐「柔软的冒险家」「慢热的浪漫家」「安静的观察者」之一，用户可在三套基础主题中免费选择；其余主题随对应测试或探索数量自然长出，极光水镜在探索五类不同测试后获得。主题与报告权益分别保存，不相互代替。两台设备各自选择的合法基础主题可在备份时合并。
 - 主题只是视觉意象，结果提供推荐，已拥有主题可以切换，不将用户永久绑定标签。分享只带公开主题或测试 ID，不带私人结果记录。
 - 完成 **不同测试** 的数量决定成长：1 初芽、2 双叶、3 扎根、4 新枝、5 舒展、10 繁茂、20 花冠、35 星辉；零项为待萌芽。前五项测试每完成一项都有新的视觉阶段，现有六套测试仅提示可达到的下一阶段，其他阶段标为未来开放。
 - 重复测评新建记录，不覆盖旧报告，不重复增加探索种类。每次记录附有树形快照。
@@ -54,7 +54,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `utils/privacy.js` 与 `pages/privacy/`：政策版本、单独备份选择、微信平台隐私授权、关闭备份、导出及删除。拒绝备份不影响本地测评。
 - `utils/cloud-sync.js`：仅在明确同意后上传结果摘要与主题权益；不上传 answers 或 treeSnapshot。历史本机快照保留，新设备用摘要还原并标明成长意象。
 - `cloudfunctions/treehub-api`：OpenID 隔离、授权版本、白名单、事务写入与防止删除后旧请求重传的撤回标记；客户端禁止直接访问数据库。
-- `data/themes.js`、`utils/themes.js`、`utils/rewarded-video.js`：九主题、推荐、权益、完整视频收据与离页取消。报告与主题使用独立的存储键和完成回调。
+- `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益；`utils/rewarded-video.js` 仅保留旧版主题收据兼容。报告与主题使用独立的存储键和完成回调。
 - `utils/theme-assets.js`、`config/theme-assets.js`：按需解析云文件；九套新美术不进入应用包。管理端上传与配置导入脚本在 `scripts/`，不随小程序发布。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果。
 - `packages/reports/deep-report.js`：按六套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。

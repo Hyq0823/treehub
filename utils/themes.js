@@ -5,8 +5,13 @@ const PENDING_KEY = 'personalityTreeThemePending.v1';
 const pending = new Map();
 const copy = value => JSON.parse(JSON.stringify(value));
 const validDate = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
-const validGrant = grant => grant && !!getTheme(grant.themeId) && validDate(grant.unlockedAt) &&
-  (grant.source === 'rewarded-video' || grant.source === 'starter' && getTheme(grant.themeId).starter === true);
+const validGrant = grant => {
+  const theme = grant && getTheme(grant.themeId);
+  return !!theme && validDate(grant.unlockedAt) &&
+    (grant.source === 'rewarded-video' ||
+      grant.source === 'exploration' && !theme.starter && !!(theme.unlockTest || theme.requiredExplorations) ||
+      grant.source === 'starter' && theme.starter === true);
+};
 const EMPTY = () => ({ version: 1, selectedId: 'adventurer', starterClaimed: false, unlocked: [] });
 
 function read() {
@@ -35,13 +40,21 @@ function recommendedTheme(records) {
   if (typeof mbti === 'string' && /^[EI][SN][TF][JP]$/.test(mbti)) {
     if (mbti[0] === 'I' && mbti[2] === 'F') return 'romantic';
     if (mbti[0] === 'I' && mbti[2] === 'T') return 'observer';
-    if (mbti[1] === 'N' && mbti[3] === 'P') return 'dreamer';
-    if (mbti[2] === 'F') return 'listener';
-    return 'wanderer';
+    return 'adventurer';
   }
-  if (latest.ie && latest.ie.resultType === 'I') return 'moon';
+  if (latest.ie && latest.ie.resultType === 'I') return 'observer';
   if (latest.enneagram && latest.enneagram.resultType === '4') return 'romantic';
+  if (latest.enneagram && ['5', '6', '9'].includes(String(latest.enneagram.resultType))) return 'observer';
+  if (latest.bigfive && Number(latest.bigfive.scores && latest.bigfive.scores.extraversion) < 24) return 'observer';
   return 'adventurer';
+}
+function earnedThemeIds(records) {
+  const source = recordsOrLocal(records).filter(record => record.scoringVersion === '2' && !record.migrated);
+  const completed = new Set(source.map(record => record.testId));
+  const count = uniqueTests(source);
+  return new Set(THEMES.filter(theme => !theme.starter &&
+    (theme.unlockTest && completed.has(theme.unlockTest) || theme.requiredExplorations && count >= theme.requiredExplorations)
+  ).map(theme => theme.id));
 }
 function getState(records) {
   const state = read();
@@ -51,11 +64,19 @@ function getState(records) {
   const catalogCount = (catalogModule.default || catalogModule).length;
   const recommendation = recommendedTheme(source);
   const owned = new Set(state.unlocked.map(grant => grant.themeId));
+  const earned = earnedThemeIds(source);
+  let changed = false;
+  earned.forEach(themeId => {
+    if (owned.has(themeId)) return;
+    state.unlocked.push({ themeId, unlockedAt: new Date().toISOString(), source: 'exploration' });
+    owned.add(themeId); changed = true;
+  });
+  if (changed) { write(state); schedule(); }
   return Object.assign(state, {
     uniqueCount, catalogCount, recommendation,
     catalog: THEMES.map(theme => Object.assign(copy(theme), {
       unlocked: owned.has(theme.id), discovered: owned.has(theme.id) || !theme.hidden || uniqueCount >= theme.requiredTests,
-      recommended: recommendation === theme.id, selected: state.selectedId === theme.id,
+      recommended: recommendation === theme.id, selected: state.selectedId === theme.id, earned: earned.has(theme.id),
       pending: !!getPendingGrant(theme.id)
     }))
   });
@@ -70,7 +91,7 @@ function claimStarter(themeId, records) {
   const theme = ensureDiscoverable(themeId, records);
   const state = read();
   if (state.unlocked.some(grant => grant.themeId === themeId)) return selectTheme(themeId, records);
-  if (!theme.starter || state.starterClaimed) throw new Error('基础主题已领取，其他主题可通过完整观看视频解锁。');
+  if (!theme.starter || state.starterClaimed) throw new Error('基础主题已领取，其他主题会随新的测试探索长出。');
   if (uniqueTests(records) < 1) throw new Error('完成第一次测试，就能领取专属的树与伙伴。');
   state.unlocked.push({ themeId, unlockedAt: new Date().toISOString(), source: 'starter' });
   state.selectedId = themeId;
@@ -147,4 +168,4 @@ function clearLocalState() {
   wx.removeStorageSync(STORAGE_KEY);
   wx.removeStorageSync(PENDING_KEY);
 }
-module.exports = { STORAGE_KEY, PENDING_KEY, getState, claimStarter, selectTheme, rememberCompletedGrant, getPendingGrant, persistPendingGrant, unlockWithCompletedGrant: persistPendingGrant, getSyncPayload, mergeCloudState, clearLocalState, uniqueTests };
+module.exports = { STORAGE_KEY, PENDING_KEY, getState, claimStarter, selectTheme, rememberCompletedGrant, getPendingGrant, persistPendingGrant, unlockWithCompletedGrant: persistPendingGrant, getSyncPayload, mergeCloudState, clearLocalState, uniqueTests, recommendedTheme, earnedThemeIds };

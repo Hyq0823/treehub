@@ -8,6 +8,10 @@ const MAX_PAGE_SIZE = 100;
 const POLICY_VERSION = '2026-10-30';
 const THEME_IDS = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora'];
 const TEST_IDS = ['sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
+const EXPLORATION_THEME_RULES = {
+  moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
+  wanderer: { count: 3 }, listener: { count: 4 }, aurora: { count: 5 }
+};
 const SUMMARY_FIELDS = ['id', 'testId', 'testVersion', 'scoringVersion', 'scores', 'resultType', 'completedAt', 'premiumUnlockedAt', 'migrated'];
 const plainObject = value => value && typeof value === 'object' && !Array.isArray(value);
 const validDate = value => typeof value === 'string' && value.length <= 40 && Number.isFinite(Date.parse(value));
@@ -52,25 +56,30 @@ function cleanThemeState(input) {
   const seen = new Set();
   const unlocked = input.unlocked.map(grant => {
     if (!plainObject(grant) || !THEME_IDS.includes(grant.themeId) || seen.has(grant.themeId) || !validDate(grant.unlockedAt) ||
-        !['starter', 'rewarded-video'].includes(grant.source) || grant.source === 'starter' && !['adventurer', 'romantic'].includes(grant.themeId)) {
+        !['starter', 'rewarded-video', 'exploration'].includes(grant.source) ||
+        grant.source === 'starter' && !['adventurer', 'romantic', 'observer'].includes(grant.themeId) ||
+        grant.source === 'exploration' && !EXPLORATION_THEME_RULES[grant.themeId]) {
       throw new Error('主题解锁记录格式无效');
     }
     seen.add(grant.themeId);
     return { themeId: grant.themeId, unlockedAt: grant.unlockedAt, source: grant.source };
   });
-  // Two devices may have independently chosen the two legitimate starter themes
-  // before their first backup. Preserve both rather than blocking result recovery.
-  if (unlocked.filter(grant => grant.source === 'starter').length > 2) throw new Error('基础主题记录无效');
+  // Offline devices may have independently chosen different legitimate starter themes.
+  if (unlocked.filter(grant => grant.source === 'starter').length > 3) throw new Error('基础主题记录无效');
   return { version: 1, selectedId: input.selectedId, starterClaimed: input.starterClaimed, unlocked };
 }
 
-function mergeThemeState(existing, incoming, explorationCount) {
+function mergeThemeState(existing, incoming, explorationIds) {
   const previous = existing || { version: 1, selectedId: 'adventurer', starterClaimed: false, unlocked: [] };
   const grants = new Map(previous.unlocked.map(grant => [grant.themeId, grant]));
   incoming.unlocked.forEach(grant => {
     if (!grants.has(grant.themeId)) {
-      if (grant.themeId === 'aurora' && explorationCount < 5) throw new Error('隐藏主题需要完成五类不同测试后解锁');
-      if (grant.source === 'starter' && explorationCount < 1) {
+      const rule = EXPLORATION_THEME_RULES[grant.themeId];
+      if (grant.themeId === 'aurora' && explorationIds.size < 5) throw new Error('隐藏主题需要完成五类不同测试后解锁');
+      if (grant.source === 'exploration' && (!rule || rule.testId && !explorationIds.has(rule.testId) || rule.count && explorationIds.size < rule.count)) {
+        throw new Error('主题的测试探索条件不满足');
+      }
+      if (grant.source === 'starter' && explorationIds.size < 1) {
         throw new Error('基础主题领取条件不满足');
       }
       grants.set(grant.themeId, grant);
@@ -101,7 +110,7 @@ async function countExplorations(openid, incoming) {
     offset += page.data.length;
     if (offset > 100000) throw new Error('档案数量较多，请联系运营者协助恢复主题');
   }
-  return ids.size;
+  return ids;
 }
 
 async function getDocument(ref) {
@@ -159,7 +168,7 @@ async function syncArchive(openid, event) {
     if (!Array.isArray(event.records) || event.records.length > MAX_BATCH_SIZE) return fail('单次同步记录格式无效');
     const batch = event.records.map(cleanRecord);
     const themeState = event.themeState === undefined ? null : cleanThemeState(event.themeState);
-    const explorationCount = themeState ? await countExplorations(openid, batch) : 0;
+    const explorationIds = themeState ? await countExplorations(openid, batch) : new Set();
     const result = await db.runTransaction(async transaction => {
       const userRef = transaction.collection('treehub_users').doc(userId(openid));
       const user = await getDocument(userRef);
@@ -173,7 +182,7 @@ async function syncArchive(openid, event) {
       // Touch the same user document as deletion. Concurrent pushes/deletions are
       // serialized by the transaction; a retried revoked push cannot resurrect data.
       const userUpdate = { updatedAt: db.serverDate(), mutation: (user.mutation || 0) + 1 };
-      if (themeState) userUpdate.themeState = mergeThemeState(user.themeState, themeState, explorationCount);
+      if (themeState) userUpdate.themeState = mergeThemeState(user.themeState, themeState, explorationIds);
       await userRef.update({ data: userUpdate });
       for (const { ref, existing, record } of writes) {
         const canonical = existing ? summaryRecord(existing) : record;
