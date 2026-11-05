@@ -6,6 +6,7 @@
   var app = document.getElementById('app');
   var STORAGE_KEY = 'personality-tree-minitool-v1';
   var state = { view: 'home', activeTest: null, question: 0, answers: [], records: [], starterClaimed: false, selectedTheme: 'adventurer', draftTheme: '' };
+  var answerAdvanceTimer = null;
 
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
   function miniTool() { return window.xhs && window.xhs.miniTool; }
@@ -66,6 +67,7 @@
     var node = document.createElement('div'); node.className = 'toast'; node.textContent = message; document.body.appendChild(node);
     window.setTimeout(function () { if (node.parentNode) node.parentNode.removeChild(node); }, 2200);
   }
+  function cancelAnswerAdvance() { window.clearTimeout(answerAdvanceTimer); answerAdvanceTimer = null; }
   function treeScene(theme, compact) {
     theme = theme || getTheme('adventurer');
     return '<div class="tree-scene ' + (compact ? 'compact' : '') + '">' +
@@ -102,7 +104,7 @@
       var active = selected === index;
       return '<button class="answer-option ' + (active ? 'selected' : '') + '" data-answer="' + index + '" aria-pressed="' + active + '"><span class="option-letter">' + String.fromCharCode(65 + index) + '</span><span class="option-copy">' + esc(option.text) + '</span><span class="option-dot">' + (active ? '✓' : '') + '</span></button>';
     }).join('');
-    app.innerHTML = '<main class="page answer-page">' + topbar(true) + '<section class="answer-status">' + mascot + '<div class="answer-status-copy"><span>' + esc(test.name) + '</span><strong>' + (state.question + 1) + ' <i>/ ' + test.questions.length + '</i></strong></div><b>' + percent + '%</b><div class="answer-progress"><div style="width:' + percent + '%"></div></div></section><section class="question-stage"><span class="question-number">QUESTION ' + String(state.question + 1).padStart(2, '0') + '</span><h1>' + esc(question.text) + '</h1><p>选择更接近你真实反应的一项</p><div class="answer-options ' + (question.options.length === 2 ? 'dual' : 'many') + '">' + options + '</div></section><img class="answer-tree-watermark" src="' + esc(theme.art) + '" alt="" /><div class="answer-controls"><button class="answer-prev" data-action="previous-answer" ' + (state.question === 0 ? 'disabled' : '') + '>← 上一题</button><button class="answer-confirm" data-action="confirm-answer" ' + (selected == null ? 'disabled' : '') + '>' + (state.question === test.questions.length - 1 ? '生成我的报告' : '确认并继续 →') + '</button></div><p class="answer-note">凭第一感觉选择，没有标准答案 · 结果不作心理诊断</p></main>';
+    app.innerHTML = '<main class="page answer-page">' + topbar(true) + '<section class="answer-status">' + mascot + '<div class="answer-status-copy"><span>' + esc(test.name) + '</span><strong>' + (state.question + 1) + ' <i>/ ' + test.questions.length + '</i></strong></div><b>' + percent + '%</b><div class="answer-progress"><div style="width:' + percent + '%"></div></div></section><section class="question-stage"><span class="question-number">QUESTION ' + String(state.question + 1).padStart(2, '0') + '</span><h1>' + esc(question.text) + '</h1><p>选择更接近你真实反应的一项</p><div class="answer-options ' + (question.options.length === 2 ? 'dual' : 'many') + '">' + options + '</div></section><img class="answer-tree-watermark" src="' + esc(theme.art) + '" alt="" /><div class="answer-controls auto"><button class="answer-prev" data-action="previous-answer" ' + (state.question === 0 ? 'disabled' : '') + '>← 上一题</button><span>' + (state.question === test.questions.length - 1 ? '选择后生成报告' : '选择后自动进入下一题 →') + '</span></div><p class="answer-note">凭第一感觉选择，没有标准答案 · 结果不作心理诊断</p></main>';
   }
   function score(test, answers) {
     var scores = {}; test.scoring.dimensions.forEach(function (dim) { scores[dim] = 0; });
@@ -283,17 +285,22 @@
   function render() { if (state.view === 'answer') renderAnswer(); else if (state.view === 'result') renderResult(); else if (state.view === 'tree') renderTree(); else if (state.view === 'archive') renderArchive(); else renderHome(); }
   app.addEventListener('click', function (event) {
     var target = event.target.closest('button'); if (!target) return;
-    if (target.dataset.nav) { state.view = target.dataset.nav; render(); return; }
-    if (target.dataset.test) { state.activeTest = testById(target.dataset.test); state.question = 0; state.answers = []; state.view = 'answer'; render(); return; }
-    if (target.dataset.answer != null) { state.answers[state.question] = Number(target.dataset.answer); renderAnswer(); return; }
+    if (target.dataset.nav) { cancelAnswerAdvance(); state.view = target.dataset.nav; render(); return; }
+    if (target.dataset.test) { cancelAnswerAdvance(); state.activeTest = testById(target.dataset.test); state.question = 0; state.answers = []; state.view = 'answer'; render(); return; }
+    if (target.dataset.answer != null) {
+      state.answers[state.question] = Number(target.dataset.answer);
+      renderAnswer();
+      cancelAnswerAdvance();
+      answerAdvanceTimer = window.setTimeout(function () { answerAdvanceTimer = null; completeAnswer(); }, 180);
+      return;
+    }
     if (target.dataset.themeChoice) { state.draftTheme = target.dataset.themeChoice; renderResult(); return; }
     if (target.dataset.theme) { state.selectedTheme = target.dataset.theme; saveState(); renderTree(); return; }
     var action = target.dataset.action;
-    if (action === 'quick-start') { state.activeTest = catalog.find(function (item) { return !latestRecord(item.id); }) || catalog[0]; state.question = 0; state.answers = []; state.view = 'answer'; render(); }
-    else if (action === 'back') { state.view = state.view === 'answer' ? 'home' : state.view === 'result' ? 'home' : 'home'; render(); }
-    else if (action === 'home') { state.view = 'home'; render(); }
-    else if (action === 'previous-answer' && state.question > 0) { state.question -= 1; renderAnswer(); }
-    else if (action === 'confirm-answer') completeAnswer();
+    if (action === 'quick-start') { cancelAnswerAdvance(); state.activeTest = catalog.find(function (item) { return !latestRecord(item.id); }) || catalog[0]; state.question = 0; state.answers = []; state.view = 'answer'; render(); }
+    else if (action === 'back') { cancelAnswerAdvance(); state.view = state.view === 'answer' ? 'home' : state.view === 'result' ? 'home' : 'home'; render(); }
+    else if (action === 'home') { cancelAnswerAdvance(); state.view = 'home'; render(); }
+    else if (action === 'previous-answer' && state.question > 0) { cancelAnswerAdvance(); state.question -= 1; renderAnswer(); }
     else if (action === 'claim-theme') { state.starterClaimed = true; state.selectedTheme = state.draftTheme || 'adventurer'; saveState(); renderResult(); toast('第一棵树已经收藏'); }
     else if (action === 'save-card') saveCard();
     else if (action === 'post-note') postNote();

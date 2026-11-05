@@ -25,6 +25,22 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 
 手机 UI 辅助预览与三档宽度验收见 [docs/UI还原与验收.md](docs/UI还原与验收.md)。
 
+## 小红书小工具打包
+
+在仓库根目录打开 Windows PowerShell，执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\minitool\scripts\package.ps1
+```
+
+脚本会依次构建小工具、生成 `mini_tool.json`、检查 ZIP 路径格式并完成产物审计。成功后的上传包固定生成在：
+
+```text
+minitool\artifacts\personality-tree-minitool.zip
+```
+
+详细开发及平台验证说明见 [minitool/README.md](minitool/README.md)。
+
 编译检查与 Node 页面控制器测试不替代微信真机测试。验证流程：首次进入 → 选卡 → 完成六套测试中的一项 → 已保存报告 → 我的档案 → 再测一次 → 对照两次历史报告 → 查看树的成长记录。还应确认退出重开后数据保留，以及清理存储后的首次进入状态。
 
 ## 视觉与交互

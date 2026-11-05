@@ -15,6 +15,8 @@ Windows PowerShell 可一键构建、生成 manifest、使用正斜杠路径打�
 powershell -ExecutionPolicy Bypass -File .\minitool\scripts\package.ps1
 ```
 
+请在仓库根目录执行。成功后的上传包固定生成在 `minitool\artifacts\personality-tree-minitool.zip`；ZIP 根目录直接包含 `index.html`，资源路径统一使用正斜杠。
+
 `dist/` 是待打包目录，入口 `index.html` 位于根目录。代码没有 Worker、OffscreenCanvas、WebAssembly、Unity 或 Cocos，因此 `mini_tool.json` 标记为非高消耗场景。
 
 ## 校验
