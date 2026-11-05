@@ -27,9 +27,11 @@ fs.mkdirSync(path.join(output, 'assets'), { recursive: true });
 for (const name of ['index.html', 'style.css', 'app.js']) {
   fs.copyFileSync(path.join(source, name), path.join(output, name === 'index.html' ? name : `assets/${name}`));
 }
+fs.cpSync(path.join(source, 'assets'), path.join(output, 'assets'), { recursive: true });
 const catalog = testIds.map(id => publicTest(readDefaultExport(path.join(root, `data/tests/${id}.js`))));
 const themes = require(path.join(root, 'data/themes.js')).THEMES.map(theme => ({
   id: theme.id, name: theme.name, quote: theme.quote, description: theme.description,
+  art: `./assets/themes/${theme.id}.webp`,
   color: theme.color, pale: theme.pale, accent: theme.accent, tags: theme.tags,
   starter: !!theme.starter, unlockTest: theme.unlockTest || '',
   requiredExplorations: theme.requiredExplorations || 0,
