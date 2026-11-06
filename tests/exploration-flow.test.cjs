@@ -107,6 +107,29 @@ test('hall preserves invalid local archive and renders recoverable state', () =>
   const personal = page('pages/user-center'); personal.onShow();
   assert.ok(personal.data.error);
 });
+test('cloud retry immediately shows progress and always returns visible feedback', async () => {
+  const file = path.join(root, 'pages/user-center/index.js');
+  const nativeRequire = createRequire(file);
+  let resolveSync, definition;
+  const pending = new Promise(resolve => { resolveSync = resolve; });
+  const cloudStatus = { state: 'pending', message: '云同步服务尚未部署，本地记录已安全保留' };
+  vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
+    Page: object => { definition = object; }, wx: global.wx, getApp: global.getApp, console,
+    require: name => name.endsWith('/cloud-sync.js') ? {
+      getStatus: () => cloudStatus, syncArchive: () => pending
+    } : name.endsWith('/privacy.js') ? { isCloudBackupEnabled: () => true } : nativeRequire(name)
+  }, { filename: file });
+  definition.data = structuredClone(definition.data);
+  definition.setData = changes => Object.assign(definition.data, changes);
+  definition._hidden = false;
+  const retry = definition.retryCloudSync();
+  assert.equal(definition.data.cloudRetrying, true);
+  assert.equal(definition.data.cloudState, 'syncing');
+  resolveSync(cloudStatus);
+  await retry;
+  assert.equal(definition.data.cloudRetrying, false);
+  assert.match(notifications.at(-1).title, /尚未部署/);
+});
 test('all registered pages, components and packaged assets exist within main-package budget', () => {
   const config = JSON.parse(fs.readFileSync(path.join(root, 'app.json')));
   assert.deepEqual(config.tabBar.list.map(item => item.pagePath), [

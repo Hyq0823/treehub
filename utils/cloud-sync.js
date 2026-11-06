@@ -147,9 +147,12 @@ async function runSync() {
     });
   } catch (error) {
     if (!stillAllowed()) return getStatus();
+    const rawMessage = error && error.message || '同步失败';
+    const missingFunction = /-501000|function.*not.*found|functionname.*not.*found/i.test(rawMessage);
     return writeState({
-      state: 'pending', message: '云端暂未连接，本地记录已安全保留',
-      lastError: error && error.message || '同步失败'
+      state: 'pending',
+      message: missingFunction ? '云同步服务尚未部署，本地记录已安全保留' : '云端暂未连接，本地记录已安全保留',
+      lastError: rawMessage
     });
   }
 }

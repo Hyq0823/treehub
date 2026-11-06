@@ -18,7 +18,8 @@ Page({
     loaded: false, error: '', tree: null, groups: [], stages: [], expandedTests: {},
     totalCount: 0, uniqueCount: 0, repeatCount: 0, catalogCount: catalog.length,
     coveragePercent: 0, evidence: [],
-    cloudState: 'syncing', cloudTitle: '正在准备云备份', cloudDetail: '云备份默认开启，原始逐题答案仍只保存在本机。'
+    cloudState: 'syncing', cloudTitle: '正在准备云备份', cloudDetail: '云备份默认开启，原始逐题答案仍只保存在本机。',
+    cloudRetrying: false
   },
   onShow() {
     this._hidden = false;
@@ -55,18 +56,35 @@ Page({
     if (!privacy.isCloudBackupEnabled()) {
       const status = cloudSync.getStatus();
       this.applyCloudStatus(status.state === 'delete_pending' ? status : Object.assign({}, status, { state: 'local', message: '云备份未开启，你可以在隐私与数据管理中重新开启。' }));
-      return;
+      return Promise.resolve(status);
     }
     this.applyCloudStatus(Object.assign({}, cloudSync.getStatus(), { state: 'syncing', message: '正在合并本地与云端档案…' }));
-    cloudSync.syncArchive().then(status => {
+    return cloudSync.syncArchive().then(status => {
       if (request !== this._cloudRequest) return;
       this.applyCloudStatus(status);
       if (status.state === 'synced') this.loadArchive();
+      return status;
     }).catch(() => {
-      if (request === this._cloudRequest) this.applyCloudStatus(cloudSync.getStatus());
+      const status = cloudSync.getStatus();
+      if (request === this._cloudRequest) this.applyCloudStatus(status);
+      return status;
     });
   },
-  retryCloudSync() { this.refreshCloud(); },
+  async retryCloudSync() {
+    if (this.data.cloudRetrying) return;
+    this.setData({ cloudRetrying: true });
+    try {
+      const status = await this.refreshCloud();
+      if (this._hidden) return;
+      if (status && status.state === 'synced') wx.showToast({ title: '云端档案已同步', icon: 'success' });
+      else {
+        const notDeployed = status && /尚未部署/.test(status.message || '');
+        wx.showToast({ title: notDeployed ? '云同步服务尚未部署' : '仍未连接，稍后再试', icon: 'none' });
+      }
+    } finally {
+      if (!this._hidden) this.setData({ cloudRetrying: false });
+    }
+  },
   loadArchive() {
     try {
       const saved = archive.getArchive();

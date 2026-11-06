@@ -14,7 +14,7 @@
       <view wx:if="{{expandedTests[group.id]}}" class="record-history"><view wx:for="{{group.history}}" wx:key="id" wx:for-item="record" class="history-row" data-id="{{group.id}}" data-record-id="{{record.id}}" bindtap="openRecord" role="button"><view class="history-info"><view class="history-title">{{record.title}} <text wx:if="{{record.premiumUnlocked}}" class="premium-history-badge">深度版</text></view><view class="record-date">{{record.date}}</view></view><text class="record-arrow">→</text></view></view>
     </view>
     <button wx:if="{{groups.length}}" class="explore-more" bindtap="explore">去发现更多测试 →</button>
-    <view class="cloud-note cloud-{{cloudState}}"><view class="cloud-note-heading"><view><view class="cloud-note-title">{{cloudTitle}}</view><view class="cloud-note-detail">{{cloudDetail}}</view></view><button wx:if="{{cloudState === 'pending'}}" class="cloud-retry" bindtap="retryCloudSync">重试</button></view><view class="cloud-management" bindtap="openPrivacy">隐私指引与云备份设置 <text>→</text></view></view>
+    <view class="cloud-note cloud-{{cloudState}}"><view class="cloud-note-heading"><view><view class="cloud-note-title">{{cloudTitle}}</view><view class="cloud-note-detail">{{cloudDetail}}</view></view><button class="cloud-retry {{cloudState === 'pending' || cloudRetrying ? '' : 'cloud-retry-hidden'}}" bindtap="retryCloudSync" loading="{{cloudRetrying}}" disabled="{{cloudRetrying}}">{{cloudRetrying ? '重试中' : '重试'}}</button></view><view class="cloud-management" bindtap="openPrivacy">隐私指引与云备份设置 <text>→</text></view></view>
     <view class="archive-footnote"><view>档案默认私密，分享内容由你主动选择。</view><view>测评用于自我探索，不作心理诊断。</view></view>
   </block>
 </view>

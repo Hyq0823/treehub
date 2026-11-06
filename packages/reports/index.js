@@ -291,6 +291,13 @@ Page({
         adError: '广告暂时无法播放，请稍后再试。'
       });
       wx.showToast({ title: '广告暂时无法播放', icon: 'none' });
+    } finally {
+      // Leaving the page can retire an ad while show()/load() is unresolved.
+      // Destroy only after that native operation settles.
+      if (attempt.retiredAd) {
+        this.scheduleAdDestroy(attempt.retiredAd);
+        attempt.retiredAd = null;
+      }
     }
   },
   completePremiumUnlock(recordId) {
@@ -326,7 +333,18 @@ Page({
     const page = event.currentTarget.dataset.page;
     if (['portrait', 'insights', 'actions'].includes(page)) this.setData({ premiumPage: page });
   },
+  scheduleAdDestroy(videoAd) {
+    if (!videoAd || !videoAd.destroy) return;
+    this._scheduledDestroyAds = this._scheduledDestroyAds || new WeakSet();
+    if (this._scheduledDestroyAds.has(videoAd)) return;
+    this._scheduledDestroyAds.add(videoAd);
+    setTimeout(() => {
+      try { videoAd.destroy(); }
+      catch (error) { /* The native instance may already have been reclaimed. */ }
+    }, 350);
+  },
   retireRewardedVideo() {
+    const attempt = this._adAttempt;
     this._adAttempt = null;
     this._adGeneration = (this._adGeneration || 0) + 1;
     const videoAd = this._videoAd;
@@ -335,7 +353,8 @@ Page({
     if (videoAd.offLoad && this._onAdLoad) videoAd.offLoad(this._onAdLoad);
     if (videoAd.offError && this._onAdError) videoAd.offError(this._onAdError);
     if (videoAd.offClose && this._onAdClose) videoAd.offClose(this._onAdClose);
-    if (videoAd.destroy) videoAd.destroy();
+    if (attempt && (attempt.phase === 'showing' || attempt.phase === 'loading')) attempt.retiredAd = videoAd;
+    else this.scheduleAdDestroy(videoAd);
   },
   onUnload() {
     this._disposed = true;

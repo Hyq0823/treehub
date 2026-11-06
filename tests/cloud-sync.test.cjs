@@ -148,6 +148,15 @@ test('a cloud failure leaves the local archive intact and marks synchronization 
   assert.deepEqual(f.archive.getArchive(), before);
 });
 
+test('a missing deployed cloud function is reported as an actionable pending state', async () => {
+  const f = fixture(); f.enable();
+  f.handler = async () => { throw new Error('-501000 FunctionName parameter could not be found'); };
+  const status = await f.sync.syncArchive();
+  assert.equal(status.state, 'pending');
+  assert.match(status.message, /尚未部署/);
+  assert.match(status.lastError, /-501000/);
+});
+
 test('revocation during an in-flight upload prevents pull and merge, and deletion drains that request first', async () => {
   const f = fixture(); f.enable();
   let resolvePush, startedPush;

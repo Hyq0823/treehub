@@ -16,7 +16,7 @@ let memory, writeFailure, calls;
 beforeEach(() => {
   memory = new Map();
   writeFailure = '';
-  calls = { createAd: 0, data: [], toast: [], modal: [], errors: [] };
+  calls = { createAd: 0, data: [], toast: [], modal: [], errors: [], destroyTimers: [] };
   delete require.cache[helperPath];
   global.wx = {
     getStorageSync: key => memory.has(key) ? structuredClone(memory.get(key)) : '',
@@ -80,6 +80,7 @@ function openPage(saved, ad = makeAd()) {
   vm.runInNewContext(fs.readFileSync(pagePath, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx,
     console: { log() {}, error: (...args) => calls.errors.push(args) },
+    setTimeout: callback => { calls.destroyTimers.push(callback); return calls.destroyTimers.length; },
     require: id => id.endsWith('/track.js') ? { report() {}, EVENTS: {} } : nativeRequire(id)
   }, { filename: pagePath });
   page.data = structuredClone(page.data);
@@ -94,6 +95,7 @@ function openPage(saved, ad = makeAd()) {
 
 async function flush() {
   await new Promise(resolve => setImmediate(resolve));
+  while (calls.destroyTimers.length) calls.destroyTimers.shift()();
 }
 
 async function finishVideo(page, ad) {
@@ -266,6 +268,8 @@ test('an error after video display releases the button and old callbacks cannot 
   await page.showPremiumAd();
   ad.emit('error', { errMsg: 'display interrupted' });
   assert.equal(page.data.adWatching, false);
+  assert.equal(ad.stats.destroy, 0, 'native ad is not destroyed inside its own error callback');
+  await flush();
   assert.equal(ad.stats.destroy, 1);
   const nextAd = makeAd();
   wx.createRewardedVideoAd = () => nextAd;
