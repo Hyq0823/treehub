@@ -2,7 +2,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const issues = [];
+const { validateRuntimeDependencies } = require('./runtime-dependencies.cjs');
+const issues = validateRuntimeDependencies(root);
 const assets = require('../config/theme-assets.js');
 for (const [id, fileId] of Object.entries(assets.files)) {
   if (typeof fileId !== 'string' || !fileId.startsWith(`cloud://${assets.environmentId}.`)) issues.push(`素材 ${id} 尚未配置当前环境的云文件 ID`);

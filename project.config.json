@@ -4,6 +4,38 @@
   "packOptions": {
     "ignore": [
       {
+        "value": ".git",
+        "type": "folder"
+      },
+      {
+        "value": ".agents",
+        "type": "folder"
+      },
+      {
+        "value": ".codex",
+        "type": "folder"
+      },
+      {
+        "value": ".idea",
+        "type": "folder"
+      },
+      {
+        "value": ".vscode",
+        "type": "folder"
+      },
+      {
+        "value": "artifacts",
+        "type": "folder"
+      },
+      {
+        "value": "minitool",
+        "type": "folder"
+      },
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
         "value": ".eslintrc.js",
         "type": "file"
       },
@@ -46,7 +78,8 @@
     "compileHotReLoad": false,
     "lazyloadPlaceholderEnable": false,
     "useMultiFrameRuntime": true,
-    "useApiHook": true,
+    "useApiHook": false,
+    "ignoreDevUnusedFiles": true,
     "useApiHostProcess": true,
     "babelSetting": {
       "ignore": [],
