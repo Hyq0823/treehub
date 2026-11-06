@@ -152,10 +152,10 @@ Page({
     if (this.data.busy || this.data.saving) return;
     const id = event.currentTarget.dataset.id;
     const theme = this.data.gallery.find(item => item.id === id);
-    if (!theme) return;
+    if (!theme || !theme.unlocked) return;
     this._previewThemeId = '';
     this.setData({ visitorPreview: false, saveError: '', adError: '', pickerOpen: false });
-    this.loadCollection(id);
+    this.loadCollection();
   },
   openThemePicker() {
     if (!this.data.loaded || this.data.busy || this.data.saving) return;
@@ -166,41 +166,14 @@ Page({
   handleThemeAction() {
     const current = this.data.current;
     if (!current || this.data.busy || this.data.saving) return;
-    if (current.unlocked && current.selected && !themes.getPendingGrant(current.id)) {
-      return this.openThemePicker();
-    }
-    return this.useOrUnlockTheme();
+    if (themes.getPendingGrant(current.id)) return this.retryThemeSave();
+    return this.explore();
   },
-  async useOrUnlockTheme() {
+  useOrUnlockTheme() {
     const theme = this.data.current;
     if (!theme || this.data.busy || this.data.saving) return;
     if (themes.getPendingGrant(theme.id)) { this.retryThemeSave(); return; }
-    try {
-      if (theme.unlocked) {
-        themes.selectTheme(theme.id);
-        this._previewThemeId = '';
-        this.loadCollection(theme.id);
-        wx.showToast({ title: '伙伴已经住进你的树', icon: 'success' });
-        return;
-      }
-      if (!theme.discovered) {
-        wx.showModal({ title: '极光还在生长', content: `完成 5 类不同测试后，就能发现隐藏主题。你已探索 ${this.data.state.uniqueCount} 类。`, confirmText: '继续探索', success: result => { if (result.confirm) this.explore(); } });
-        return;
-      }
-      if (theme.starter && !this.data.state.starterClaimed) {
-        if (!this.data.state.uniqueCount) { this.explore(); return; }
-        themes.claimStarter(theme.id);
-        this._previewThemeId = '';
-        this.loadCollection(theme.id);
-        wx.showToast({ title: '树与伙伴已领取', icon: 'success' });
-        return;
-      }
-      wx.showModal({
-        title: '这个小世界还在生长',
-        content: theme.unlockHint || '继续探索新的测试，树会自然长出这套主题。',
-        confirmText: '去探索', success: result => { if (result.confirm) this.explore(); }
-      });
-    } catch (error) { wx.showToast({ title: error.message || '暂时无法保存主题', icon: 'none' }); }
+    this.explore();
   },
   retryThemeSave(options = {}) {
     if (this._disposed || this.data.saving) return;

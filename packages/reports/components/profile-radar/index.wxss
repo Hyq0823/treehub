@@ -3,8 +3,8 @@
 }
 .radar-shell {
   position: relative;
-  width: 360rpx;
-  height: 360rpx;
+  width: 430rpx;
+  height: 430rpx;
   margin: 0 auto;
 }
 .radar-shell::before {
@@ -17,16 +17,16 @@
 }
 .radar-canvas {
   position: relative;
-  width: 360rpx;
-  height: 360rpx;
+  width: 430rpx;
+  height: 430rpx;
 }
 .radar-center {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 72rpx;
-  height: 72rpx;
-  margin: -36rpx 0 0 -36rpx;
+  width: 28rpx;
+  height: 28rpx;
+  margin: -14rpx 0 0 -14rpx;
   border-radius: 50%;
   background: rgba(55, 112, 223, 0.92);
   color: #ffffff;
@@ -34,8 +34,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 17rpx;
+  font-size: 0;
   line-height: 1.25;
   letter-spacing: 1rpx;
-  box-shadow: 0 6rpx 18rpx rgba(58, 118, 217, 0.18);
+  box-shadow: 0 0 0 10rpx rgba(93, 145, 232, .11), 0 6rpx 18rpx rgba(58, 118, 217, 0.18);
 }
+.radar-center text { display: none; }

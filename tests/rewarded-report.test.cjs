@@ -102,21 +102,21 @@ async function finishVideo(page, ad) {
   await flush();
 }
 
-test('the first report recommends one of three complete themes and claims it without a theme ad', () => {
+test('the first report generates one recommended theme and claims it without a theme ad', () => {
   const saved = record();
   const { page } = openPage(saved);
   assert.equal(page.data.starterReveal, true);
-  assert.equal(page.data.starterThemes.length, 3);
+  assert.equal(page.data.starterThemes.length, 1);
   assert.ok(['adventurer', 'romantic', 'observer'].includes(page.data.starterThemeId));
   assert.equal(page.data.starterCurrent.recommended, true);
-  page.selectStarterTheme({ currentTarget: { dataset: { id: 'romantic' } } });
+  const generatedThemeId = page.data.starterThemeId;
   page.claimStarterTheme();
   assert.equal(page.data.starterClaimedNow, true);
   const state = require('../utils/themes.js').getState([saved]);
-  assert.equal(state.selectedId, 'romantic');
-  assert.equal(state.unlocked.find(item => item.themeId === 'romantic').source, 'starter');
+  assert.equal(state.selectedId, generatedThemeId);
+  assert.equal(state.unlocked.find(item => item.themeId === generatedThemeId).source, 'starter');
   const shared = page.onShareAppMessage({ target: { dataset: { kind: 'starter' } } });
-  assert.equal(shared.path, '/pages/my-tree/index?theme=romantic');
+  assert.equal(shared.path, `/pages/my-tree/index?theme=${generatedThemeId}`);
   assert.match(shared.title, /第一棵人格树/);
   assert.equal(calls.createAd, 1, 'the only ad instance belongs to the optional deep report');
 });

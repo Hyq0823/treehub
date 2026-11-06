@@ -34,7 +34,7 @@ Component({
         context.clearRect(0, 0, field.width, field.height);
         const centerX = field.width / 2;
         const centerY = field.height / 2;
-        const radius = Math.min(field.width, field.height) * 0.39;
+        const radius = Math.min(field.width, field.height) * 0.43;
         const angle = index => -Math.PI / 2 + index * Math.PI * 2 / dimensions.length;
         const point = (index, scale) => ({
           x: centerX + Math.cos(angle(index)) * radius * scale,
@@ -60,7 +60,12 @@ Component({
           context.lineWidth = 1;
           context.stroke();
         });
-        const values = dimensions.map(item => Math.max(0.16, Math.min(1, Math.abs(Number(item.percent) - 50) / 50)));
+        // Keep balanced answers visible instead of collapsing the whole portrait
+        // into the center. The chart still expands with preference clarity.
+        const values = dimensions.map(item => {
+          const clarity = Math.min(1, Math.abs(Number(item.percent) - 50) / 50);
+          return 0.46 + clarity * 0.54;
+        });
         context.beginPath();
         values.forEach((value, index) => {
           const current = point(index, value);

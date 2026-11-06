@@ -1,4 +1,4 @@
-// 主题是可自由切换的视觉意象，不表示人格优劣或心理诊断。
+// 主题由探索档案自动长出，不表示人格优劣或心理诊断。
 const THEMES = [
   { id: 'adventurer', name: '柔软的冒险家', english: 'Soft Adventurer', quote: '我带着柔软，去见更大的世界。', description: '把好奇装进背包，让云朵陪你慢慢出发。', color: '#318aff', pale: '#e9f5ff', accent: '#ffd56b', tags: ['好奇', '真诚', '自由'], starter: true, companions: [{ name: '云朵小狗', emoji: '🐶', line: '带上柔软，也带上勇气。' }, { name: '地图精灵', emoji: '☁️', line: '绕一点路，也会遇到新的风景。' }] },
   { id: 'moon', name: '月光守护者', english: 'Moonlight Keeper', quote: '我的温柔，也有照亮自己的力量。', description: '月兔浇着树，星鲸把你的愿望轻轻托起。', color: '#6984eb', pale: '#edf0ff', accent: '#e2d9ff', unlockTest: 'shadow', unlockHint: '完成情绪应对探索后长出', companions: [{ name: '月兔', emoji: '🐰', line: '今天，也记得照顾自己的感受。' }, { name: '漂浮星鲸', emoji: '🐳', line: '你的光，有自己的时区。' }], tags: ['细腻', '陪伴', '内在坚定'] },

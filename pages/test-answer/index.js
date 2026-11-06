@@ -6,7 +6,7 @@ const { getContext } = require('../../utils/life-context.js');
 Page({
   data: {
     test: {}, questions: [], currentQuestionIndex: 0, selectedOption: -1,
-    answers: [], submitted: false, submitting: false, error: '',
+    answers: [], submitted: false, submitting: false, revealingResult: false, error: '',
     progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false,
     themeHeroUrl: ''
   },
@@ -33,6 +33,7 @@ Page({
   onUnload() {
     this._unloaded = true;
     this.clearAdvance();
+    this.clearReveal();
     if (!this.data.submitted && this.data.test.id) {
       report(EVENTS.TEST_ABORT, {
         testId: this.data.test.id, reachedIndex: this.data.currentQuestionIndex,
@@ -43,6 +44,10 @@ Page({
   clearAdvance() {
     if (this._advanceTimer) clearTimeout(this._advanceTimer);
     this._advanceTimer = null;
+  },
+  clearReveal() {
+    if (this._revealTimer) clearTimeout(this._revealTimer);
+    this._revealTimer = null;
   },
   loadTestData(testId) {
     try {
@@ -125,7 +130,7 @@ Page({
       wx.showToast({ title: '还有题目未完成', icon: 'none' });
       return;
     }
-    this.setData({ submitting: true });
+    this.setData({ submitting: true, revealingResult: true });
     try {
       const result = scoreTest(this._test, this.data.questions, this.data.answers);
       const saved = archive.saveResult(Object.assign({
@@ -134,17 +139,21 @@ Page({
         // Store canonical question IDs because SBTI question order is shuffled.
         answers: this.data.questions.map((question, index) => ({ questionId: question.id, optionIndex: this.data.answers[index] }))
       }, result));
-      this.setData({ submitted: true, submitting: false });
+      this.setData({ submitted: true });
       report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
-      wx.redirectTo({
-        url: `/packages/reports/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
-        fail: () => wx.showModal({
-          title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
-          showCancel: false, success: () => wx.switchTab({ url: '/pages/user-center/index' })
-        })
-      });
+      this._revealTimer = setTimeout(() => {
+        this._revealTimer = null;
+        if (this._unloaded) return;
+        wx.redirectTo({
+          url: `/packages/reports/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
+          fail: () => wx.showModal({
+            title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
+            showCancel: false, success: () => wx.switchTab({ url: '/pages/user-center/index' })
+          })
+        });
+      }, 1100);
     } catch (error) {
-      this.setData({ submitting: false });
+      this.setData({ submitting: false, revealingResult: false });
       wx.showModal({ title: '暂时无法保存', content: error.message || '请检查设备存储空间后重试，本次答案仍保留在页面中。', showCancel: false });
     }
   },

@@ -123,19 +123,18 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   return { page, calls, timers };
 }
 
-test('test detail requires one bounded life context before starting', () => {
+test('test detail defaults to an ordinary record and still allows changing the life context', () => {
   const { page, calls } = loadPage('pages/test-detail/index.js');
   page.onLoad({ id: 'ie' });
   page.startTest();
-  assert.equal(calls.navigate.length, 0);
-  assert.match(calls.toast[0].title, /选择/);
+  assert.equal(calls.navigate[0].url, '/pages/test-answer/index?id=ie&context=ordinary');
   page.selectContext({ currentTarget: { dataset: { id: 'overthinking' } } });
   page.startTest();
-  assert.equal(calls.navigate[0].url, '/pages/test-answer/index?id=ie&context=overthinking');
+  assert.equal(calls.navigate[1].url, '/pages/test-answer/index?id=ie&context=overthinking');
 });
 
-test('answer page saves once, persists version metadata, redirects to exact record', () => {
-  const { page, calls } = loadPage('pages/test-answer/index.js');
+test('answer page saves once, reveals the result, then redirects to the exact record', () => {
+  const { page, calls, timers } = loadPage('pages/test-answer/index.js');
   page.onLoad({ id: 'ie', context: 'work' });
   page.data.answers = page.data.questions.map(() => 0);
   page.submitTest(); page.submitTest();
@@ -143,8 +142,11 @@ test('answer page saves once, persists version metadata, redirects to exact reco
   assert.equal(calls.saved[0].scoringVersion, '2');
   assert.equal(calls.saved[0].lifeContext, 'work');
   assert.equal(calls.saved[0].answers[0].questionId, 1);
-  assert.equal(calls.redirect[0].url, '/packages/reports/index?id=ie&recordId=record-1');
   assert.equal(page.data.submitted, true);
+  assert.equal(page.data.revealingResult, true);
+  assert.equal(timers.size, 1);
+  [...timers.values()][0]();
+  assert.equal(calls.redirect[0].url, '/packages/reports/index?id=ie&recordId=record-1');
 });
 
 test('same-version retest comparison describes movement without ranking it as improvement', () => {

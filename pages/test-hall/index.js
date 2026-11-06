@@ -12,13 +12,32 @@ const catalog = catalogModule.default || catalogModule;
 const CARD_THEMES = { mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
 const DISPLAY_ORDER = ['mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
+function buildGreeting(uniqueCount) {
+  const hour = new Date().getHours();
+  const day = Math.floor(Date.now() / 86400000);
+  if (!uniqueCount) return { lead: '你好，', title: '从一份好奇开始认识自己', note: '第一片探索叶，正在等你点亮。' };
+  const moments = hour < 11 ? [
+    ['早上好，', '今天想从哪里认识自己？', '带着清醒，也带着一点好奇出发。'],
+    ['新的一天，', '先听听此刻真实的自己', '每次回答，都会留下新的年轮。']
+  ] : hour < 18 ? [
+    ['下午好，', '给自己两分钟慢下来', '看看今天的你，和上次有什么不同。'],
+    ['见到你啦，', '来收集今天这一面的自己', '新的探索，也许会长出新的伙伴。']
+  ] : [
+    ['晚上好，', '把今天的感受留给自己', '慢慢回答，也是在认真照顾自己。'],
+    ['欢迎回来，', '看看此刻的你变了吗？', '今晚的答案，会成为新的年轮。']
+  ];
+  const [lead, title, note] = moments[(day + uniqueCount) % moments.length];
+  return { lead, title, note };
+}
+
 Page({
   data: {
     categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false,
     tree: null, leaves: [], recommendation: null, error: '',
     themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
     themeColor: '#318aff', themePale: '#e9f5ff',
-    artState: 'loading', rewardTitle: '', shareImagePath: DEFAULT_SHARE_IMAGE
+    artState: 'loading', rewardTitle: '', shareImagePath: DEFAULT_SHARE_IMAGE,
+    greetingLead: '你好，', greetingTitle: '从一份好奇开始认识自己', greetingNote: '第一片探索叶，正在等你点亮。'
   },
   onLoad() { report(EVENTS.HALL_VIEW); },
   onShow() {
@@ -56,11 +75,13 @@ Page({
         });
       });
       const recommendation = cards.find(t => !t.collected) || null;
+      const greeting = buildGreeting(tree.uniqueCount);
       this.setData({
         tree, cards, recommendation, error: '', themeId,
         themeName: theme && theme.name || '我的成长小世界',
         themeColor: theme && theme.color || '#318aff', themePale: theme && theme.pale || '#e9f5ff',
         rewardTitle: !tree.uniqueCount ? '首测完成，领取树与伙伴' : tree.uniqueCount < 5 ? '再探索 1 项，让树长出新枝' : '你的极光，已经可以被发现',
+        greetingLead: greeting.lead, greetingTitle: greeting.title, greetingNote: greeting.note,
         leaves: cards.slice(0, 8).map((card, index) => ({ id: card.id, collected: index < tree.uniqueCount })),
         moreLeafCount: Math.max(0, cards.length - 8),
         filteredCards: this.data.category === 'all' ? cards : cards.filter(c => c.category === this.data.category)

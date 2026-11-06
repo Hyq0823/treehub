@@ -6,6 +6,15 @@ const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
 const premiumAccess = require('./premium-access.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 
+const RESULT_VISUALS = {
+  mbti: { symbol: '✦', title: '四维偏好星图', note: '能量 · 感知 · 决策 · 节奏' },
+  bigfive: { symbol: '❋', title: '五维特质花冠', note: '开放 · 尽责 · 外向 · 宜人 · 情绪感受' },
+  enneagram: { symbol: '✺', title: '内在动力罗盘', note: '看见此刻最先推动你的内在方向' },
+  ie: { symbol: '◐', title: '社交能量光谱', note: '连接世界，也照顾自己的充电节奏' },
+  sbti: { symbol: '◈', title: '趣味人格徽章', note: '把有趣的这一面，收藏进今天' },
+  shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' }
+};
+
 function formatTime(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return '';
@@ -39,7 +48,7 @@ function decorateDeepReport(report) {
 Page({
   data: {
     test: {}, result: {}, record: null, savedAt: '', state: 'loading',
-    stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦',
+    stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦', resultVisual: RESULT_VISUALS.mbti,
     basicDimensions: [], deepReport: null, premiumAvailable: false,
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
@@ -62,7 +71,8 @@ Page({
       this._test = test;
       this.setData({
         test: { id: test.id, name: test.name, icon: test.icon },
-        playful: ['sbti', 'shadow'].includes(test.id), resultIcon: test.icon || '✦'
+        playful: ['sbti', 'shadow'].includes(test.id), resultIcon: test.icon || '✦',
+        resultVisual: RESULT_VISUALS[test.id] || { symbol: test.icon || '✦', title: '本次人格画像', note: '收藏这一次认真回答的自己' }
       });
       // A record-specific URL must never fall through to a different historical result.
       const record = options.recordId ? archive.getRecord(options.recordId) : archive.getLatest(test.id);
@@ -113,7 +123,7 @@ Page({
       const themes = require('../../utils/themes.js');
       const state = themes.getState();
       if (state.starterClaimed || state.uniqueCount < 1) return;
-      const starterThemes = state.catalog.filter(item => item.starter).map(item => ({
+      const starterThemes = state.catalog.filter(item => item.starter && item.id === state.recommendation).map(item => ({
         id: item.id, name: item.name, quote: item.quote, description: item.description,
         color: item.color, pale: item.pale, tags: item.tags, companions: item.companions,
         recommended: item.id === state.recommendation
@@ -150,15 +160,6 @@ Page({
     } catch (error) {
       // The bundled 5:4 cover remains available if Canvas is not ready.
     }
-  },
-  selectStarterTheme(event) {
-    if (this.data.starterBusy || this.data.starterClaimedNow) return;
-    const id = event.currentTarget.dataset.id;
-    if (!this.data.starterThemes.some(item => item.id === id)) return;
-    const starterCurrent = this.data.starterThemes.find(item => item.id === id);
-    const starterImage = this.data.starterImages[id] || '';
-    this.setData({ starterCurrent, starterThemeId: id, starterImage, starterShareImage: DEFAULT_SHARE_IMAGE, starterError: '' });
-    if (starterImage) this.prepareStarterShare(starterCurrent, starterImage);
   },
   claimStarterTheme() {
     if (this.data.starterBusy || this.data.starterClaimedNow || !this.data.starterThemeId) return;

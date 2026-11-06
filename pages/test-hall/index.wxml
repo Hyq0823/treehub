@@ -4,7 +4,7 @@
     <view class="welcome-scene">
       <view class="sky-orb sky-orb-one"></view><view class="sky-orb sky-orb-two"></view><view class="scene-mist"></view>
       <view class="brand"><view class="brand-cloud"><view></view></view><view><view class="hall-title">人格测试树</view><view class="hall-subtitle">收集每一种，独特的你</view></view></view>
-      <view class="welcome-copy"><view class="welcome-title"><view>你好，</view><view>今天也在认真生活呀</view></view><view class="welcome-note"><view>探索不同的测试，</view><view>遇见更多面的自己。</view></view></view>
+      <view class="welcome-copy"><view class="welcome-title"><view>{{greetingLead}}</view><view>{{greetingTitle}}</view></view><view class="welcome-note"><view>{{greetingNote}}</view><view>遇见更多面的自己。</view></view></view>
       <view class="welcome-art"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit" data-theme="{{themeId}}" binderror="themeImageFailed"/><view wx:else class="art-unavailable"><view class="art-unavailable-ring"></view><view class="art-unavailable-title">{{artState === 'loading' ? '正在唤醒小世界' : '主题画面暂未载入'}}</view><button wx:if="{{artState !== 'loading'}}" bindtap="retryThemeImage">重新加载</button></view></view>
       <view class="scene-spark spark-one"></view><view class="scene-spark spark-two"></view><view class="scene-spark spark-three"></view>
       <view class="tree-shortcut" bindtap="openTree" hover-class="card-pressed" role="button" aria-label="打开我的树">

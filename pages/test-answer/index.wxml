@@ -18,7 +18,6 @@
     <view class="question-card motion-{{motionKey}}">
       <view class="question-topline"><view class="question-number">QUESTION {{currentQuestionIndex + 1}}</view><view class="signal"><text></text><text></text><text></text></view></view>
       <view class="question-content">{{question.text}}</view>
-      <view class="question-hint">选择更接近此刻真实反应的一项</view>
       <view class="options-list option-count-{{question.options.length}}">
         <view wx:for="{{question.options}}" wx:key="letter" class="option-item option-{{index}} {{selectedOption === index ? 'option-selected' : ''}}" bindtap="selectOption" data-index="{{index}}" hover-class="option-pressed">
           <view class="option-glow"></view>
@@ -34,5 +33,11 @@
       <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}" loading="{{submitting}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '确认并继续'}} <text wx:if="{{!submitting}}">→</text></button>
     </view>
     <view class="privacy-line"><text>●</text> 原始选项保留在本机，云备份由你选择</view>
+  </view>
+  <view wx:if="{{revealingResult}}" class="reveal-mask">
+    <view class="reveal-orbit"><view class="reveal-ring reveal-ring-one"></view><view class="reveal-ring reveal-ring-two"></view><view class="reveal-seed">✦</view></view>
+    <view class="reveal-title">正在收集你的答案</view>
+    <view class="reveal-copy">让这些选择，慢慢长成属于你的画像</view>
+    <view class="reveal-dots"><text></text><text></text><text></text></view>
   </view>
 </view>

@@ -6,7 +6,7 @@ const { OPTIONS: CONTEXT_OPTIONS, getContext } = require('../../utils/life-conte
 
 Page({
   data: {
-    test: {}, error: '', contextOptions: CONTEXT_OPTIONS, selectedContext: '', hasHistory: false
+    test: {}, error: '', contextOptions: CONTEXT_OPTIONS, selectedContext: 'ordinary', hasHistory: false
   },
   onLoad(options) {
     const testId = options && options.id;

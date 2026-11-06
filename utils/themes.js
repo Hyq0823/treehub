@@ -66,11 +66,18 @@ function getState(records) {
   const owned = new Set(state.unlocked.map(grant => grant.themeId));
   const earned = earnedThemeIds(source);
   let changed = false;
+  let newestEarned = '';
   earned.forEach(themeId => {
     if (owned.has(themeId)) return;
     state.unlocked.push({ themeId, unlockedAt: new Date().toISOString(), source: 'exploration' });
-    owned.add(themeId); changed = true;
+    owned.add(themeId); newestEarned = themeId; changed = true;
   });
+  if (newestEarned) {
+    state.selectedId = newestEarned;
+    // A first exploration that already grows a matching theme replaces the
+    // generic starter choice. The user receives one coherent reveal.
+    if (uniqueCount === 1) state.starterClaimed = true;
+  }
   if (changed) { write(state); schedule(); }
   return Object.assign(state, {
     uniqueCount, catalogCount, recommendation,

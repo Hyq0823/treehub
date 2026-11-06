@@ -21,19 +21,10 @@
         <view wx:for="{{starterCurrent.companions}}" wx:key="name"><text class="starter-companion-emoji">{{item.emoji}}</text><view><text class="starter-companion-name">{{item.name}}</text><text class="starter-companion-line">{{item.line}}</text></view></view>
       </view>
 
-      <view wx:if="{{!starterClaimedNow}}" class="starter-choice-title">也可以换一棵更心动的</view>
-      <scroll-view wx:if="{{!starterClaimedNow}}" scroll-x class="starter-choice-scroll">
-        <view class="starter-choice-row">
-          <view wx:for="{{starterThemes}}" wx:key="id" data-id="{{item.id}}" bindtap="selectStarterTheme" class="starter-choice {{starterThemeId === item.id ? 'starter-choice-active' : ''}}">
-            <image wx:if="{{starterImages[item.id]}}" src="{{starterImages[item.id]}}" mode="aspectFill" />
-            <view wx:else class="starter-choice-placeholder">{{item.companions[0].emoji}}</view>
-            <text>{{item.name}}</text><text wx:if="{{item.recommended}}" class="starter-choice-recommended">推荐</text>
-          </view>
-        </view>
-      </scroll-view>
+      <view wx:if="{{!starterClaimedNow}}" class="starter-choice-title">根据这次档案，为你长出的第一套主题</view>
 
       <view wx:if="{{starterError}}" class="starter-error">{{starterError}}</view>
-      <button wx:if="{{!starterClaimedNow}}" class="starter-claim-button" bindtap="claimStarterTheme" loading="{{starterBusy}}" disabled="{{starterBusy}}">{{starterBusy ? '正在收藏…' : '免费领取这棵树'}}</button>
+      <button wx:if="{{!starterClaimedNow}}" class="starter-claim-button" bindtap="claimStarterTheme" loading="{{starterBusy}}" disabled="{{starterBusy}}">{{starterBusy ? '正在写入档案…' : '收下这棵为我生成的树'}}</button>
       <block wx:else>
         <button open-type="share" data-kind="starter" class="starter-claim-button">分享我的第一棵树</button>
         <button class="starter-tree-button" bindtap="openStarterTree">去看我的树</button>
@@ -54,9 +45,12 @@
     <view class="result-header">
       <view class="result-header-glow"></view>
       <image wx:if="{{result.image}}" class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
-      <view wx:elif="{{themeHeroUrl}}" class="report-tree-scene"><image class="report-theme-hero" src="{{themeHeroUrl}}" mode="aspectFit" /><view class="report-theme-caption">我的树 · {{themeName}}</view></view>
-      <view wx:elif="{{record.treeSnapshot}}" class="report-tree-scene report-tree-fallback"><personality-tree tree="{{record.treeSnapshot}}" size="large" /></view>
-      <view wx:else class="result-icon">{{resultIcon}}</view>
+      <view wx:else class="result-visual result-visual-{{test.id}}">
+        <view class="visual-orbit visual-orbit-one"></view><view class="visual-orbit visual-orbit-two"></view>
+        <view class="visual-symbol">{{resultVisual.symbol}}</view>
+        <view class="visual-copy"><view>{{resultVisual.title}}</view><text>{{resultVisual.note}}</text></view>
+        <image wx:if="{{themeHeroUrl}}" class="visual-theme-thumb" src="{{themeHeroUrl}}" mode="aspectFit" />
+      </view>
       <view class="result-type">{{result.title}}</view>
       <view class="result-code" wx:if="{{result.type !== 'profile'}}">{{result.type}}</view>
       <view class="result-summary">{{result.summary}}</view>
@@ -133,7 +127,7 @@
           <view class="capture-label"><text>PERSONAL MAP</text><text>适合截图保存</text></view>
           <view class="portrait-heading"><view><view class="portrait-test">{{test.name}} · 本次画像</view><view class="portrait-title">{{result.title}}</view><view class="portrait-tagline">{{deepReport.tagline}}</view></view><view wx:if="{{themeHeroUrl || record.treeSnapshot}}" class="portrait-tree"><image wx:if="{{themeHeroUrl}}" class="portrait-theme-image" src="{{themeHeroUrl}}" mode="aspectFit" /><personality-tree wx:else tree="{{record.treeSnapshot}}" size="small" /></view></view>
           <view wx:if="{{themeHeroUrl}}" class="portrait-theme-label">我的树 · {{themeName}}<text>当前主题意象，图表对应本次结果</text></view>
-          <view class="chart-title"><text>倾向清晰度图</text><text>越靠外，表示本次偏好越清晰</text></view>
+          <view class="chart-title"><text>多维倾向图</text><text>形状越舒展，表示该维度的倾向越鲜明</text></view>
           <profile-radar wx:if="{{deepReport.dimensions.length >= 3}}" dimensions="{{deepReport.dimensions}}" />
           <view wx:else class="single-spectrum">
             <view class="single-spectrum-labels"><text>{{deepReport.dimensions[0].left}}</text><text>{{deepReport.dimensions[0].right}}</text></view>

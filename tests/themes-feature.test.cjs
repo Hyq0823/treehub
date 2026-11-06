@@ -58,6 +58,14 @@ test('new explorations grow matching themes without creating a rewarded video', 
   assert.equal(adCreates, 0);
 });
 
+test('the newest exploration-grown theme becomes active without a manual theme choice', () => {
+  const first = themes.getState(completed(['shadow']));
+  assert.equal(first.selectedId, 'moon');
+  assert.equal(first.starterClaimed, true);
+  const next = themes.getState(completed(['shadow', 'sbti']));
+  assert.equal(next.selectedId, 'dreamer');
+});
+
 test('a completed video is mandatory and scoped to the exact theme', () => {
   const records = completed(['ie']);
   assert.throws(() => themes.persistPendingGrant('moon', records), /完整观看/);
