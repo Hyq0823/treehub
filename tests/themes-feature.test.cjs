@@ -252,7 +252,11 @@ test('a locked my-tree theme routes back to exploration without creating an ad',
   page.data = structuredClone(page.data);
   page.setData = value => Object.assign(page.data, value);
   page.onLoad({}); page.onShow();
+  const selectedBeforePreview = themes.getState(records).selectedId;
   page.inspectTheme({ currentTarget: { dataset: { id: 'moon' } } });
+  assert.equal(page.data.current.id, 'moon', 'locked theme artwork can be browsed');
+  assert.equal(page.data.current.unlocked, false);
+  assert.equal(themes.getState(records).selectedId, selectedBeforePreview, 'browsing never changes the archive theme');
   await page.handleThemeAction();
   assert.equal(switched, '/pages/test-hall/index');
   assert.equal(adCreates, 0);

@@ -26,7 +26,11 @@ page { background:#e3f3ff; color:#18365e; }
 @keyframes sceneBreathe { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6rpx); } }
 .world-paused .hero-image { animation-play-state:paused; }
 /* Locked themes remain visible as exploration goals and cannot be selected. */
-.theme-tile.theme-locked { border-color:#dce4ef; background:#edf1f6; filter:grayscale(1); opacity:.64; }
+.theme-tile.theme-locked { border-color:#dce4ef; background:#edf1f6; filter:grayscale(.55); opacity:.72; }
 .theme-tile.theme-locked .tile-name,.theme-tile.theme-locked .tile-status { color:#8895a8; }
 .theme-tile.theme-locked .tile-missing { color:#98a5b5; background:linear-gradient(145deg,#e8edf3,#f5f7fa); border-radius:16rpx; }
+.theme-tile.theme-locked .tile-art { opacity:.82; }
+.tile-art-pending { opacity:0; }.tile-missing-hidden,.tile-lock-hidden,.tile-selected-hidden { display:none; }
+.tile-lock { position:absolute; z-index:3; right:10rpx; top:10rpx; min-width:34rpx; height:34rpx; padding:0 8rpx; border-radius:18rpx; color:#fff; background:#607086b8; font-size:18rpx; line-height:34rpx; box-sizing:border-box; }
+.theme-preview-banner { background:#eef5ffed; }
 @media (prefers-reduced-motion:reduce) { .hero-image { animation:none; }.theme-tile { transition:none; } }

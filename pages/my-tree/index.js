@@ -14,12 +14,28 @@ function truncate(context, text, width) {
   while (next.length > 1 && context.measureText(next).width > width) next = next.slice(0, -1);
   return next === text ? next : next.slice(0, -1) + '…';
 }
+function decorateTheme(theme, selectedId, starterClaimed, thumbnailUrl) {
+  const hidden = theme.hidden && !theme.discovered;
+  const unlocked = !!theme.unlocked;
+  let statusLabel = '继续探索长出';
+  if (unlocked) statusLabel = theme.id === selectedId ? '档案当前主题' : '已由探索解锁';
+  else if (hidden) statusLabel = '探索五类后发现';
+  else if (theme.starter && !starterClaimed) statusLabel = '首测自动生成';
+  return Object.assign({}, theme, {
+    thumbnailUrl: theme.discovered ? thumbnailUrl || '' : '',
+    displayName: hidden ? '隐藏的极光' : theme.name,
+    statusLabel,
+    tileMark: hidden ? '藏' : unlocked ? '待' : '锁',
+    locked: !unlocked,
+    canPreview: !!theme.discovered
+  });
+}
 
 Page({
   data: {
     loaded: false, error: '', state: null, current: null, gallery: [], tab: 'themes',
     heroUrl: '', imageLoading: false, assetError: false, busy: false, adError: '',
-    pendingSave: false, saving: false, saveError: '', visitorPreview: false,
+    pendingSave: false, saving: false, saveError: '', visitorPreview: false, themePreview: false,
     history: [], leaves: [], nextReward: '', posterBusy: false, companionSprite: '',
     pickerOpen: false, worldPaused: false, shareImagePath: DEFAULT_SHARE_IMAGE
   },
@@ -63,9 +79,11 @@ Page({
         };
       });
       const count = state.uniqueCount;
+      const localPreview = typeof previewId === 'string' && !!previewId && previewId !== state.selectedId;
       this.setData({
-        loaded: true, error: '', state, current, gallery: state.catalog.map(theme => Object.assign({}, theme, { thumbnailUrl: theme.discovered && this._galleryUrls[theme.id] || '' })),
-        visitorPreview: !!this._previewThemeId, history,
+        loaded: true, error: '', state, current,
+        gallery: state.catalog.map(theme => decorateTheme(theme, state.selectedId, state.starterClaimed, this._galleryUrls[theme.id])),
+        visitorPreview: !!this._previewThemeId, themePreview: localPreview, history,
         shareImagePath: DEFAULT_SHARE_IMAGE,
         pendingSave: !!themes.getPendingGrant(current.id),
         leaves: Array.from({ length: Math.min(state.catalogCount, 12) }, (_, index) => ({ index, collected: index < count })),
@@ -90,14 +108,17 @@ Page({
   },
   async loadGalleryAssets(catalog) {
     const request = ++this._galleryRequest;
-    await Promise.all(catalog.filter(theme => theme.discovered).map(async theme => {
+    const resolved = await Promise.all(catalog.filter(theme => theme.discovered).map(async theme => {
       try {
         const url = await assets.resolveThemeAsset(theme.id);
-        if (this._disposed || this._hidden || request !== this._galleryRequest || !url) return;
-        this._galleryUrls[theme.id] = url;
-        this.setData({ gallery: this.data.gallery.map(item => item.id === theme.id ? Object.assign({}, item, { thumbnailUrl: url }) : item) });
-      } catch (error) { /* Keep the compact companion preview when offline. */ }
+        return url ? [theme.id, url] : null;
+      } catch (error) { return null; }
     }));
+    if (this._disposed || this._hidden || request !== this._galleryRequest) return;
+    resolved.filter(Boolean).forEach(([themeId, url]) => { this._galleryUrls[themeId] = url; });
+    // Update the whole atlas once. Replacing image/text branches repeatedly in
+    // concurrent callbacks can trip WeChat's removeTextView renderer error.
+    this.setData({ gallery: this.data.gallery.map(item => Object.assign({}, item, { thumbnailUrl: this._galleryUrls[item.id] || '' })) });
   },
   async loadHero(themeId) {
     const request = ++this._assetRequest;
@@ -152,10 +173,10 @@ Page({
     if (this.data.busy || this.data.saving) return;
     const id = event.currentTarget.dataset.id;
     const theme = this.data.gallery.find(item => item.id === id);
-    if (!theme || !theme.unlocked) return;
+    if (!theme || !theme.canPreview) return;
     this._previewThemeId = '';
     this.setData({ visitorPreview: false, saveError: '', adError: '', pickerOpen: false });
-    this.loadCollection();
+    this.loadCollection(id);
   },
   openThemePicker() {
     if (!this.data.loaded || this.data.busy || this.data.saving) return;
