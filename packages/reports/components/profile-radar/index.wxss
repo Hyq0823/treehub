@@ -39,4 +39,4 @@
   letter-spacing: 1rpx;
   box-shadow: 0 0 0 10rpx rgba(93, 145, 232, .11), 0 6rpx 18rpx rgba(58, 118, 217, 0.18);
 }
-.radar-center text { display: none; }
+.radar-center-label { display: none; }

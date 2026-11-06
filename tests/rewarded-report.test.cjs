@@ -10,14 +10,16 @@ const catalog = require('../data/tests/index.js').default;
 
 const root = path.resolve(__dirname, '..');
 const helperPath = path.join(root, 'packages/reports/premium-access.js');
+const videoPath = path.join(root, 'utils/rewarded-video.js');
 const pagePath = path.join(root, 'packages/reports/index.js');
 let memory, writeFailure, calls;
 
 beforeEach(() => {
   memory = new Map();
   writeFailure = '';
-  calls = { createAd: 0, data: [], toast: [], modal: [], errors: [], destroyTimers: [] };
+  calls = { createAd: 0, data: [], toast: [], modal: [], errors: [] };
   delete require.cache[helperPath];
+  delete require.cache[videoPath];
   global.wx = {
     getStorageSync: key => memory.has(key) ? structuredClone(memory.get(key)) : '',
     setStorageSync: (key, value) => {
@@ -80,7 +82,6 @@ function openPage(saved, ad = makeAd()) {
   vm.runInNewContext(fs.readFileSync(pagePath, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx,
     console: { log() {}, error: (...args) => calls.errors.push(args) },
-    setTimeout: callback => { calls.destroyTimers.push(callback); return calls.destroyTimers.length; },
     require: id => id.endsWith('/track.js') ? { report() {}, EVENTS: {} } : nativeRequire(id)
   }, { filename: pagePath });
   page.data = structuredClone(page.data);
@@ -95,7 +96,6 @@ function openPage(saved, ad = makeAd()) {
 
 async function flush() {
   await new Promise(resolve => setImmediate(resolve));
-  while (calls.destroyTimers.length) calls.destroyTimers.shift()();
 }
 
 async function finishVideo(page, ad) {
@@ -120,7 +120,7 @@ test('the first report generates one recommended theme and claims it without a t
   const shared = page.onShareAppMessage({ target: { dataset: { kind: 'starter' } } });
   assert.equal(shared.path, `/pages/my-tree/index?theme=${generatedThemeId}`);
   assert.match(shared.title, /第一棵人格树/);
-  assert.equal(calls.createAd, 1, 'the only ad instance belongs to the optional deep report');
+  assert.equal(calls.createAd, 0, 'report and theme reveal do not preload an unsolicited video');
 });
 
 test('completed video can retry a failed archive write without replaying or unlocking a different report', async () => {
@@ -207,9 +207,9 @@ test('leaving before the first show rejects causes no retry, page update or unha
   const saved = record();
   const opening = deferred();
   const { page, ad } = openPage(saved, makeAd({ show: [opening.promise] }));
+  const pending = page.showPremiumAd();
   const lateClose = [...ad.handlers.close][0];
   const lateLoad = [...ad.handlers.load][0];
-  const pending = page.showPremiumAd();
   page.onUnload();
   const dataCount = calls.data.length;
   const toastCount = calls.toast.length;
@@ -220,7 +220,7 @@ test('leaving before the first show rejects causes no retry, page update or unha
   await flush();
   assert.equal(ad.stats.show, 1);
   assert.equal(ad.stats.load, 0);
-  assert.equal(ad.stats.destroy, 1);
+  assert.equal(ad.stats.destroy, 0);
   assert.equal(calls.data.length, dataCount);
   assert.equal(calls.toast.length, toastCount);
   assert.equal(archive.getRecord(saved.id).premiumUnlockedAt, undefined);
@@ -264,13 +264,13 @@ test('retry display failure is caught, restores the button and permits a subsequ
 test('an error after video display releases the button and old callbacks cannot unlock a new attempt', async () => {
   const saved = record();
   const { page, ad } = openPage(saved);
-  const staleClose = [...ad.handlers.close][0];
   await page.showPremiumAd();
+  const staleClose = [...ad.handlers.close][0];
   ad.emit('error', { errMsg: 'display interrupted' });
   assert.equal(page.data.adWatching, false);
   assert.equal(ad.stats.destroy, 0, 'native ad is not destroyed inside its own error callback');
   await flush();
-  assert.equal(ad.stats.destroy, 1);
+  assert.equal(ad.stats.destroy, 0);
   const nextAd = makeAd();
   wx.createRewardedVideoAd = () => nextAd;
   await page.showPremiumAd();
@@ -293,7 +293,7 @@ test('partial views and close callbacks without an active request cannot grant a
   assert.equal(require(helperPath).getPendingGrant(saved.id), null);
 });
 
-test('an ad error during retry loading does not allow duplicate requests to start', async () => {
+test('an ad error during retry loading allows one fresh attempt without reviving the old display', async () => {
   const saved = record();
   const loading = deferred();
   const { page, ad } = openPage(saved, makeAd({
@@ -302,14 +302,19 @@ test('an ad error during retry loading does not allow duplicate requests to star
   const first = page.showPremiumAd();
   await flush();
   ad.emit('error', { errCode: 1004, errMsg: 'not ready yet' });
+  const nextAd = makeAd();
+  wx.createRewardedVideoAd = () => nextAd;
   await page.showPremiumAd();
   await page.showPremiumAd();
   assert.equal(ad.stats.show, 1);
   assert.equal(ad.stats.load, 1);
+  assert.equal(nextAd.stats.show, 1);
   loading.resolve();
   await first;
-  assert.equal(ad.stats.show, 2);
+  assert.equal(ad.stats.show, 1);
   ad.emit('close', { isEnded: true });
+  assert.equal(archive.getRecord(saved.id).premiumUnlockedAt, undefined);
+  nextAd.emit('close', { isEnded: true });
   assert.ok(archive.getRecord(saved.id).premiumUnlockedAt);
 });
 
@@ -323,6 +328,27 @@ test('a permanently unlocked historical report never creates an ad instance', as
   assert.equal(calls.createAd, 0);
   await page.showPremiumAd();
   assert.equal(ad.stats.show, 0);
+});
+
+test('moving between real report pages reuses the native video without granting the departing report', async () => {
+  const firstRecord = record(), secondRecord = record(1);
+  const first = openPage(firstRecord);
+  await first.page.showPremiumAd();
+  first.page.onUnload();
+  const second = openPage(secondRecord);
+  await second.page.showPremiumAd();
+  assert.equal(second.page.data.adWatching, false);
+  assert.match(second.page.data.adError, /上一段视频/);
+  first.ad.emit('close', { isEnded: true });
+  assert.equal(archive.getRecord(firstRecord.id).premiumUnlockedAt, undefined);
+  assert.equal(archive.getRecord(secondRecord.id).premiumUnlockedAt, undefined);
+  await second.page.showPremiumAd();
+  first.ad.emit('close', { isEnded: true });
+  assert.ok(archive.getRecord(secondRecord.id).premiumUnlockedAt);
+  assert.equal(archive.getRecord(firstRecord.id).premiumUnlockedAt, undefined);
+  assert.equal(calls.createAd, 1);
+  assert.equal(first.ad.stats.destroy, 0);
+  assert.equal(second.ad.stats.show, 0);
 });
 
 test('VIP report prepares screenshot chart data and switches between three compact pages', () => {

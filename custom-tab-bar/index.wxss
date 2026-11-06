@@ -1,7 +1,7 @@
 :host { position: fixed; bottom: 0; left: 0; right: 0; z-index: 80; }
 .tab-bar { display: flex; padding: 6rpx 18rpx calc(8rpx + env(safe-area-inset-bottom)); background: #ffffff; border-top: 1rpx solid #e4edfc; }
 .tab-item { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 7rpx; flex: 1; min-height: 96rpx; color: #7283a6; transition: color 160ms ease, opacity 140ms ease; }
-.tab-item > text { font-size: 23rpx; line-height: 1.25; }.tab-selected { color: #246bfa; }.tab-selected > text { font-weight: 650; }.tab-pressed { opacity: .65; }
+.tab-label { font-size: 23rpx; line-height: 1.25; }.tab-selected { color: #246bfa; }.tab-selected .tab-label { font-weight: 650; }.tab-pressed { opacity: .65; }
 .tab-dot { position: absolute; top: 0; width: 5rpx; height: 5rpx; border-radius: 50%; background: #246bfa; }
 .tab-symbol { position: relative; width: 43rpx; height: 43rpx; color: inherit; }.symbol-part { position: absolute; box-sizing: border-box; }
 .symbol-home .part-one { width: 29rpx; height: 29rpx; left: 7rpx; top: 11rpx; border: 3rpx solid currentColor; border-top: 0; border-radius: 3rpx 3rpx 6rpx 6rpx; }

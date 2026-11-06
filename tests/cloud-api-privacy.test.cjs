@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { policyVersion } = require('../config/privacy.js');
 const clone = value => value === undefined ? value : JSON.parse(JSON.stringify(value));
 
 function fixture() {
-  let database = new Map(), openid = 'owner-a', now = Date.parse('2026-10-30T08:00:00.000Z');
+  let database = new Map(), openid = 'owner-a', now = Date.parse('2026-11-06T08:00:00.000Z');
   const tables = source => name => {
     if (!source().has(name)) source().set(name, new Map());
     return source().get(name);
@@ -62,7 +63,7 @@ function fixture() {
     rows(name) { return clone(Array.from(tables(() => database)(name).values())); },
     async call(action, data = {}) { return clone(await exports.main(Object.assign({ action, clientSchemaVersion: 1 }, data))); },
     async authorize(id = 'consent-device-a-123456') {
-      return this.call('authorizeBackup', { consent: { id, policyVersion: '2026-10-30', acceptedAt: this.time() }, seed: 'seed-local' });
+      return this.call('authorizeBackup', { consent: { id, policyVersion, acceptedAt: this.time() }, seed: 'seed-local' });
     }
   };
 }
@@ -80,6 +81,49 @@ test('server refuses legacy automatic backup without a separate current consent 
   const response = await f.call('syncArchive', { operation: 'push', seed: 'seed', records: [record()] });
   assert.equal(response.ok, false);
   assert.equal(f.rows('treehub_assessments').length, 0);
+});
+
+test('the current client can authorize default backup after native privacy approval and sync a result', async () => {
+  const f = fixture();
+  const storage = new Map();
+  let nativeAuthorizations = 0;
+  class ClientClock extends Date {
+    constructor(...args) { super(...(args.length ? args : [f.time()])); }
+    static now() { return Date.parse(f.time()); }
+  }
+  const client = { exports: {} };
+  const file = path.resolve(__dirname, '../utils/privacy.js');
+  vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
+    module: client, require, Date: ClientClock,
+    wx: {
+      getStorageSync: key => clone(storage.get(key)),
+      setStorageSync: (key, value) => storage.set(key, clone(value)),
+      requirePrivacyAuthorize({ success }) { nativeAuthorizations++; success(); }
+    }
+  }, { filename: file });
+  assert.equal(await client.exports.enableCloudBackupByDefault(), true);
+  assert.equal(nativeAuthorizations, 1);
+  const consent = client.exports.getCloudConsent();
+  assert.equal(consent.policyVersion, policyVersion);
+  const response = await f.call('authorizeBackup', { consent, seed: 'client-generated-seed' });
+  assert.equal(response.ok, true, response.message);
+  assert.equal(f.rows('treehub_users')[0].policyVersion, policyVersion);
+  const synced = await f.call('syncArchive', { operation: 'push', consentId: consent.id, records: [record()] });
+  assert.equal(synced.ok, true, synced.message);
+  assert.equal(f.rows('treehub_assessments').length, 1);
+});
+
+test('unsupported policy revisions cannot authorize backup or write account data', async () => {
+  for (const unsupportedVersion of ['2026-10-30', `${policyVersion}-unknown`, '', undefined]) {
+    const f = fixture();
+    const response = await f.call('authorizeBackup', {
+      consent: { id: 'consent-invalid-policy-123456', policyVersion: unsupportedVersion, acceptedAt: f.time() },
+      seed: 'must-not-create-account'
+    });
+    assert.equal(response.ok, false);
+    assert.equal(f.rows('treehub_users').length, 0);
+    assert.equal(f.rows('treehub_assessments').length, 0);
+  }
 });
 
 test('owner-scoped result backup strips answers and snapshots and never exports another account', async () => {
@@ -187,8 +231,9 @@ test('deletion removes result data, seed and themes and rejects old or delayed p
   for (const field of ['owner', 'seed', 'scores', 'themeState', 'consentHashes']) assert.equal(Object.prototype.hasOwnProperty.call(tombstone, field), false);
   const replay = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record()] });
   assert.equal(replay.ok, false);
-  const delayed = await f.call('authorizeBackup', { consent: { id: 'consent-delayed-device-123456', policyVersion: '2026-10-30', acceptedAt: delayedAcceptedAt }, seed: 'must-not-restore' });
+  const delayed = await f.call('authorizeBackup', { consent: { id: 'consent-delayed-device-123456', policyVersion, acceptedAt: delayedAcceptedAt }, seed: 'must-not-restore' });
   assert.equal(delayed.ok, false);
+  assert.match(delayed.message, /早于云端删除/);
   assert.equal(f.rows('treehub_assessments').length, 0);
   f.advance(1000);
   assert.equal((await f.authorize('consent-new-choice-123456')).ok, true, 'a new explicit choice can create a fresh backup');
@@ -196,7 +241,7 @@ test('deletion removes result data, seed and themes and rejects old or delayed p
 
 test('obviously future-dated authorization is rejected rather than bypassing a deletion cutoff', async () => {
   const f = fixture();
-  const response = await f.call('authorizeBackup', { consent: { id: 'consent-future-date-123456', policyVersion: '2026-10-30', acceptedAt: '2036-10-30T08:00:00.000Z' }, seed: 'seed' });
+  const response = await f.call('authorizeBackup', { consent: { id: 'consent-future-date-123456', policyVersion, acceptedAt: '2036-10-30T08:00:00.000Z' }, seed: 'seed' });
   assert.equal(response.ok, false);
   assert.equal(f.rows('treehub_users').length, 0);
 });

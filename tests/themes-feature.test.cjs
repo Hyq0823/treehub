@@ -19,6 +19,7 @@ beforeEach(() => {
     removeStorageSync: key => memory.delete(key), showToast() {}, switchTab() {}, showModal() {}
   };
   delete require.cache[themePath];
+  delete require.cache[videoPath];
   themes = require(themePath);
 });
 
@@ -189,7 +190,7 @@ test('unload during show failure never retries or grants later callbacks', async
   await assert.doesNotReject(pending);
   close({ isEnded: true });
   assert.equal(ad.stats.load, 0);
-  assert.equal(ad.stats.destroy, 1);
+  assert.equal(ad.stats.destroy, 0);
   assert.equal(states.length, count);
   assert.deepEqual(completed, []);
 });
@@ -213,8 +214,16 @@ test('an ad error releases the lock even when WeChat leaves load pending', async
   ad.emit('error', new Error('loading'));
   assert.equal(video.isBusy(), false);
   assert.equal(errors.length, 1);
+  const nextAd = adMock();
+  global.wx.createRewardedVideoAd = options => {
+    assert.equal(options.multiton, true);
+    return nextAd;
+  };
   assert.equal(await video.play('observer'), true);
+  assert.equal(nextAd.stats.show, 1);
   loading.resolve(); await pending;
+  assert.equal(ad.stats.destroy, 0);
+  assert.equal(nextAd.stats.destroy, 0);
 });
 
 test('late close from failed display A cannot unlock a later display B', async () => {
@@ -226,7 +235,7 @@ test('late close from failed display A cannot unlock a later display B', async (
   await video.play('moon');
   const lateCloseA = [...first.listeners.close][0];
   first.emit('error', new Error('display A failed'));
-  assert.equal(first.stats.destroy, 1);
+  assert.equal(first.stats.destroy, 0);
   assert.equal(video.isBusy(), false);
   await video.play('observer');
   lateCloseA({ isEnded: true });

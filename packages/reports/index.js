@@ -3,6 +3,7 @@ const archive = require('../../utils/archive.js');
 const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
 const { buildDeepReport, basicDimensions, buildComparison } = require('./deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
+const { createRewardedVideo } = require('../../utils/rewarded-video.js');
 const premiumAccess = require('./premium-access.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 
@@ -60,7 +61,6 @@ Page({
   onLoad(options) {
     this._disposed = false;
     this._themeRequest = 0;
-    this._adAttempt = null;
     try {
       const imported = require('../../data/tests/index.js');
       const test = (imported.default || imported).find(item => item.id === options.id);
@@ -194,58 +194,29 @@ Page({
     this.setData({ state, stateTitle: title, stateMessage: message });
   },
   setupRewardedVideoAd() {
-    if (this._disposed) return;
-    if (!wx.createRewardedVideoAd || this._videoAd) {
-      if (!wx.createRewardedVideoAd) {
-        this.setData({ adError: '当前微信版本暂不支持激励视频，请升级微信后重试。' });
+    if (this._disposed || this._rewardedVideo) return;
+    // The controller belongs to this page, while the native ad is managed for
+    // the app session. Creating the controller does not preload an ad.
+    this._rewardedVideo = createRewardedVideo({
+      adUnitId: REWARDED_AD_UNIT_ID,
+      onState: state => {
+        if (this._disposed) return;
+        const changes = {};
+        if (state.busy !== undefined) {
+          changes.adWatching = state.busy;
+          changes.adLoading = state.busy && state.ready !== true;
+        }
+        if (state.ready !== undefined) changes.adReady = state.ready;
+        if (state.error !== undefined) changes.adError = state.error;
+        this.setData(changes);
+      },
+      onComplete: recordId => this.completePremiumUnlock(recordId),
+      onPartial: () => wx.showToast({ title: '完整看完视频即可解锁', icon: 'none' }),
+      onError: error => {
+        console.error('激励视频广告播放失败', error);
+        wx.showToast({ title: '广告暂时无法播放，请稍后再试', icon: 'none' });
       }
-      return;
-    }
-    try {
-      const videoAd = wx.createRewardedVideoAd({ adUnitId: REWARDED_AD_UNIT_ID });
-      this._videoAd = videoAd;
-      const generation = (this._adGeneration || 0) + 1;
-      this._adGeneration = generation;
-      const currentInstance = () => !this._disposed && this._videoAd === videoAd && this._adGeneration === generation;
-      this._onAdLoad = () => {
-        if (currentInstance()) this.setData({ adReady: true, adLoading: false, adError: '' });
-      };
-      this._onAdError = error => {
-        if (!currentInstance()) return;
-        console.error('激励视频广告加载失败', error);
-        this.setData({
-          adReady: false,
-          adError: '广告暂时没有准备好，请稍后重试。'
-        });
-        // A failed initial show can still be retried by load(). Keep that attempt locked.
-        if (!this._adAttempt) this.setData({ adLoading: false, adWatching: false });
-        else if (this._adAttempt.phase === 'displayed') {
-          this.retireRewardedVideo();
-          this.setData({ adLoading: false, adWatching: false });
-        }
-      };
-      this._onAdClose = result => {
-        if (!currentInstance()) return;
-        const attempt = this._adAttempt;
-        if (!this.isCurrentAdAttempt(attempt)) return;
-        this.retireRewardedVideo();
-        this.setData({ adWatching: false, adLoading: false });
-        if (result && result.isEnded === true) {
-          this.completePremiumUnlock(attempt.recordId);
-        } else {
-          wx.showToast({ title: '完整看完视频即可解锁', icon: 'none' });
-        }
-      };
-      videoAd.onLoad(this._onAdLoad);
-      videoAd.onError(this._onAdError);
-      videoAd.onClose(this._onAdClose);
-    } catch (error) {
-      console.error('激励视频广告创建失败', error);
-      this.setData({ adError: '广告组件初始化失败，请稍后重试。' });
-    }
-  },
-  isCurrentAdAttempt(attempt) {
-    return !!attempt && !this._disposed && this._adAttempt === attempt && this._videoAd === attempt.ad;
+    });
   },
   async showPremiumAd() {
     if (this._disposed || !this.data.premiumAvailable || this.data.adWatching) return;
@@ -254,51 +225,13 @@ Page({
       return;
     }
     if (this.data.premiumUnlocked) return;
-    if (!this._videoAd) {
-      this.setupRewardedVideoAd();
-      if (!this._videoAd) {
-        wx.showModal({
-          title: '暂时无法播放',
-          content: this.data.adError || '当前环境暂不支持激励视频，请在手机微信中重试。',
-          showCancel: false
-        });
-        return;
-      }
+    if (!wx.createRewardedVideoAd) {
+      wx.showModal({ title: '暂时无法播放', content: '当前环境暂不支持激励视频，请在手机微信中重试。', showCancel: false });
+      return;
     }
-    const videoAd = this._videoAd;
-    const attempt = { ad: videoAd, recordId: this.data.record.id, phase: 'showing' };
-    this._adAttempt = attempt;
-    this.setData({ adWatching: true, adLoading: true, adError: '' });
+    this.setupRewardedVideoAd();
     report(EVENTS.PREMIUM_AD_START, { testId: this.data.test.id, recordId: this.data.record.id });
-    try {
-      try {
-        await videoAd.show();
-      } catch (error) {
-        if (!this.isCurrentAdAttempt(attempt)) return;
-        attempt.phase = 'loading';
-        await videoAd.load();
-        if (!this.isCurrentAdAttempt(attempt)) return;
-        attempt.phase = 'showing';
-        await videoAd.show();
-      }
-      if (this.isCurrentAdAttempt(attempt)) attempt.phase = 'displayed';
-    } catch (error) {
-      if (!this.isCurrentAdAttempt(attempt)) return;
-      this.retireRewardedVideo();
-      console.error('激励视频广告显示失败', error);
-      this.setData({
-        adReady: false, adLoading: false, adWatching: false,
-        adError: '广告暂时无法播放，请稍后再试。'
-      });
-      wx.showToast({ title: '广告暂时无法播放', icon: 'none' });
-    } finally {
-      // Leaving the page can retire an ad while show()/load() is unresolved.
-      // Destroy only after that native operation settles.
-      if (attempt.retiredAd) {
-        this.scheduleAdDestroy(attempt.retiredAd);
-        attempt.retiredAd = null;
-      }
-    }
+    await this._rewardedVideo.play(this.data.record.id);
   },
   completePremiumUnlock(recordId) {
     if (this._disposed || !this.data.record || recordId !== this.data.record.id) return;
@@ -333,35 +266,12 @@ Page({
     const page = event.currentTarget.dataset.page;
     if (['portrait', 'insights', 'actions'].includes(page)) this.setData({ premiumPage: page });
   },
-  scheduleAdDestroy(videoAd) {
-    if (!videoAd || !videoAd.destroy) return;
-    this._scheduledDestroyAds = this._scheduledDestroyAds || new WeakSet();
-    if (this._scheduledDestroyAds.has(videoAd)) return;
-    this._scheduledDestroyAds.add(videoAd);
-    setTimeout(() => {
-      try { videoAd.destroy(); }
-      catch (error) { /* The native instance may already have been reclaimed. */ }
-    }, 350);
-  },
-  retireRewardedVideo() {
-    const attempt = this._adAttempt;
-    this._adAttempt = null;
-    this._adGeneration = (this._adGeneration || 0) + 1;
-    const videoAd = this._videoAd;
-    this._videoAd = null;
-    if (!videoAd) return;
-    if (videoAd.offLoad && this._onAdLoad) videoAd.offLoad(this._onAdLoad);
-    if (videoAd.offError && this._onAdError) videoAd.offError(this._onAdError);
-    if (videoAd.offClose && this._onAdClose) videoAd.offClose(this._onAdClose);
-    if (attempt && (attempt.phase === 'showing' || attempt.phase === 'loading')) attempt.retiredAd = videoAd;
-    else this.scheduleAdDestroy(videoAd);
-  },
   onUnload() {
     this._disposed = true;
     this._themeRequest++;
     this._starterRequest = (this._starterRequest || 0) + 1;
     this._starterShareRequest = (this._starterShareRequest || 0) + 1;
-    this.retireRewardedVideo();
+    if (this._rewardedVideo) this._rewardedVideo.dispose();
   },
   retakeTest() {
     if (!this.data.test.id) return;

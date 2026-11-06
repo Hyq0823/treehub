@@ -111,12 +111,19 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
     redirectTo: value => calls.redirect.push(value), navigateTo: value => calls.navigate.push(value), switchTab: value => calls.switch.push(value),
     showToast: value => calls.toast.push(value), showModal: value => calls.modal.push(value)
   }, wxOverrides);
+  // Run the shared ad manager with this page's mocked WeChat runtime, as it
+  // would run alongside the page in the actual mini program.
+  const rewardedVideo = { exports: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../utils/rewarded-video.js'), 'utf8'), {
+    module: rewardedVideo, wx
+  });
   vm.runInNewContext(fs.readFileSync(absolute, 'utf8'), {
     Page: value => { page = value; }, wx, console,
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
     clearTimeout: id => timers.delete(id),
     require: name => name.endsWith('/archive.js') ? archive :
       name.endsWith('/premium-access.js') ? premiumAccess :
+      name.endsWith('/rewarded-video.js') ? rewardedVideo.exports :
       name.endsWith('/track.js') ? { report() {}, EVENTS: {} } : nativeRequire(name)
   }, { filename: absolute });
   page.setData = value => Object.assign(page.data, value);

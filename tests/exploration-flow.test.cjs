@@ -208,6 +208,19 @@ test('custom tab bar routes once and only marks a tab selected after navigation 
   assert.equal(notifications.at(-1).title, '页面暂未打开，请再试一次');
 });
 
+test('custom component styles avoid unsupported tag, ID and attribute selectors', () => {
+  const components = ['custom-tab-bar', 'components/personality-tree', 'packages/reports/components/profile-radar'];
+  for (const component of components) {
+    const file = path.join(root, component, 'index.wxss');
+    const css = fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const match of css.matchAll(/([^{}]+)\{/g)) {
+      const selector = match[1].trim();
+      if (selector.startsWith('@') || /^(?:from|to|[\d.]+%)(?:\s*,\s*[\d.]+%)*$/.test(selector)) continue;
+      assert.doesNotMatch(selector, /[#\[\]]|(?:^|[\s,>+~])(?:[a-zA-Z][\w-]*|\*)/, `${component}: ${selector}`);
+    }
+  }
+});
+
 test('all SBTI result images resolve inside the report subpackage with no duplicated runtime originals', () => {
   const sbti = catalog.find(item => item.id === 'sbti');
   const images = sbti.reports.map(report => report.image);

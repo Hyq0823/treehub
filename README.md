@@ -8,7 +8,7 @@
 
 云环境 ID 为 `cloud1-d2ghbskq3663254ce`。十个主题素材 File ID 已写入 `config/theme-assets.js`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。微信隐私授权通过后自动同步结果摘要，拒绝授权、主动关闭或网络失败时保留本机记录。
 
-发布前执行 `node scripts/check-release.cjs`。素材云 ID 已通过静态检查；真实运营主体及联系方式尚未配置，因此当前检查仍会有意失败。代码不会虚构备案资料。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
+发布前执行 `node scripts/check-release.cjs`，检查云素材 ID 及客户端与云函数的授权版本是否一致；检查通过后仍需在微信后台完成实际发布配置并进行真机验收。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
 
 无需 npm 安装。逻辑测试使用 Node.js 24（读取原有 ESM 题库）：
 
@@ -54,7 +54,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `utils/privacy.js` 与 `pages/privacy/`：微信平台隐私授权、默认备份初始化与关闭备份。拒绝授权或主动关闭不影响本地测评。
 - `utils/cloud-sync.js`：微信隐私授权通过且备份未关闭时上传结果摘要与主题权益；不上传 answers 或 treeSnapshot。历史本机快照保留，新设备用摘要还原并标明成长意象。
 - `cloudfunctions/treehub-api`：OpenID 隔离、授权版本、白名单、事务写入与防止删除后旧请求重传的撤回标记；客户端禁止直接访问数据库。
-- `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益；`utils/rewarded-video.js` 仅保留旧版主题收据兼容。报告与主题使用独立的存储键和完成回调。
+- `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益。报告与主题使用独立的存储键和完成回调。
+- `utils/rewarded-video.js`：按广告位管理整个小程序会话的激励视频，仅在用户点击后创建。正常播放结束后复用实例；页面退出只撤销该页的回调，等待当前视频结束。失败时使用独立实例重试，旧回调不能解锁其他报告；页面和广告回调均不调用原生 `destroy()`。
 - `utils/theme-assets.js`、`config/theme-assets.js`：按需解析云文件；九套新美术不进入应用包。管理端上传与配置导入脚本在 `scripts/`，不随小程序发布。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果。
 - `packages/reports/deep-report.js`：按六套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
