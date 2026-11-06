@@ -5,8 +5,8 @@ const { getContext } = require('../../utils/life-context.js');
 
 Page({
   data: {
-    test: {}, questions: [], currentQuestionIndex: 0, selectedOption: -1,
-    answers: [], submitted: false, submitting: false, revealingResult: false, error: '',
+    test: {}, question: null, currentQuestionIndex: 0, selectedOption: -1,
+    submitted: false, submitting: false, revealingResult: false, error: '',
     progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false,
     themeHeroUrl: ''
   },
@@ -37,7 +37,7 @@ Page({
     if (!this.data.submitted && this.data.test.id) {
       report(EVENTS.TEST_ABORT, {
         testId: this.data.test.id, reachedIndex: this.data.currentQuestionIndex,
-        totalCount: this.data.questions.length
+        totalCount: (this._questions || []).length
       });
     }
   },
@@ -56,7 +56,9 @@ Page({
       if (!test) throw new Error('没有找到这项测试，请返回大厅重新选择');
       this._test = test;
       const questions = testId === 'sbti' ? this.shuffleArray(test.questions.slice()) : test.questions;
-      this.setData({ test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, questions, answers: new Array(questions.length).fill(-1), error: '' });
+      this._questions = questions;
+      this._answers = new Array(questions.length).fill(-1);
+      this.setData({ test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, error: '' });
       this.updateQuestion();
     } catch (error) {
       this.setData({ error: error.message || '测试加载失败，请返回大厅重试' });
@@ -70,14 +72,17 @@ Page({
     return array;
   },
   updateQuestion() {
-    const question = this.data.questions[this.data.currentQuestionIndex];
-    const answeredCount = this.data.answers.filter(answer => answer !== -1).length;
+    const questions = this._questions || [];
+    const answers = this._answers || [];
+    const question = questions[this.data.currentQuestionIndex];
+    if (!question) return;
+    const answeredCount = answers.filter(answer => answer !== -1).length;
     this.setData({
       question: Object.assign({}, question, {
         options: question.options.map((option, index) => Object.assign({}, option, { letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index] }))
       }),
-      selectedOption: this.data.answers[this.data.currentQuestionIndex],
-      progressPercent: Math.round((this.data.currentQuestionIndex + 1) / this.data.questions.length * 100),
+      selectedOption: answers[this.data.currentQuestionIndex],
+      progressPercent: Math.round((this.data.currentQuestionIndex + 1) / questions.length * 100),
       answeredCount,
       motionKey: this.data.motionKey ? 0 : 1,
       autoAdvancing: false
@@ -87,11 +92,13 @@ Page({
     if (this.data.submitted || this.data.submitting) return;
     const index = Number(event.currentTarget.dataset.index);
     const current = this.data.currentQuestionIndex;
-    if (!Number.isInteger(index) || !this.data.questions[current].options[index]) return;
+    const questions = this._questions || [];
+    if (!Number.isInteger(index) || !questions[current] || !questions[current].options[index]) return;
     this.clearAdvance();
-    const answers = this.data.answers.slice();
+    const answers = (this._answers || []).slice();
     answers[current] = index;
-    this.setData({ selectedOption: index, answers, answeredCount: answers.filter(answer => answer !== -1).length, autoAdvancing: true });
+    this._answers = answers;
+    this.setData({ selectedOption: index, answeredCount: answers.filter(answer => answer !== -1).length, autoAdvancing: true });
     // Auto-advance only the question on which the tap occurred.
     this._advanceTimer = setTimeout(() => {
       this._advanceTimer = null;
@@ -113,7 +120,7 @@ Page({
       wx.showToast({ title: '请选择答案', icon: 'none' });
       return;
     }
-    if (this.data.currentQuestionIndex < this.data.questions.length - 1) {
+    if (this.data.currentQuestionIndex < (this._questions || []).length - 1) {
       this.setData({ currentQuestionIndex: this.data.currentQuestionIndex + 1 });
       this.updateQuestion();
     } else {
@@ -123,7 +130,9 @@ Page({
   submitTest() {
     if (this.data.submitting || this.data.submitted) return;
     this.clearAdvance();
-    const missing = this.data.answers.findIndex(answer => answer === -1);
+    const questions = this._questions || [];
+    const answers = this._answers || [];
+    const missing = answers.findIndex(answer => answer === -1);
     if (missing !== -1) {
       this.setData({ currentQuestionIndex: missing });
       this.updateQuestion();
@@ -132,12 +141,12 @@ Page({
     }
     this.setData({ submitting: true, revealingResult: true });
     try {
-      const result = scoreTest(this._test, this.data.questions, this.data.answers);
+      const result = scoreTest(this._test, questions, answers);
       const saved = archive.saveResult(Object.assign({
         testId: this.data.test.id, testVersion: TEST_VERSION, scoringVersion: SCORING_VERSION,
         lifeContext: this._lifeContext || undefined,
         // Store canonical question IDs because SBTI question order is shuffled.
-        answers: this.data.questions.map((question, index) => ({ questionId: question.id, optionIndex: this.data.answers[index] }))
+        answers: questions.map((question, index) => ({ questionId: question.id, optionIndex: answers[index] }))
       }, result));
       this.setData({ submitted: true });
       report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
@@ -158,7 +167,7 @@ Page({
     }
   },
   calculateScores() {
-    return scoreTest(this._test, this.data.questions, this.data.answers).scores;
+    return scoreTest(this._test, this._questions || [], this._answers || []).scores;
   },
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); }
 });

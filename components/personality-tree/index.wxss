@@ -37,6 +37,11 @@
   border: 1rpx solid rgba(97, 229, 199, 0.16);
   animation: energyOrbit 12s linear infinite;
 }
+.tree-art--static .tree-halo,
+.tree-art--static .tree-halo::before,
+.tree-art--static .tree-halo::after {
+  animation: none;
+}
 .tree-halo::after {
   inset: 9%;
   border-style: dashed;

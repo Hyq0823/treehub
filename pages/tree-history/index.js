@@ -1,7 +1,7 @@
 const archive = require('../../utils/archive.js');
-const catalogModule = require('../../data/tests/index.js');
-const catalog = catalogModule.default || catalogModule;
+const { catalog } = require('../../data/test-catalog.js');
 const { getContextLabel } = require('../../utils/life-context.js');
+const PAGE_SIZE = 8;
 function formatDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return '早期测评记录';
@@ -9,7 +9,7 @@ function formatDate(value) {
   return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 Page({
-  data: { snapshots: [], error: '', loaded: false },
+  data: { snapshots: [], totalCount: 0, hasMore: false, error: '', loaded: false },
   onShow() { this.loadHistory(); },
   loadHistory() {
     try {
@@ -33,10 +33,24 @@ Page({
           contextLabel: getContextLabel(record.lifeContext)
         };
       });
-      this.setData({ snapshots, error: '', loaded: true });
+      this._allSnapshots = snapshots;
+      const visibleCount = this._hasLoaded
+        ? Math.min(snapshots.length, Math.max(PAGE_SIZE, this.data.snapshots.length))
+        : Math.min(snapshots.length, PAGE_SIZE);
+      this._hasLoaded = true;
+      this.setData({
+        snapshots: snapshots.slice(0, visibleCount), totalCount: snapshots.length,
+        hasMore: snapshots.length > visibleCount, error: '', loaded: true
+      });
     } catch (error) {
-      this.setData({ error: error.message || '暂时无法读取成长记录。', loaded: true });
+      this._allSnapshots = [];
+      this.setData({ snapshots: [], totalCount: 0, hasMore: false, error: error.message || '暂时无法读取成长记录。', loaded: true });
     }
+  },
+  loadMore() {
+    const all = this._allSnapshots || [];
+    const visibleCount = Math.min(all.length, this.data.snapshots.length + PAGE_SIZE);
+    this.setData({ snapshots: all.slice(0, visibleCount), hasMore: visibleCount < all.length });
   },
   openReport(event) {
     const { id, testId } = event.currentTarget.dataset;

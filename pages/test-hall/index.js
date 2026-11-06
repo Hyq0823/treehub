@@ -1,14 +1,12 @@
 const { report, EVENTS } = require('../../utils/track.js');
 const archive = require('../../utils/archive.js');
 const { getTree } = require('../../utils/personality-tree.js');
-const { resolveReport } = require('../../utils/scoring.js');
 const display = require('../../data/exploration.js');
 const themes = require('../../utils/themes.js');
 const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
-const catalogModule = require('../../data/tests/index.js');
-const catalog = catalogModule.default || catalogModule;
+const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
 const CARD_THEMES = { mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
 const DISPLAY_ORDER = ['mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
@@ -56,8 +54,13 @@ Page({
       const theme = getTheme(themeId);
       const displayRank = id => DISPLAY_ORDER.includes(id) ? DISPLAY_ORDER.indexOf(id) : DISPLAY_ORDER.length;
       const orderedCatalog = catalog.slice().sort((first, second) => displayRank(first.id) - displayRank(second.id));
+      const recordsByTest = new Map();
+      state.records.forEach(record => {
+        if (!recordsByTest.has(record.testId)) recordsByTest.set(record.testId, []);
+        recordsByTest.get(record.testId).push(record);
+      });
       const cards = orderedCatalog.map((test, index) => {
-        const records = state.records.filter(r => r.testId === test.id);
+        const records = recordsByTest.get(test.id) || [];
         const latest = records[0];
         const metadata = display.tests[test.id] || {
           title: test.name, category: 'personality', prompt: test.description,
@@ -65,8 +68,7 @@ Page({
         };
         let resultTitle = '';
         if (latest) {
-          const resolved = resolveReport(test, latest);
-          resultTitle = resolved ? resolved.title : '早期记录 · 可重新探索';
+          resultTitle = resolveResultTitle(test.id, latest) || '早期记录 · 可重新探索';
         }
         return Object.assign({}, metadata, {
           id: test.id, number: String(index + 1).padStart(2, '0'), questionsCount: test.questionsCount, time: test.time,
@@ -94,17 +96,46 @@ Page({
     }
   },
   loadThemeImage(themeId) {
+    if (this._loadedThemeId === themeId && this._loadedThemeUrl) {
+      const changes = {};
+      if (this.data.themeImage !== this._loadedThemeUrl) changes.themeImage = this._loadedThemeUrl;
+      if (this.data.artState !== 'ready') changes.artState = 'ready';
+      if (Object.keys(changes).length) this.setData(changes);
+      this.scheduleThemeShare(themeId, this._loadedThemeUrl);
+      return;
+    }
     const request = this._themeAssetRequest = (this._themeAssetRequest || 0) + 1;
-    this.setData({ themeImage: '', artState: 'loading' });
+    this.setData({ themeImage: '', artState: 'loading', shareImagePath: DEFAULT_SHARE_IMAGE });
     Promise.resolve(themeAssets.resolveThemeAsset(themeId)).then(url => {
       if (this._hidden || request !== this._themeAssetRequest) return;
-      this.setData({ themeImage: url || '', artState: url ? 'ready' : 'unavailable', shareImagePath: DEFAULT_SHARE_IMAGE });
-      if (url) this.prepareThemeShare(themeId, url);
+      this._loadedThemeId = url ? themeId : '';
+      this._loadedThemeUrl = url || '';
+      this.setData({ themeImage: url || '', artState: url ? 'ready' : 'unavailable' });
+      if (url) this.scheduleThemeShare(themeId, url);
     }).catch(() => {
       if (!this._hidden && request === this._themeAssetRequest) this.setData({ artState: 'unavailable' });
     });
   },
+  scheduleThemeShare(themeId, heroUrl) {
+    if (this._shareTimer) clearTimeout(this._shareTimer);
+    this._shareTimer = null;
+    const cached = this._shareCard;
+    if (cached && cached.themeId === themeId && cached.heroUrl === heroUrl) {
+      if (this.data.shareImagePath !== cached.path) this.setData({ shareImagePath: cached.path });
+      return;
+    }
+    this._shareTimer = setTimeout(() => {
+      this._shareTimer = null;
+      if (this._hidden || this.data.themeId !== themeId || this.data.themeImage !== heroUrl) return;
+      this.prepareThemeShare(themeId, heroUrl);
+    }, 1500);
+  },
   async prepareThemeShare(themeId, heroUrl) {
+    const cached = this._shareCard;
+    if (cached && cached.themeId === themeId && cached.heroUrl === heroUrl) {
+      if (!this._hidden && this.data.shareImagePath !== cached.path) this.setData({ shareImagePath: cached.path });
+      return;
+    }
     const request = this._shareRequest = (this._shareRequest || 0) + 1;
     const theme = getTheme(themeId);
     if (!theme || !heroUrl) return;
@@ -113,7 +144,9 @@ Page({
         selector: '#hallShareCanvas', heroUrl, title: theme.name,
         subtitle: '探索不同的测试，遇见更多面的自己', pale: theme.pale, color: theme.color
       });
-      if (!this._hidden && request === this._shareRequest && this.data.themeId === themeId) this.setData({ shareImagePath });
+      if (request !== this._shareRequest) return;
+      this._shareCard = { themeId, heroUrl, path: shareImagePath };
+      if (!this._hidden && this.data.themeId === themeId) this.setData({ shareImagePath });
     } catch (error) { /* Keep the bundled 5:4 share cover. */ }
   },
   setupCardObserver() {
@@ -131,29 +164,88 @@ Page({
     if (!card || card.image) return;
     this._cardImages = this._cardImages || {};
     this._cardPending = this._cardPending || new Set();
-    if (this._cardImages[testId] || this._cardPending.has(testId)) return;
-    this._cardPending.add(testId);
-    Promise.resolve(themeAssets.resolveThemeAsset(card.artThemeId)).then(url => {
-      if (!url || this._hidden) return;
-      this._cardImages[testId] = url;
-      const next = this.data.cards.map(item => item.id === testId ? Object.assign({}, item, { image: url }) : item);
-      this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
-    }).catch(() => {}).finally(() => this._cardPending.delete(testId));
+    this._cardQueue = this._cardQueue || new Set();
+    if (this._cardImages[testId] || this._cardPending.has(testId) || this._cardQueue.has(testId)) return;
+    this._cardQueue.add(testId);
+    if (this._cardFlushScheduled) return;
+    this._cardFlushScheduled = true;
+    const flushToken = this._cardFlushToken = (this._cardFlushToken || 0) + 1;
+    const generation = this._cardGeneration || 0;
+    Promise.resolve().then(() => {
+      if (flushToken !== this._cardFlushToken) return;
+      this._cardFlushScheduled = false;
+      if (this._hidden || generation !== (this._cardGeneration || 0)) {
+        this._cardQueue.clear();
+        return;
+      }
+      const ids = Array.from(this._cardQueue);
+      this._cardQueue.clear();
+      this.flushCardImages(ids, generation);
+    });
   },
-  retryThemeImage() { this.loadThemeImage(this.data.themeId); },
+  async flushCardImages(testIds, generation) {
+    const pending = this._cardPending = this._cardPending || new Set();
+    const cards = testIds.map(id => this.data.cards.find(item => item.id === id)).filter(card =>
+      card && !card.image && !this._cardImages[card.id] && !pending.has(card.id));
+    if (!cards.length) return;
+    cards.forEach(card => pending.add(card.id));
+    try {
+      const themeIds = Array.from(new Set(cards.map(card => card.artThemeId)));
+      const urls = await themeAssets.resolveThemeAssets(themeIds);
+      if (this._hidden || generation !== (this._cardGeneration || 0)) return;
+      let changed = false;
+      cards.forEach(card => {
+        const url = urls[card.artThemeId];
+        if (!url) return;
+        this._cardImages[card.id] = url;
+        changed = true;
+      });
+      if (!changed) return;
+      const next = this.data.cards.map(item => this._cardImages[item.id]
+        ? Object.assign({}, item, { image: this._cardImages[item.id] }) : item);
+      this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
+    } catch (error) {
+      // A card can retry when it becomes visible again; the hall itself remains usable.
+    } finally {
+      cards.forEach(card => pending.delete(card.id));
+    }
+  },
+  retryThemeImage() {
+    themeAssets.invalidateThemeAsset(this.data.themeId);
+    this._loadedThemeId = '';
+    this._loadedThemeUrl = '';
+    this.loadThemeImage(this.data.themeId);
+  },
   themeImageFailed(event) {
-    if (event.currentTarget.dataset.theme === this.data.themeId) this.setData({ themeImage: '', artState: 'unavailable' });
+    if (event.currentTarget.dataset.theme === this.data.themeId) {
+      themeAssets.invalidateThemeAsset(this.data.themeId);
+      this._loadedThemeId = '';
+      this._loadedThemeUrl = '';
+      this.setData({ themeImage: '', artState: 'unavailable' });
+    }
   },
   cardImageFailed(event) {
     const id = event.currentTarget.dataset.id;
+    const card = this.data.cards.find(item => item.id === id);
+    if (card) themeAssets.invalidateThemeAsset(card.artThemeId);
     if (this._cardImages) delete this._cardImages[id];
     const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
   },
   onHide() {
     this._hidden = true;
+    this._cardGeneration = (this._cardGeneration || 0) + 1;
+    this._cardFlushToken = (this._cardFlushToken || 0) + 1;
+    this._cardFlushScheduled = false;
+    this._cardQueue = new Set();
+    // Requests from the hidden generation keep their own Set reference. A fast
+    // return can therefore queue the same card immediately without the stale
+    // request deleting the new generation's pending marker in finally().
+    this._cardPending = new Set();
     this._themeAssetRequest = (this._themeAssetRequest || 0) + 1;
     this._shareRequest = (this._shareRequest || 0) + 1;
+    if (this._shareTimer) clearTimeout(this._shareTimer);
+    this._shareTimer = null;
     if (this._cardObserver) this._cardObserver.disconnect();
     this._cardObserver = null;
   },

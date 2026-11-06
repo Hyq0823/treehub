@@ -28,11 +28,13 @@
       <view class="choice-feedback {{autoAdvancing ? 'choice-feedback-visible' : ''}}"><text>✓</text> 选择已记录，正在进入下一题</view>
     </view>
 
-    <view class="footer-console">
-      <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}"><text>←</text> 上一题</button>
-      <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '确认并继续'}} <text class="{{submitting ? 'answer-arrow-hidden' : ''}}">→</text></button>
+    <view class="answer-dock">
+      <view class="footer-console">
+        <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}"><text>←</text> 上一题</button>
+        <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '下一题'}} <text class="{{submitting ? 'answer-arrow-hidden' : ''}}">→</text></button>
+      </view>
+      <view class="privacy-line"><text>●</text> 原始选项保留在本机，云备份由你选择</view>
     </view>
-    <view class="privacy-line"><text>●</text> 原始选项保留在本机，云备份由你选择</view>
   </view>
   <view class="reveal-mask {{revealingResult ? '' : 'reveal-mask-hidden'}}">
     <view class="reveal-orbit"><view class="reveal-ring reveal-ring-one"></view><view class="reveal-ring reveal-ring-two"></view><view class="reveal-seed">✦</view></view>

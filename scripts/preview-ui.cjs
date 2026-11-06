@@ -102,7 +102,7 @@ function componentTree(tree, size) {
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), { Component: value => { definition = value; } });
   const value = { data: structuredClone(definition.data), setData(update) { Object.assign(this.data, update); } };
   definition.methods.updateTree.call(value, tree);
-  return html(render('components/personality-tree/index.wxml')({ ...value.data, tree, size: size || 'medium' }), {});
+  return html(render('components/personality-tree/index.wxml')({ ...value.data, tree, size: size || 'medium', animated: true }), {});
 }
 function radar(dimensions) {
   // The native Canvas component is represented by SVG from the SAME dimensions.
@@ -222,7 +222,7 @@ async function fixtures() {
   }
   for (const [testId, count] of [['mbti', 2], ['sbti', 3], ['bigfive', 5]]) {
     const answer = page('pages/test-answer/index'); answer.onLoad({ id: testId });
-    const questionIndex = answer.data.questions.findIndex(item => item.options.length === count);
+    const questionIndex = answer._questions.findIndex(item => item.options.length === count);
     if (questionIndex >= 0) { answer.data.currentQuestionIndex = questionIndex; answer.updateQuestion(); }
     answer.data.selectedOption = Math.min(1, answer.data.question.options.length - 1);
     add('pages/test-answer/index', 'answer-' + count, answer.data);

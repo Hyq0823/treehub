@@ -5,25 +5,45 @@ Component({
   lifetimes: {
     ready() {
       this._ready = true;
+      this._drawRequest = this._drawRequest || 0;
       this.queueDraw();
     },
     detached() {
       this._ready = false;
+      this._drawRequest = (this._drawRequest || 0) + 1;
       if (this._drawTimer) clearTimeout(this._drawTimer);
+      this._drawTimer = null;
+      this._drawSignature = '';
     }
   },
   methods: {
     queueDraw() {
       if (!this._ready) return;
-      if (this._drawTimer) clearTimeout(this._drawTimer);
-      this._drawTimer = setTimeout(() => this.draw(), 0);
-    },
-    draw() {
       const dimensions = (this.data.dimensions || []).slice(0, 9);
-      if (dimensions.length < 3) return;
+      const signature = JSON.stringify(dimensions.map(item => Number(item && item.percent)));
+      if (signature === this._drawSignature) return;
+      if (this._drawTimer) clearTimeout(this._drawTimer);
+      const request = this._drawRequest = (this._drawRequest || 0) + 1;
+      this._drawSignature = signature;
+      this._drawTimer = setTimeout(() => {
+        this._drawTimer = null;
+        this.draw(request, signature);
+      }, 0);
+    },
+    draw(request, signature) {
+      if (!this._ready || request !== this._drawRequest) return;
+      const dimensions = (this.data.dimensions || []).slice(0, 9);
+      if (dimensions.length < 3) {
+        if (request === this._drawRequest) this._drawSignature = '';
+        return;
+      }
       this.createSelectorQuery().select('#profile-radar').fields({ node: true, size: true }).exec(result => {
+        if (!this._ready || request !== this._drawRequest) return;
         const field = result && result[0];
-        if (!field || !field.node || !field.width || !field.height) return;
+        if (!field || !field.node || !field.width || !field.height) {
+          if (request === this._drawRequest && this._drawSignature === signature) this._drawSignature = '';
+          return;
+        }
         const canvas = field.node;
         const context = canvas.getContext('2d');
         const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();

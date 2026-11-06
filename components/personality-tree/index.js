@@ -8,7 +8,8 @@ const GROWTH_POSITIONS = {
 Component({
   properties: {
     tree: { type: Object, value: null, observer: 'updateTree' },
-    size: { type: String, value: 'medium' }
+    size: { type: String, value: 'medium' },
+    animated: { type: Boolean, value: true }
   },
   data: { stageId: 'seed', earlyStage: false, spriteStyle: '', growthSpriteStyle: '', shapeStyle: '', sparks: [] },
   methods: {

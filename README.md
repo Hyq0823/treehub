@@ -18,6 +18,8 @@
 node --test tests/*.test.cjs
 ```
 
+若开发者工具仍提示图片或音频超过 200KB，在仓库根目录执行 `node scripts/check-media.cjs`。它也会检查本地未提交文件和已排除目录，列出超限路径、大小及是否随包，便于定位本机残留的原图；不会压缩、删除或上传任何文件。
+
 可选的 WXML/WXSS 编译检查使用官方编译器封装，安装在 checkout 之外，不改应用依赖：
 
 ```sh
@@ -52,12 +54,13 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 
 ## 数据与扩展
 
+- `data/test-catalog.js`：大厅、档案与主题成长使用的轻量目录；完整题目只在详情、答题、报告及答案校验时加载。目录与完整题库的一致性由测试约束。
 - `utils/archive.js`：单键 `personalityTreeArchive.v1` 保存版本化档案、设备种子、规范题号答案、分数、结果、日期与树形快照。写入失败保留页面答案；格式异常停止写入，不自动重置。旧版 `testResult` 仅迁移一次，并保留原键；旧版错误空分数不展示为新版有效报告。
 - `utils/privacy.js` 与 `pages/privacy/`：微信平台隐私授权、默认备份初始化与关闭备份。拒绝授权或主动关闭不影响本地测评。
 - `utils/cloud-sync.js`：微信隐私授权通过且备份未关闭时上传结果摘要与主题权益；不上传 answers 或 treeSnapshot。历史本机快照保留，新设备用摘要还原并标明成长意象。
 - `cloudfunctions/treehub-api`：OpenID 隔离、授权版本、白名单、事务写入与防止删除后旧请求重传的撤回标记；客户端禁止直接访问数据库。
 - `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益。报告与主题使用独立的存储键和完成回调。
-- `utils/rewarded-video.js`：按广告位管理整个小程序会话的激励视频，仅在用户点击后创建。正常播放结束后复用实例；页面退出只撤销该页的回调，等待当前视频结束。失败时使用独立实例重试，旧回调不能解锁其他报告；页面和广告回调均不调用原生 `destroy()`。
+- `packages/reports/rewarded-video.js`：激励视频管理器与报告页同属报告分包，避免主包包含仅由分包使用的脚本。按广告位管理整个小程序会话，仅在用户点击后创建。正常播放结束后复用实例；页面退出只撤销该页的回调，等待当前视频结束。失败时使用独立实例重试，旧回调不能解锁其他报告；页面和广告回调均不调用原生 `destroy()`。
 - `utils/theme-assets.js`、`config/theme-assets.js`：按需解析云文件；九套新美术不进入应用包。管理端上传与配置导入脚本在 `scripts/`，不随小程序发布。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果。
 - `packages/reports/deep-report.js`：按六套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
@@ -69,6 +72,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `components/personality-tree/`：树形展示；`assets/trees/species.png` 为成熟树透明素材，3列×2行依次银杏、榕树、松树、枫树、柳树、橄榄树；`assets/trees/growth.png` 为前四个成长阶段的 2列×2行透明素材。新增树种或阶段时同步增加匹配规则、素材位置和组件配置。
 - `pages/tree-history/`：每次测评的树形历史；不会用当前结果重算过去的快照。
 - `packages/reports/`：报告页与 SBTI 结果图片所在分包，打开报告时由微信按需加载。应用内链接直接进入分包；旧的 `pages/test-result/index` 地址保留轻量跳转，继续支持已有报告链接与记录 ID。
+
+首屏会先完成页面绘制，再初始化默认云备份；短时间前后台切换复用最近同步结果，本地新增记录仍立即排队同步。主题 URL 按可见批次解析，分享 Canvas 延后执行并按主题复用。SBTI 报告图统一为最长边 512px 的 WebP，成长记录首屏渲染 8 条并关闭列表树的循环动效。
 
 微信隐私授权通过后，云备份默认关联当前微信账号保存结果摘要、版本、时间、树种子和权益；拒绝授权或主动关闭时只保存在本机。原始逐题选项不上传，不向第三方分析服务发送分数或结果。关闭备份后停止新的上传与拉取。
 

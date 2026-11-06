@@ -35,7 +35,7 @@ function page(route) {
 function complete(id, choice = 0, context = '') {
   const answer = page('pages/test-answer');
   answer.onLoad({ id, context });
-  answer.data.answers = answer.data.questions.map(q => Math.min(choice, q.options.length - 1));
+  answer._answers = answer._questions.map(q => Math.min(choice, q.options.length - 1));
   answer.submitTest();
   assert.equal(answer.data.submitted, true, `${id} persisted`);
   const record = archive.getLatest(id);

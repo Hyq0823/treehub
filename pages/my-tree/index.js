@@ -50,6 +50,9 @@ Page({
     this._galleryVisibleCount = 3;
     this._posterRequest = 0;
     this._shareRequest = 0;
+    this._shareCards = {};
+    this._loadedHeroId = '';
+    this._loadedHeroUrl = '';
   },
   onShow() {
     this._hidden = false;
@@ -83,11 +86,13 @@ Page({
       const count = state.uniqueCount;
       this._galleryCatalog = state.catalog;
       const localPreview = typeof previewId === 'string' && !!previewId && previewId !== state.selectedId;
+      const cachedShare = this._shareCards[current.id];
+      const sameTheme = this.data.current && this.data.current.id === current.id;
       this.setData({
         loaded: true, error: '', state, current,
         gallery: state.catalog.map(theme => decorateTheme(theme, state.selectedId, state.starterClaimed, this._galleryUrls[theme.id])),
         visitorPreview: !!this._previewThemeId, themePreview: localPreview, history,
-        shareImagePath: DEFAULT_SHARE_IMAGE,
+        shareImagePath: cachedShare ? cachedShare.path : sameTheme ? this.data.shareImagePath : DEFAULT_SHARE_IMAGE,
         pendingSave: !!themes.getPendingGrant(current.id),
         leaves: Array.from({ length: Math.min(state.catalogCount, 12) }, (_, index) => ({ index, collected: index < count })),
         nextReward: count === 0 ? '完成首测，免费领取一套基础主题与伙伴' :
@@ -101,6 +106,8 @@ Page({
       }
       if (current.hidden && !current.discovered) {
         this._assetRequest++;
+        this._loadedHeroId = '';
+        this._loadedHeroUrl = '';
         this.setData({ heroUrl: '', imageLoading: false, assetError: false });
       } else this.loadHero(current.id);
       this.loadGalleryAssets(state.catalog.slice(0, this._galleryVisibleCount).concat(current));
@@ -112,14 +119,10 @@ Page({
   async loadGalleryAssets(catalog) {
     const request = ++this._galleryRequest;
     const unique = Array.from(new Map(catalog.map(theme => [theme.id, theme])).values());
-    const resolved = await Promise.all(unique.filter(theme => theme.discovered && !this._galleryUrls[theme.id]).map(async theme => {
-      try {
-        const url = await assets.resolveThemeAsset(theme.id);
-        return url ? [theme.id, url] : null;
-      } catch (error) { return null; }
-    }));
+    const missing = unique.filter(theme => theme.discovered && !this._galleryUrls[theme.id]);
+    const urls = await assets.resolveThemeAssets(missing.map(theme => theme.id));
     if (this._disposed || this._hidden || request !== this._galleryRequest) return;
-    resolved.filter(Boolean).forEach(([themeId, url]) => { this._galleryUrls[themeId] = url; });
+    missing.forEach(theme => { if (urls[theme.id]) this._galleryUrls[theme.id] = urls[theme.id]; });
     // Update the whole atlas once. Replacing image/text branches repeatedly in
     // concurrent callbacks can trip WeChat's removeTextView renderer error.
     this.setData({ gallery: this.data.gallery.map(item => Object.assign({}, item, { thumbnailUrl: this._galleryUrls[item.id] || '' })) });
@@ -130,19 +133,56 @@ Page({
     this.loadGalleryAssets(this._galleryCatalog.slice(0, this._galleryVisibleCount));
   },
   async loadHero(themeId) {
+    if (this._loadedHeroId === themeId && this._loadedHeroUrl) {
+      const changes = {};
+      if (this.data.heroUrl !== this._loadedHeroUrl) changes.heroUrl = this._loadedHeroUrl;
+      if (this.data.imageLoading) changes.imageLoading = false;
+      if (this.data.assetError) changes.assetError = false;
+      if (Object.keys(changes).length) this.setData(changes);
+      this.scheduleThemeShare(themeId, this._loadedHeroUrl);
+      return;
+    }
     const request = ++this._assetRequest;
     this.setData({ heroUrl: '', imageLoading: true, assetError: false });
     try {
       const heroUrl = await assets.resolveThemeAsset(themeId);
       if (this._disposed || this._hidden || request !== this._assetRequest) return;
+      this._loadedHeroId = heroUrl ? themeId : '';
+      this._loadedHeroUrl = heroUrl || '';
       this.setData({ heroUrl: heroUrl || '', imageLoading: false });
-      if (heroUrl) this.prepareThemeShare(themeId, heroUrl);
+      if (heroUrl) this.scheduleThemeShare(themeId, heroUrl);
     } catch (error) {
       if (!this._disposed && !this._hidden && request === this._assetRequest) this.setData({ heroUrl: '', imageLoading: false, assetError: true });
     }
   },
-  onHeroError() { this.setData({ heroUrl: '', assetError: true, imageLoading: false }); },
+  onHeroError() {
+    const current = this.data.current;
+    if (current) assets.invalidateThemeAsset(current.id);
+    this._loadedHeroId = '';
+    this._loadedHeroUrl = '';
+    this.setData({ heroUrl: '', assetError: true, imageLoading: false });
+  },
+  scheduleThemeShare(themeId, heroUrl) {
+    if (this._shareTimer) clearTimeout(this._shareTimer);
+    this._shareTimer = null;
+    const cached = this._shareCards[themeId];
+    if (cached && cached.heroUrl === heroUrl) {
+      if (this.data.shareImagePath !== cached.path) this.setData({ shareImagePath: cached.path });
+      return;
+    }
+    this._shareTimer = setTimeout(() => {
+      this._shareTimer = null;
+      const current = this.data.current;
+      if (this._disposed || this._hidden || !current || current.id !== themeId || this.data.heroUrl !== heroUrl) return;
+      this.prepareThemeShare(themeId, heroUrl);
+    }, 1500);
+  },
   async prepareThemeShare(themeId, heroUrl) {
+    const cached = this._shareCards[themeId];
+    if (cached && cached.heroUrl === heroUrl) {
+      if (!this._disposed && !this._hidden && this.data.shareImagePath !== cached.path) this.setData({ shareImagePath: cached.path });
+      return;
+    }
     const request = ++this._shareRequest;
     const theme = getTheme(themeId);
     if (!theme || !heroUrl) return;
@@ -151,7 +191,9 @@ Page({
         selector: '#shareCanvas', heroUrl, title: theme.name,
         subtitle: theme.quote, pale: theme.pale, color: theme.color
       });
-      if (!this._disposed && !this._hidden && request === this._shareRequest && this.data.current && this.data.current.id === themeId) {
+      if (request !== this._shareRequest) return;
+      this._shareCards[themeId] = { heroUrl, path: shareImagePath };
+      if (!this._disposed && !this._hidden && this.data.current && this.data.current.id === themeId) {
         this.setData({ shareImagePath });
       }
     } catch (error) { /* The bundled 5:4 cover remains available for sharing. */ }
@@ -159,7 +201,9 @@ Page({
   retryHero() {
     const current = this.data.current;
     if (!current || !current.discovered || this.data.imageLoading) return;
-    assets.clearCache();
+    assets.invalidateThemeAsset(current.id);
+    this._loadedHeroId = '';
+    this._loadedHeroUrl = '';
     this.loadHero(current.id);
   },
   async loadCompanionSprite() {
@@ -232,6 +276,8 @@ Page({
     this._galleryRequest++;
     this._posterRequest++;
     this._shareRequest++;
+    if (this._shareTimer) clearTimeout(this._shareTimer);
+    this._shareTimer = null;
   },
   onUnload() {
     this._disposed = true;

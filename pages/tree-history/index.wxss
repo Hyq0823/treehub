@@ -112,6 +112,18 @@ page {
   font-size: 22rpx;
   line-height: 1.8;
 }
+.load-more {
+  width: 100%;
+  min-height: 88rpx;
+  margin: 8rpx 0 26rpx;
+  border: 1rpx solid #cfe0f8;
+  border-radius: 44rpx;
+  color: #3979d4;
+  background: #f7fbff;
+  font-size: 24rpx;
+  line-height: 88rpx;
+}
+.load-more::after { border: 0; }
 .empty-panel {
   background: #fffdf6;
   border: 1rpx dashed #d8dfcb;

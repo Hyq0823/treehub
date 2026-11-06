@@ -1,4 +1,5 @@
 const { THEMES, getTheme } = require('../data/themes.js');
+const { catalog: testCatalog } = require('../data/test-catalog.js');
 
 const STORAGE_KEY = 'personalityTreeThemes.v1';
 const PENDING_KEY = 'personalityTreeThemePending.v1';
@@ -29,8 +30,7 @@ function write(state) {
 function schedule() { try { require('./cloud-sync.js').schedule(); } catch (error) {} }
 function recordsOrLocal(records) { return records || require('./archive.js').getRecords(); }
 function uniqueTests(records) {
-  const module = require('../data/tests/index.js');
-  const ids = new Set((module.default || module).map(test => test.id));
+  const ids = new Set(testCatalog.map(test => test.id));
   return new Set(recordsOrLocal(records).filter(record => ids.has(record.testId) && record.scoringVersion === '2' && !record.migrated).map(record => record.testId)).size;
 }
 function recommendedTheme(records) {
@@ -60,8 +60,7 @@ function getState(records) {
   const state = read();
   const source = recordsOrLocal(records);
   const uniqueCount = uniqueTests(source);
-  const catalogModule = require('../data/tests/index.js');
-  const catalogCount = (catalogModule.default || catalogModule).length;
+  const catalogCount = testCatalog.length;
   const recommendation = recommendedTheme(source);
   const owned = new Set(state.unlocked.map(grant => grant.themeId));
   const earned = earnedThemeIds(source);

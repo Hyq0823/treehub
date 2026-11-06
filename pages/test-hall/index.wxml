@@ -4,9 +4,11 @@
     <view class="welcome-scene">
       <view class="sky-orb sky-orb-one"></view><view class="sky-orb sky-orb-two"></view><view class="scene-mist"></view>
       <view class="brand"><view class="brand-cloud"><view></view></view><view><view class="hall-title">人格测试树</view><view class="hall-subtitle">收集每一种，独特的你</view></view></view>
-      <view class="welcome-copy"><view class="welcome-title"><view>{{greetingLead}}</view><view>{{greetingTitle}}</view></view><view class="welcome-note"><view>{{greetingNote}}</view><view>遇见更多面的自己。</view></view></view>
-      <view class="welcome-art"><image class="{{themeImage ? 'async-image-ready' : 'async-image-hidden'}}" src="{{themeImage}}" mode="aspectFit" data-theme="{{themeId}}" binderror="themeImageFailed"/><view class="art-unavailable {{themeImage ? 'async-placeholder-hidden' : ''}}"><view class="art-unavailable-ring"></view><view class="art-unavailable-title">{{artState === 'loading' ? '正在唤醒小世界' : '主题画面暂未载入'}}</view><button wx:if="{{artState !== 'loading'}}" bindtap="retryThemeImage">重新加载</button></view></view>
-      <view class="scene-spark spark-one"></view><view class="scene-spark spark-two"></view><view class="scene-spark spark-three"></view>
+      <view class="welcome-world">
+        <view class="welcome-copy"><view class="welcome-title"><view>{{greetingLead}}</view><view>{{greetingTitle}}</view></view><view class="welcome-note"><view>{{greetingNote}}</view><view>遇见更多面的自己。</view></view></view>
+        <view class="welcome-art"><image class="{{themeImage ? 'async-image-ready' : 'async-image-hidden'}}" src="{{themeImage}}" mode="aspectFit" data-theme="{{themeId}}" binderror="themeImageFailed"/><view class="art-unavailable {{themeImage ? 'async-placeholder-hidden' : ''}}"><view class="art-unavailable-ring"></view><view class="art-unavailable-title">{{artState === 'loading' ? '正在唤醒小世界' : '主题画面暂未载入'}}</view><button wx:if="{{artState !== 'loading'}}" bindtap="retryThemeImage">重新加载</button></view></view>
+        <view class="scene-spark spark-one"></view><view class="scene-spark spark-two"></view><view class="scene-spark spark-three"></view>
+      </view>
       <view class="tree-shortcut" bindtap="openTree" hover-class="card-pressed" role="button" aria-label="打开我的树">
         <view class="shortcut-thumb"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit"/><view wx:else class="shortcut-leaf"></view></view><view class="shortcut-copy"><view class="shortcut-title">我的树<text>{{themeName}}</text></view><view class="shortcut-note">{{tree.uniqueCount ? '再探索 1 项，让树与伙伴带来新风景' : '完成首次探索，领取属于你的小世界'}}</view></view><text class="shortcut-arrow">›</text>
       </view>

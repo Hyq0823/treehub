@@ -19,11 +19,11 @@ page { background: #f2f7ff; color: #244777; }
 .option-text { color: #526e96; }
 
 /* Cloud Growth: open question composition, tactile choice cards, stable footer. */
-.answer-page { padding: 30rpx 32rpx calc(30rpx + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 35% 2%, #acd5ff 0, #d9eaff 25%, transparent 56%), linear-gradient(175deg, #dfedff 0, #f7faff 45%, #edf6ff 100%); }
+.answer-page { box-sizing: border-box; padding: 30rpx 32rpx calc(224rpx + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 35% 2%, #acd5ff 0, #d9eaff 25%, transparent 56%), linear-gradient(175deg, #dfedff 0, #f7faff 45%, #edf6ff 100%); }
 .answer-page::before, .answer-page::after { content: ''; position: absolute; pointer-events: none; width: 440rpx; height: 170rpx; border-radius: 50%; background: #ffffffa8; box-shadow: 110rpx -60rpx 0 -15rpx #ffffffb3, 230rpx 10rpx 0 -25rpx #ffffffbd, -100rpx 15rpx 0 -25rpx #ffffffa3; }
 .answer-page::before { top: 38%; left: -370rpx; transform: rotate(-20deg); }.answer-page::after { bottom: -95rpx; right: -180rpx; transform: rotate(-15deg); }
 .tech-grid { display: none; }.ambient-one { top: 20%; right: -150rpx; background: #fff7; }.ambient-two { display: none; }
-.answer-shell { display: flex; flex-direction: column; min-height: calc(100vh - 60rpx - env(safe-area-inset-bottom)); }
+.answer-shell { display: flex; flex-direction: column; min-height: calc(100vh - 254rpx - env(safe-area-inset-bottom)); }
 .session-header { margin-bottom: 30rpx; }.session-meta { color: #4d72a9; font-size: 19rpx; }.session-meta > view { color: #6382b2; }.session-meta > text { color: #6382b2; }.live-dot { width: 7rpx; height: 7rpx; background: #6a9df4; }
 .progress-console { position: relative; min-height: 143rpx; margin-top: 26rpx; padding: 28rpx 2rpx 14rpx 150rpx; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .progress-numbers { align-items: center; justify-content: flex-start; gap: 20rpx; color: #6a92cf; font-family: inherit; font-size: 19rpx; }.progress-numbers > text { margin-left: auto; padding: 7rpx 16rpx; color: #5388df; font-size: 17rpx; background: #ffffff9c; border: 1rpx solid #ffffffd9; border-radius: 25rpx; }.current-number { color: #244e91; font-size: 36rpx; font-weight: 750; }.total-number { color: #8aa7ce; font-size: 25rpx; }
@@ -43,3 +43,11 @@ page { background: #f2f7ff; color: #244777; }
 .footer-console { flex: 0 0 auto; position: relative; margin-top: auto; padding-top: 24rpx; gap: 18rpx; }.nav-btn { display: flex; align-items: center; justify-content: center; gap: 10rpx; min-height: 91rpx; padding: 22rpx 20rpx; border-radius: 52rpx; font-size: 26rpx; }.prev-btn { flex: 0 0 170rpx; color: #6e91c1; border: 2rpx solid #d8e8ff; background: #ffffffb8; }.next-btn { position: relative; color: #fff; border: 2rpx solid #a7d2ff; background: linear-gradient(110deg, #63b7ff, #2478ff 70%, #5a9aff); box-shadow: 0 9rpx 24rpx #5998f240, inset 0 2rpx 3rpx #ffffff40; }.next-btn text { font-size: 31rpx; }.privacy-line { margin-top: 19rpx; color: #8ba1bf; font-size: 17rpx; }.nav-btn[disabled] { opacity: .45; }
 .option-count-3 .option-item:last-child { grid-column: 1 / -1; min-height: 129rpx; padding: 21rpx 68rpx 21rpx 24rpx; }.option-count-3 .option-item:last-child .option-content { flex-direction: row; align-items: center; gap: 24rpx; }.option-count-3 .option-item:last-child .option-letter { flex: 0 0 65rpx; width: 65rpx; height: 65rpx; margin: 0; line-height: 65rpx; font-size: 29rpx; border-radius: 23rpx; }.option-count-3 .option-item:last-child .option-text { text-align: left; }.option-count-3 .option-item:last-child .option-state { left: auto; right: 20rpx; top: 50%; bottom: auto; transform: translateY(-50%); }
 .answer-world-bg { position: absolute; z-index: 0; left: 50%; bottom: calc(122rpx + env(safe-area-inset-bottom)); width: 600rpx; height: 530rpx; margin-left: -300rpx; opacity: .32; pointer-events: none; }
+
+/* Question length and the auto-advance hint must never move the navigation. */
+.answer-dock { position: fixed; z-index: 10; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid #ffffffc9; background: linear-gradient(180deg, #f2f8fff2, #f2f8ff); }
+.answer-dock .footer-console { margin: 0; padding: 0; }
+.answer-dock .nav-btn { box-sizing: border-box; height: 96rpx; min-height: 96rpx; padding: 0 20rpx; white-space: nowrap; line-height: 1.4; }
+.answer-dock .next-btn { min-width: 0; }
+.answer-dock .privacy-line { min-height: 31rpx; margin-top: 12rpx; line-height: 31rpx; }
+.choice-feedback, .choice-feedback-visible { box-sizing: border-box; height: 52rpx; padding-top: 12rpx; line-height: 30rpx; transition: opacity .2s ease; }

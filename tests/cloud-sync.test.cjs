@@ -138,6 +138,25 @@ test('a theme-only change is backed up without re-uploading unchanged results', 
   assert.equal(last.themeState.selectedId, 'moon');
 });
 
+test('recent successful sync skips automatic foreground refresh but local writes still schedule', async () => {
+  const f = fixture(); f.enable();
+  await f.sync.syncArchive();
+  f.sync.schedule(800, { ifStale: true });
+  assert.equal(f.timers.size, 0, 'a recent foreground refresh is skipped');
+  f.sync.schedule();
+  assert.equal(f.timers.size, 1, 'a local archive or theme write is never suppressed');
+});
+
+test('automatic foreground refresh is scheduled when the last success is stale', async () => {
+  const f = fixture(); f.enable();
+  await f.sync.syncArchive();
+  const status = f.memory.get(f.sync.STATE_KEY);
+  status.lastSyncedAt = new Date(Date.now() - 6 * 60 * 1000).toISOString();
+  f.memory.set(f.sync.STATE_KEY, status);
+  f.sync.schedule(800, { ifStale: true });
+  assert.equal(f.timers.size, 1);
+});
+
 test('a cloud failure leaves the local archive intact and marks synchronization pending', async () => {
   const f = fixture(); f.enable();
   const before = f.archive.getArchive();

@@ -43,6 +43,69 @@ test('public theme artwork deduplicates downloads without uploading any assessme
   } finally { config.files.adventurer = original; assets.clearCache(); }
 });
 
+test('multiple theme URLs are resolved in one cloud request and partial failures stay isolated', async () => {
+  const ids = ['adventurer', 'moon', 'romantic'];
+  const originals = Object.fromEntries(ids.map(id => [id, config.files[id]]));
+  const fileIds = Object.fromEntries(ids.map(id => [id, `cloud://cloud1-d2ghbskq3663254ce.bucket/themes/v1/${id}.webp`]));
+  ids.forEach(id => { config.files[id] = fileIds[id]; });
+  let requests = 0;
+  global.wx = {
+    getStorageSync() { return ''; }, setStorageSync() {},
+    cloud: {
+      init() {}, callFunction() {},
+      async getTempFileURL({ fileList }) {
+        requests++;
+        assert.deepEqual(fileList, ids.map(id => fileIds[id]));
+        return { fileList: fileList.map((fileID, index) => index === 1
+          ? { fileID, status: -1, errMsg: 'missing' }
+          : { fileID, status: 0, tempFileURL: `https://cloud.example/${ids[index]}.webp` }) };
+      }
+    }
+  };
+  try {
+    assets.clearCache();
+    const urls = await assets.resolveThemeAssets(ids.concat('adventurer'));
+    assert.deepEqual(urls, {
+      adventurer: 'https://cloud.example/adventurer.webp',
+      moon: '',
+      romantic: 'https://cloud.example/romantic.webp'
+    });
+    assert.equal(requests, 1);
+  } finally {
+    ids.forEach(id => { config.files[id] = originals[id]; });
+    assets.clearCache();
+  }
+});
+
+test('invalidating one theme keeps unrelated cached URLs', async () => {
+  const ids = ['adventurer', 'moon'];
+  const originals = Object.fromEntries(ids.map(id => [id, config.files[id]]));
+  ids.forEach(id => { config.files[id] = `cloud://cloud1-d2ghbskq3663254ce.bucket/themes/v1/${id}.webp`; });
+  let requests = 0;
+  global.wx = {
+    getStorageSync() { return ''; }, setStorageSync() {},
+    cloud: {
+      init() {}, callFunction() {},
+      async getTempFileURL({ fileList }) {
+        requests++;
+        return { fileList: fileList.map(fileID => ({ fileID, status: 0, tempFileURL: `https://cloud.example/${requests}/${fileID.split('/').pop()}` })) };
+      }
+    }
+  };
+  try {
+    assets.clearCache();
+    await assets.resolveThemeAssets(ids);
+    assets.invalidateThemeAsset('adventurer');
+    const urls = await assets.resolveThemeAssets(ids);
+    assert.equal(requests, 2);
+    assert.match(urls.adventurer, /\/2\/adventurer\.webp$/);
+    assert.match(urls.moon, /\/1\/moon\.webp$/);
+  } finally {
+    ids.forEach(id => { config.files[id] = originals[id]; });
+    assets.clearCache();
+  }
+});
+
 test('an unavailable cloud asset remains recoverable on the next request', async () => {
   const original = config.files.moon;
   const fileId = 'cloud://cloud1-d2ghbskq3663254ce.bucket/themes/v1/moon.webp';

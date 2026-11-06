@@ -2,10 +2,8 @@ const archive = require('../../utils/archive.js');
 const cloudSync = require('../../utils/cloud-sync.js');
 const privacy = require('../../utils/privacy.js');
 const { getTree } = require('../../utils/personality-tree.js');
-const { resolveReport } = require('../../utils/scoring.js');
 const { STAGES: ALL_STAGES } = require('../../data/trees.js');
-const catalogModule = require('../../data/tests/index.js');
-const catalog = catalogModule.default || catalogModule;
+const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
 const STAGES = ALL_STAGES.filter(stage => stage.threshold > 0);
 function formatDate(value) {
   const date = new Date(value);
@@ -23,15 +21,21 @@ Page({
   },
   onShow() {
     this._hidden = false;
+    const showRequest = this._showRequest = (this._showRequest || 0) + 1;
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/user-center/index');
     this.loadArchive();
-    this.refreshCloud();
+    const refresh = () => {
+      if (!this._hidden && showRequest === this._showRequest) return this.refreshCloud({ reuseFresh: true });
+      return null;
+    };
     try {
       const ready = getApp().globalData.cloudBackupReady;
-      if (ready && typeof ready.then === 'function') ready.then(() => {
-        if (!this._hidden) this.refreshCloud();
-      });
-    } catch (error) {}
+      if (ready && typeof ready.then === 'function') {
+        Promise.resolve(ready).then(refresh, refresh);
+        return;
+      }
+    } catch (error) { /* Fall through to the local/cloud status refresh. */ }
+    refresh();
   },
   formatSyncTime(value) {
     const date = new Date(value);
@@ -51,11 +55,16 @@ Page({
     if (state === 'synced' && status.lastSyncedAt) detail += ` · ${this.formatSyncTime(status.lastSyncedAt)}`;
     this.setData({ cloudState: state, cloudTitle: titles[state] || titles.pending, cloudDetail: detail });
   },
-  refreshCloud() {
+  refreshCloud(options = {}) {
     const request = this._cloudRequest = (this._cloudRequest || 0) + 1;
     if (!privacy.isCloudBackupEnabled()) {
       const status = cloudSync.getStatus();
       this.applyCloudStatus(status.state === 'delete_pending' ? status : Object.assign({}, status, { state: 'local', message: '云备份未开启，你可以在隐私与数据管理中重新开启。' }));
+      return Promise.resolve(status);
+    }
+    if (options.reuseFresh && typeof cloudSync.isAutoSyncFresh === 'function' && cloudSync.isAutoSyncFresh()) {
+      const status = cloudSync.getStatus();
+      this.applyCloudStatus(status);
       return Promise.resolve(status);
     }
     this.applyCloudStatus(Object.assign({}, cloudSync.getStatus(), { state: 'syncing', message: '正在合并本地与云端档案…' }));
@@ -92,13 +101,7 @@ Page({
       const records = saved.records.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
       const groups = catalog.map(test => {
         const history = records.filter(record => record.testId === test.id).map(record => {
-          let title = '早期测评结果';
-          try {
-            const report = resolveReport(test, record);
-            title = report && report.title || title;
-          } catch (error) {
-            // Preserve older records even when their scoring version has no report.
-          }
+          const title = resolveResultTitle(test.id, record) || '早期测评结果';
           const legacy = record.scoringVersion === 'legacy' || !!record.migrated;
           return {
             id: record.id, testId: test.id, title,
@@ -137,7 +140,11 @@ Page({
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
   openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
-  onHide() { this._hidden = true; this._cloudRequest = (this._cloudRequest || 0) + 1; },
+  onHide() {
+    this._hidden = true;
+    this._showRequest = (this._showRequest || 0) + 1;
+    this._cloudRequest = (this._cloudRequest || 0) + 1;
+  },
   onUnload() { this.onHide(); },
   openGrowthHistory() { wx.navigateTo({ url: '/pages/tree-history/index' }); }
 });

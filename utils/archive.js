@@ -1,7 +1,6 @@
 const { getTree } = require('./personality-tree.js');
-const testsModule = require('../data/tests/index.js');
 const { getContext } = require('./life-context.js');
-const catalog = testsModule.default || testsModule;
+const { catalog } = require('../data/test-catalog.js');
 
 const STORAGE_KEY = 'personalityTreeArchive.v1';
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -98,10 +97,16 @@ function validateAnswers(input, test) {
   if (!valid) throw storageError('答题记录不完整，无法保存到档案。');
 }
 function saveResult(input) {
-  if (!plainObject(input) || !catalog.some(test => test.id === input.testId) || !finiteScores(input.scores) || !validType(input.resultType)) {
+  const summary = plainObject(input) && catalog.find(test => test.id === input.testId);
+  if (!summary || !finiteScores(input.scores) || !validType(input.resultType)) {
     throw storageError('测评结果不完整，无法保存到档案。');
   }
-  validateAnswers(input, catalog.find(test => test.id === input.testId));
+  if (input.answers !== undefined) {
+    const testsModule = require('../data/tests/index.js');
+    const test = (testsModule.default || testsModule).find(item => item.id === input.testId);
+    if (!test) throw storageError('测评结果不完整，无法保存到档案。');
+    validateAnswers(input, test);
+  }
   if (input.lifeContext !== undefined && !getContext(input.lifeContext)) {
     throw storageError('本次状态无效，请返回重新选择。');
   }
@@ -151,6 +156,8 @@ function clearLocalArchive() {
   // The caller must stop cloud backup first, so remote data cannot refill it.
   try {
     for (const key of [STORAGE_KEY, 'testResult', 'trackLog']) wx.removeStorageSync(key);
+    // Buffered diagnostic events must not restore a log the user just deleted.
+    require('./track.js').resetLocalBuffer();
   } catch (error) {
     throw storageError('本机记录未能全部清除，请稍后重试。');
   }

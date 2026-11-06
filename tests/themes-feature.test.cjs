@@ -7,7 +7,7 @@ const { createRequire } = require('node:module');
 
 const root = path.resolve(__dirname, '..');
 const themePath = path.join(root, 'utils/themes.js');
-const videoPath = path.join(root, 'utils/rewarded-video.js');
+const videoPath = path.join(root, 'packages/reports/rewarded-video.js');
 let memory, failKey, themes;
 const completed = ids => ids.map((testId, index) => ({ testId, scoringVersion: '2', completedAt: `2026-10-${String(20 + index).padStart(2, '0')}T08:00:00.000Z` }));
 
@@ -256,7 +256,11 @@ test('a locked my-tree theme routes back to exploration without creating an ad',
   global.wx.showModal = value => value.success({ confirm: true });
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx, console,
-    require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? { resolveThemeAsset: async () => '' } : nativeRequire(name)
+    require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? {
+      resolveThemeAsset: async () => '',
+      resolveThemeAssets: async ids => Object.fromEntries(ids.map(id => [id, ''])),
+      invalidateThemeAsset() {}
+    } : nativeRequire(name)
   }, { filename: file });
   page.data = structuredClone(page.data);
   page.setData = value => Object.assign(page.data, value);
@@ -279,7 +283,11 @@ test('my-tree sharing includes only a public theme id and no private record or i
   const nativeRequire = createRequire(file);
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx, console,
-    require: name => name.endsWith('/theme-assets.js') ? { resolveThemeAsset: async () => '' } : nativeRequire(name)
+    require: name => name.endsWith('/theme-assets.js') ? {
+      resolveThemeAsset: async () => '',
+      resolveThemeAssets: async ids => Object.fromEntries(ids.map(id => [id, ''])),
+      invalidateThemeAsset() {}
+    } : nativeRequire(name)
   }, { filename: file });
   page.data = structuredClone(page.data);
   page.setData = value => Object.assign(page.data, value);
@@ -300,7 +308,11 @@ function myTreePage(records = [], assetResolver = async () => '') {
   const nativeRequire = createRequire(file);
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     Page: value => { page = value; }, wx: global.wx, console,
-    require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? { resolveThemeAsset: assetResolver } : nativeRequire(name)
+    require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? {
+      resolveThemeAsset: assetResolver,
+      resolveThemeAssets: async ids => Object.fromEntries(await Promise.all(ids.map(async id => [id, await assetResolver(id)]))),
+      invalidateThemeAsset() {}
+    } : nativeRequire(name)
   }, { filename: file });
   page.data = structuredClone(page.data);
   page.setData = value => Object.assign(page.data, value);

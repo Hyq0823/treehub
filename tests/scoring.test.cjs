@@ -114,7 +114,7 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   // Run the shared ad manager with this page's mocked WeChat runtime, as it
   // would run alongside the page in the actual mini program.
   const rewardedVideo = { exports: {} };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../utils/rewarded-video.js'), 'utf8'), {
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../packages/reports/rewarded-video.js'), 'utf8'), {
     module: rewardedVideo, wx
   });
   vm.runInNewContext(fs.readFileSync(absolute, 'utf8'), {
@@ -143,7 +143,7 @@ test('test detail defaults to an ordinary record and still allows changing the l
 test('answer page saves once, reveals the result, then redirects to the exact record', () => {
   const { page, calls, timers } = loadPage('pages/test-answer/index.js');
   page.onLoad({ id: 'ie', context: 'work' });
-  page.data.answers = page.data.questions.map(() => 0);
+  page._answers = page._questions.map(() => 0);
   page.submitTest(); page.submitTest();
   assert.equal(calls.saved.length, 1);
   assert.equal(calls.saved[0].scoringVersion, '2');
@@ -172,13 +172,13 @@ test('same-version retest comparison describes movement without ranking it as im
 test('storage failure preserves answers and allows retry without navigation', () => {
   const { page, calls } = loadPage('pages/test-answer/index.js', { saveResult: () => { throw new Error('storage full'); } });
   page.onLoad({ id: 'mbti' });
-  page.data.answers = page.data.questions.map(() => 1);
+  page._answers = page._questions.map(() => 1);
   page.submitTest();
   assert.equal(page.data.submitted, false);
   assert.equal(page.data.submitting, false);
   assert.equal(calls.redirect.length, 0);
   assert.equal(calls.modal[0].content, 'storage full');
-  assert.ok(page.data.answers.every(answer => answer === 1));
+  assert.ok(page._answers.every(answer => answer === 1));
 });
 
 test('rapid selection replaces pending timer; revisiting preserves selection; unload clears timer', () => {

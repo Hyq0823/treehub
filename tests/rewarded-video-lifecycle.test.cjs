@@ -1,7 +1,7 @@
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
-const modulePath = require.resolve('../utils/rewarded-video.js');
+const modulePath = require.resolve('../packages/reports/rewarded-video.js');
 let createRewardedVideo;
 
 function deferred() {

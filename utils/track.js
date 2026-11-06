@@ -13,27 +13,73 @@ const EVENTS = {
 };
 
 const LOG_KEY = 'trackLog';
-const MAX_LOG = 300;
+const MAX_LOG = 100;
+const FLUSH_DELAY = 300;
+const FLUSH_BATCH = 20;
+let cachedLog = null;
+let pending = [];
+let flushTimer = null;
 
-function appendLocal(eventId, params) {
+function scheduleFlush() {
+  if (flushTimer || !pending.length) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    flushLocal();
+  }, FLUSH_DELAY);
+  // Node tests and development scripts should not stay alive for diagnostic logs.
+  if (flushTimer && typeof flushTimer.unref === 'function') flushTimer.unref();
+}
+
+function readLocal() {
+  if (cachedLog) return cachedLog;
+  const saved = wx.getStorageSync(LOG_KEY);
+  cachedLog = Array.isArray(saved) ? saved.slice(-MAX_LOG) : [];
+  return cachedLog;
+}
+
+function flushLocal() {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  if (!pending.length) return;
+  const batch = pending;
+  pending = [];
   try {
-    const app = getApp();
-    const log = wx.getStorageSync(LOG_KEY) || [];
-    log.push({ e: eventId, p: params, s: app && app.globalData.enterScene || 0, t: Date.now() });
-    if (log.length > MAX_LOG) log.shift();
-    wx.setStorageSync(LOG_KEY, log);
-  } catch (err) {}
+    cachedLog = readLocal().concat(batch).slice(-MAX_LOG);
+    wx.setStorageSync(LOG_KEY, cachedLog);
+  } catch (err) {
+    // Diagnostics must never block the assessment flow. Retry only after a new
+    // event instead of spinning while device storage is unavailable.
+    cachedLog = null;
+  }
+}
+
+function appendLocal(eventId, params, scene) {
+  pending.push({ e: eventId, p: params, s: scene, t: Date.now() });
+  if (pending.length >= FLUSH_BATCH) flushLocal();
+  else scheduleFlush();
 }
 
 function report(eventId, params) {
-  const app = getApp();
-  const payload = { enterScene: (app && app.globalData.enterScene) || 0 };
+  let scene = 0;
+  try {
+    const app = getApp();
+    scene = app && app.globalData.enterScene || 0;
+  } catch (error) {}
+  const payload = { enterScene: scene };
   // Product counts need neither individual choices nor personality/result IDs.
   ['testId', 'reachedIndex', 'totalCount', 'unanswered'].forEach(key => {
     if (params && params[key] !== undefined) payload[key] = params[key];
   });
-  appendLocal(eventId, payload);
-
+  appendLocal(eventId, payload, scene);
 }
 
-module.exports = { EVENTS, report };
+function resetLocalBuffer() {
+  if (flushTimer) clearTimeout(flushTimer);
+  cachedLog = null;
+  pending = [];
+  flushTimer = null;
+}
+
+module.exports = { EVENTS, report, flushLocal, resetLocalBuffer, resetForTests: resetLocalBuffer };

@@ -10,7 +10,7 @@ const catalog = require('../data/tests/index.js').default;
 
 const root = path.resolve(__dirname, '..');
 const helperPath = path.join(root, 'packages/reports/premium-access.js');
-const videoPath = path.join(root, 'utils/rewarded-video.js');
+const videoPath = path.join(root, 'packages/reports/rewarded-video.js');
 const pagePath = path.join(root, 'packages/reports/index.js');
 let memory, writeFailure, calls;
 

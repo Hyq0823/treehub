@@ -20,8 +20,20 @@ Page({
       const test = testList.find(t => t.id === testId);
       if (!test) throw new Error('没有找到这项测试，请返回探索页重新选择。');
       const displayName = display.tests[testId] && display.tests[testId].title || test.name;
+      // Questions, reports and scoring rules stay in the service layer. Sending
+      // the complete test through setData makes the view layer serialize tens of
+      // kilobytes even though this page only renders the summary below.
+      const summary = {
+        id: test.id,
+        name: test.name,
+        displayName,
+        icon: test.icon,
+        description: test.description,
+        questionsCount: test.questionsCount,
+        time: test.time
+      };
       this.setData({
-        test: Object.assign({}, test, { displayName }), error: '',
+        test: summary, error: '',
         hasHistory: archive.getRecords(testId).some(record => record.scoringVersion !== 'legacy')
       });
       if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: displayName });

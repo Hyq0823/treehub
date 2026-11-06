@@ -8,7 +8,7 @@
   <view wx:if="{{!error}}" wx:for="{{snapshots}}" wx:key="id" class="snapshot-card {{item.isRing ? 'year-ring-card' : ''}}">
     <view class="snapshot-heading"><view class="snapshot-number-wrap"><view wx:if="{{item.isRing}}" class="ring-symbol"><view></view><view></view></view><text class="snapshot-number">{{item.isRing ? '第 ' + item.ringNumber + ' 圈年轮' : '第 ' + item.number + ' 次探索'}}</text></view><text class="snapshot-date">{{item.date}}</text></view>
     <view wx:if="{{item.contextLabel}}" class="context-badge">{{item.contextLabel}}时的我</view>
-    <view class="snapshot-art" wx:if="{{item.tree}}"><personality-tree tree="{{item.tree}}" size="large" /></view>
+    <view class="snapshot-art" wx:if="{{item.tree}}"><personality-tree tree="{{item.tree}}" size="large" animated="{{false}}" /></view>
     <view wx:if="{{item.tree}}" class="snapshot-name">{{item.tree.name}}<text>{{item.tree.stage.name}}</text></view>
     <view wx:else class="missing-snapshot">这份早期记录尚未保存树形快照。</view>
     <view class="snapshot-meaning" wx:if="{{item.tree.meaning}}">{{item.tree.meaning}}</view>
@@ -17,5 +17,6 @@
     <view wx:if="{{item.tree.restoredFromSummary}}" class="legacy-note">由云端结果摘要还原的成长意象，并非当时截图</view>
     <view class="snapshot-footer" data-id="{{item.id}}" data-test-id="{{item.testId}}" bindtap="openReport" role="button"><text>{{item.testName}}</text><text>回看当时的报告 →</text></view>
   </view>
+  <button wx:if="{{hasMore && !error}}" class="load-more" bindtap="loadMore">继续查看余下 {{totalCount - snapshots.length}} 条</button>
   <view wx:if="{{snapshots.length && !error}}" class="local-note">状态标签和当时的树形快照仅保留在本机。不同测评或评分版本的结果不会直接比较。</view>
 </view>

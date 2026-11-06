@@ -3,7 +3,7 @@ const archive = require('../../utils/archive.js');
 const { resolveReport, SCORING_VERSION } = require('../../utils/scoring.js');
 const { buildDeepReport, basicDimensions, buildComparison } = require('./deep-report.js');
 const { rewardedReport: REWARDED_AD_UNIT_ID } = require('./ads.js');
-const { createRewardedVideo } = require('../../utils/rewarded-video.js');
+const { createRewardedVideo } = require('./rewarded-video.js');
 const premiumAccess = require('./premium-access.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 
@@ -61,6 +61,7 @@ Page({
   onLoad(options) {
     this._disposed = false;
     this._themeRequest = 0;
+    this._starterShareCache = Object.create(null);
     try {
       const imported = require('../../data/tests/index.js');
       const test = (imported.default || imported).find(item => item.id === options.id);
@@ -147,18 +148,54 @@ Page({
     const starterImages = Object.fromEntries(pairs);
     this.setData({ starterImages, starterImage: starterImages[this.data.starterThemeId] || '' });
     const current = starterThemes.find(item => item.id === this.data.starterThemeId);
-    if (current && starterImages[current.id]) this.prepareStarterShare(current, starterImages[current.id]);
+    if (current && starterImages[current.id]) this.scheduleStarterShare(current, starterImages[current.id]);
   },
-  async prepareStarterShare(theme, heroUrl) {
+  scheduleStarterShare(theme, heroUrl) {
+    if (this._disposed || !this.data.starterReveal || !theme || !heroUrl) return;
+    const key = `${theme.id}:${heroUrl}`;
+    const cached = this._starterShareCache && this._starterShareCache[key];
+    if (cached) {
+      if (this.data.starterThemeId === theme.id && this.data.starterShareImage !== cached) {
+        this.setData({ starterShareImage: cached });
+      }
+      return;
+    }
+    if (this._starterShareKey === key && (this._starterShareTimer || this._starterShareBuilding)) return;
+    this.cancelStarterShareTimer();
+    this._starterShareKey = key;
+    // Sharing is optional. Keep Canvas work out of the report's first paint and
+    // fall back to the bundled 5:4 cover when someone shares immediately.
+    this._starterShareTimer = setTimeout(() => {
+      this._starterShareTimer = null;
+      if (this._disposed || !this.data.starterReveal || this.data.starterThemeId !== theme.id) return;
+      this.prepareStarterShare(theme, heroUrl, key);
+    }, 1500);
+  },
+  cancelStarterShareTimer(invalidate = false) {
+    if (this._starterShareTimer) clearTimeout(this._starterShareTimer);
+    this._starterShareTimer = null;
+    if (invalidate) {
+      this._starterShareRequest = (this._starterShareRequest || 0) + 1;
+      this._starterShareBuilding = '';
+      this._starterShareKey = '';
+    }
+  },
+  async prepareStarterShare(theme, heroUrl, cacheKey = `${theme.id}:${heroUrl}`) {
+    if (this._disposed || this._starterShareBuilding === cacheKey) return;
     const request = this._starterShareRequest = (this._starterShareRequest || 0) + 1;
+    this._starterShareBuilding = cacheKey;
     try {
       const starterShareImage = await buildShareCard(this, {
         selector: '#starterShareCanvas', heroUrl, title: theme.name,
         subtitle: theme.quote, pale: theme.pale, color: theme.color
       });
-      if (!this._disposed && request === this._starterShareRequest && this.data.starterThemeId === theme.id) this.setData({ starterShareImage });
+      if (this._disposed || request !== this._starterShareRequest) return;
+      this._starterShareCache[cacheKey] = starterShareImage;
+      if (this.data.starterThemeId === theme.id) this.setData({ starterShareImage });
     } catch (error) {
       // The bundled 5:4 cover remains available if Canvas is not ready.
+    } finally {
+      if (this._starterShareBuilding === cacheKey) this._starterShareBuilding = '';
     }
   },
   claimStarterTheme() {
@@ -172,8 +209,8 @@ Page({
       this.setData({ starterBusy: false, starterError: error.message || '树与伙伴暂时未能收藏，请重试。' });
     }
   },
-  closeStarterReveal() { this.setData({ starterReveal: false }); },
-  openStarterTree() { this.setData({ starterReveal: false }); wx.switchTab({ url: '/pages/my-tree/index' }); },
+  closeStarterReveal() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); },
+  openStarterTree() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); wx.switchTab({ url: '/pages/my-tree/index' }); },
   async loadReportTheme() {
     const request = ++this._themeRequest;
     try {
@@ -268,9 +305,9 @@ Page({
   },
   onUnload() {
     this._disposed = true;
+    this.cancelStarterShareTimer(true);
     this._themeRequest++;
     this._starterRequest = (this._starterRequest || 0) + 1;
-    this._starterShareRequest = (this._starterShareRequest || 0) + 1;
     if (this._rewardedVideo) this._rewardedVideo.dispose();
   },
   retakeTest() {

@@ -5,6 +5,7 @@ const privacy = require('./privacy.js');
 const STATE_KEY = 'personalityTreeCloudSync.v1';
 const PUSH_BATCH_SIZE = 20;
 const PULL_PAGE_SIZE = 100;
+const AUTO_SYNC_FRESH_MS = 5 * 60 * 1000;
 let initialized = false;
 let inFlight = null;
 let syncTimer = null;
@@ -173,9 +174,18 @@ function syncArchive() {
   return inFlight;
 }
 
-function schedule(delay = 800) {
+function recentlySynced() {
+  const status = readState();
+  const syncedAt = Date.parse(status.lastSyncedAt || '');
+  return status.state === 'synced' && Number.isFinite(syncedAt) && Date.now() - syncedAt < AUTO_SYNC_FRESH_MS;
+}
+
+function schedule(delay = 800, options = {}) {
   if (!privacy.isCloudBackupEnabled()) return;
   if (typeof wx === 'undefined' || !wx.cloud || !wx.cloud.callFunction) return;
+  // Foreground resumes only need to refresh stale cloud data. Local archive and
+  // theme writes call schedule() without this option and therefore always sync.
+  if (options.ifStale && (inFlight || recentlySynced())) return;
   if (inFlight) {
     rerunRequested = true;
     return;
@@ -183,6 +193,7 @@ function schedule(delay = 800) {
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
     syncTimer = null;
+    if (options.ifStale && recentlySynced()) return;
     syncArchive();
   }, delay);
 }
@@ -252,5 +263,6 @@ async function exportCloudData() {
 
 module.exports = {
   STATE_KEY, start, schedule, syncArchive, getStatus, stop,
-  initializePublicAssets, deleteCloudData, exportCloudData, summaryRecord
+  initializePublicAssets, deleteCloudData, exportCloudData, summaryRecord,
+  isAutoSyncFresh: recentlySynced
 };
