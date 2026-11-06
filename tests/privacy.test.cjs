@@ -44,6 +44,35 @@ test('refusing native WeChat privacy authorization does not turn on backup', asy
   assert.equal(privacy.isCloudBackupEnabled(), false);
 });
 
+test('first launch enables backup after native WeChat privacy authorization', async () => {
+  let prompts = 0;
+  const { privacy } = fixture({ requirePrivacyAuthorize: options => { prompts += 1; options.success({}); } });
+  assert.equal(await privacy.enableCloudBackupByDefault(), true);
+  assert.equal(privacy.isCloudBackupEnabled(), true);
+  assert.equal(prompts, 1);
+  assert.equal(await privacy.enableCloudBackupByDefault(), true);
+  assert.equal(prompts, 1, 'an enabled account is not prompted again');
+});
+
+test('declining default backup keeps local mode and does not repeatedly prompt', async () => {
+  let prompts = 0;
+  const { privacy } = fixture({ requirePrivacyAuthorize: options => { prompts += 1; options.fail({ errMsg: 'user declined' }); } });
+  assert.equal(await privacy.enableCloudBackupByDefault(), false);
+  assert.equal(await privacy.enableCloudBackupByDefault(), false);
+  assert.equal(privacy.isCloudBackupEnabled(), false);
+  assert.equal(prompts, 1);
+});
+
+test('an explicitly disabled backup is never automatically re-enabled', async () => {
+  let prompts = 0;
+  const { privacy } = fixture({ requirePrivacyAuthorize: options => { prompts += 1; options.success({}); } });
+  privacy.setCloudBackup(true);
+  privacy.revokeCloudBackup();
+  assert.equal(await privacy.enableCloudBackupByDefault(), false);
+  assert.equal(privacy.isCloudBackupEnabled(), false);
+  assert.equal(prompts, 0);
+});
+
 test('an older WeChat without privacy APIs can continue locally and cannot silently enable native authorization', async () => {
   const { privacy } = fixture();
   await assert.rejects(privacy.authorizeWeChatPrivacy(), /升级微信/);

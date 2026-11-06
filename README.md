@@ -1,12 +1,12 @@
 # 人格测试树
 
-微信原生小程序。面向喜欢自我探索与精致数字收藏的用户，提供六套测试、九套树与双伙伴主题、历史报告和自愿云备份。逐题原始答案仅留本机；云备份默认关闭。
+微信原生小程序。面向喜欢自我探索与精致数字收藏的用户，提供六套测试、九套树与双伙伴主题、历史报告和云备份。逐题原始答案仅留本机；微信隐私授权通过后默认备份结果摘要，用户可随时关闭。
 
 ## 开发与验证
 
 使用微信开发者工具导入本目录，沿用 `project.config.json` 中的项目配置。底部标签页为「探索｜我的树｜档案」。当前云机器没有微信开发者工具，原生布局、广告、平台隐私授权与海报需在真机验收。
 
-云环境 ID 为 `cloud1-d2ghbskq3663254ce`。十个主题素材 File ID 已写入 `config/theme-assets.js`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。用户明确开启备份后才会同步，网络失败保留本机记录。
+云环境 ID 为 `cloud1-d2ghbskq3663254ce`。十个主题素材 File ID 已写入 `config/theme-assets.js`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。微信隐私授权通过后自动同步结果摘要，拒绝授权、主动关闭或网络失败时保留本机记录。
 
 发布前执行 `node scripts/check-release.cjs`。素材云 ID 已通过静态检查；真实运营主体及联系方式尚未配置，因此当前检查仍会有意失败。代码不会虚构备案资料。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
 
@@ -51,8 +51,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 ## 数据与扩展
 
 - `utils/archive.js`：单键 `personalityTreeArchive.v1` 保存版本化档案、设备种子、规范题号答案、分数、结果、日期与树形快照。写入失败保留页面答案；格式异常停止写入，不自动重置。旧版 `testResult` 仅迁移一次，并保留原键；旧版错误空分数不展示为新版有效报告。
-- `utils/privacy.js` 与 `pages/privacy/`：政策版本、单独备份选择、微信平台隐私授权、关闭备份、导出及删除。拒绝备份不影响本地测评。
-- `utils/cloud-sync.js`：仅在明确同意后上传结果摘要与主题权益；不上传 answers 或 treeSnapshot。历史本机快照保留，新设备用摘要还原并标明成长意象。
+- `utils/privacy.js` 与 `pages/privacy/`：微信平台隐私授权、默认备份初始化与关闭备份。拒绝授权或主动关闭不影响本地测评。
+- `utils/cloud-sync.js`：微信隐私授权通过且备份未关闭时上传结果摘要与主题权益；不上传 answers 或 treeSnapshot。历史本机快照保留，新设备用摘要还原并标明成长意象。
 - `cloudfunctions/treehub-api`：OpenID 隔离、授权版本、白名单、事务写入与防止删除后旧请求重传的撤回标记；客户端禁止直接访问数据库。
 - `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益；`utils/rewarded-video.js` 仅保留旧版主题收据兼容。报告与主题使用独立的存储键和完成回调。
 - `utils/theme-assets.js`、`config/theme-assets.js`：按需解析云文件；九套新美术不进入应用包。管理端上传与配置导入脚本在 `scripts/`，不随小程序发布。
@@ -67,6 +67,6 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `pages/tree-history/`：每次测评的树形历史；不会用当前结果重算过去的快照。
 - `packages/reports/`：报告页与 SBTI 结果图片所在分包，打开报告时由微信按需加载。应用内链接直接进入分包；旧的 `pages/test-result/index` 地址保留轻量跳转，继续支持已有报告链接与记录 ID。
 
-默认只有本机档案。用户分别同意政策、微信平台指引并开启云备份后，才关联当前微信账号保存结果摘要、版本、时间、树种子和权益。原始逐题选项不上传，不向第三方分析服务发送分数或结果。关闭备份停止同步；已有云数据可单独删除；失败的删除保留重试入口。
+微信隐私授权通过后，云备份默认关联当前微信账号保存结果摘要、版本、时间、树种子和权益；拒绝授权或主动关闭时只保存在本机。原始逐题选项不上传，不向第三方分析服务发送分数或结果。关闭备份后停止新的上传与拉取。
 
 `app.json` 使用 `lazyCodeLoading: "requiredComponents"` 按需注入组件。`project.config.json` 将云函数目录单独配置，并把文档和测试目录排除出小程序包。包体检查分别计算主包与分包，主包源文件预算为 1.4 MB、每张运行图片预算为 200 KB，给微信编译产物留出余量。

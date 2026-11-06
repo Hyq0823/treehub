@@ -1,7 +1,7 @@
 <view class="privacy-page">
   <view class="eyebrow">YOUR CHOICES MATTER</view>
   <view class="page-title">数据，由你决定</view>
-  <view class="lead">不打开云备份，也可以完成测试、查看报告和收藏主题。</view>
+  <view class="lead">云备份默认开启，换设备后也能找回报告、主题与年轮。</view>
 
   <view class="panel choice-panel">
     <view class="panel-title">我的数据选择</view>
@@ -17,12 +17,4 @@
   </view>
 
   <view wx:if="{{message}}" class="message" aria-role="alert">{{message}}</view>
-
-  <view class="panel">
-    <view class="panel-title">导出与删除</view>
-    <view class="body-copy">导出只在你主动操作时生成文件。关闭备份不会自动删除已有云端内容。</view>
-    <view class="action-grid"><button class="secondary" bindtap="exportLocal" disabled="{{busy}}">导出本机数据</button><button class="secondary" bindtap="exportCloud" disabled="{{busy}}">导出云端数据</button></view>
-    <button class="danger" bindtap="deleteCloud" disabled="{{busy}}">{{cloudStatus.state === 'delete_pending' ? '重试删除云端数据' : '删除云端数据'}}</button>
-    <button class="danger subtle" bindtap="deleteLocal" disabled="{{busy}}">删除本机档案与主题收藏</button>
-  </view>
 </view>

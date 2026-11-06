@@ -18,12 +18,19 @@ Page({
     loaded: false, error: '', tree: null, groups: [], stages: [], expandedTests: {},
     totalCount: 0, uniqueCount: 0, repeatCount: 0, catalogCount: catalog.length,
     coveragePercent: 0, evidence: [],
-    cloudState: 'local', cloudTitle: '测评记录仅保存在本机', cloudDetail: '是否启用云备份，由你选择。'
+    cloudState: 'syncing', cloudTitle: '正在准备云备份', cloudDetail: '云备份默认开启，原始逐题答案仍只保存在本机。'
   },
   onShow() {
+    this._hidden = false;
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/user-center/index');
     this.loadArchive();
     this.refreshCloud();
+    try {
+      const ready = getApp().globalData.cloudBackupReady;
+      if (ready && typeof ready.then === 'function') ready.then(() => {
+        if (!this._hidden) this.refreshCloud();
+      });
+    } catch (error) {}
   },
   formatSyncTime(value) {
     const date = new Date(value);
@@ -39,7 +46,7 @@ Page({
       local: '测评记录仅保存在本机', disabled: '测评记录仅保存在本机', paused: '云备份已暂停',
       delete_pending: '云端数据删除待完成'
     };
-    let detail = status && status.message || '是否启用云备份，由你选择。';
+    let detail = status && status.message || '云备份默认开启，原始逐题答案仍只保存在本机。';
     if (state === 'synced' && status.lastSyncedAt) detail += ` · ${this.formatSyncTime(status.lastSyncedAt)}`;
     this.setData({ cloudState: state, cloudTitle: titles[state] || titles.pending, cloudDetail: detail });
   },
@@ -47,7 +54,7 @@ Page({
     const request = this._cloudRequest = (this._cloudRequest || 0) + 1;
     if (!privacy.isCloudBackupEnabled()) {
       const status = cloudSync.getStatus();
-      this.applyCloudStatus(status.state === 'delete_pending' ? status : Object.assign({}, status, { state: 'local', message: '云备份默认关闭。你可以在隐私与数据管理中自主开启。' }));
+      this.applyCloudStatus(status.state === 'delete_pending' ? status : Object.assign({}, status, { state: 'local', message: '云备份未开启，你可以在隐私与数据管理中重新开启。' }));
       return;
     }
     this.applyCloudStatus(Object.assign({}, cloudSync.getStatus(), { state: 'syncing', message: '正在合并本地与云端档案…' }));
@@ -112,6 +119,7 @@ Page({
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
   openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
-  onUnload() { this._cloudRequest = (this._cloudRequest || 0) + 1; },
+  onHide() { this._hidden = true; this._cloudRequest = (this._cloudRequest || 0) + 1; },
+  onUnload() { this.onHide(); },
   openGrowthHistory() { wx.navigateTo({ url: '/pages/tree-history/index' }); }
 });

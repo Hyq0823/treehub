@@ -3,7 +3,8 @@ const policy = require('../config/privacy.js');
 const SETTINGS_KEY = 'personalityTreePrivacy.v1';
 const defaults = () => ({
   schemaVersion: 1, policyVersion: '', acceptedAt: '', cloudBackup: false,
-  cloudConsentId: '', cloudAcceptedAt: '', revision: 0
+  cloudConsentId: '', cloudAcceptedAt: '', revision: 0,
+  cloudPreference: '', cloudDefaultAttempted: false
 });
 
 function getSettings() {
@@ -12,6 +13,10 @@ function getSettings() {
   const valid = stored && stored.schemaVersion === 1 && typeof stored === 'object';
   const value = Object.assign(defaults(), valid ? stored : {});
   value.revision = Number.isSafeInteger(value.revision) && value.revision >= 0 ? value.revision : 0;
+  if (!value.cloudPreference && value.cloudBackup === false && value.cloudConsentId) {
+    value.cloudPreference = 'disabled';
+    value.cloudDefaultAttempted = true;
+  }
   value.policyAccepted = value.policyVersion === policy.policyVersion && typeof value.acceptedAt === 'string' && Number.isFinite(Date.parse(value.acceptedAt));
   value.cloudBackup = value.policyAccepted && value.cloudBackup === true && typeof value.cloudConsentId === 'string' &&
     /^[a-zA-Z0-9_-]{16,160}$/.test(value.cloudConsentId) && typeof value.cloudAcceptedAt === 'string' && Number.isFinite(Date.parse(value.cloudAcceptedAt));
@@ -39,6 +44,7 @@ function setCloudBackup(enabled) {
   return save({
     policyVersion: policy.policyVersion, acceptedAt,
     cloudBackup: true,
+    cloudPreference: 'enabled', cloudDefaultAttempted: true,
     cloudConsentId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 14)}`,
     cloudAcceptedAt: acceptedAt, revision: current.revision + 1
   });
@@ -47,7 +53,7 @@ function setCloudBackup(enabled) {
 function revokeCloudBackup() {
   const current = getSettings();
   // Keep the last consent ID until deletion is complete, so a failed deletion can be retried.
-  return save({ cloudBackup: false, revision: current.revision + 1 });
+  return save({ cloudBackup: false, cloudPreference: 'disabled', cloudDefaultAttempted: true, revision: current.revision + 1 });
 }
 
 function isCloudBackupEnabled() { return getSettings().cloudBackup; }
@@ -77,7 +83,23 @@ function authorizeWeChatPrivacy() {
   });
 }
 
+async function enableCloudBackupByDefault() {
+  const current = getSettings();
+  if (current.cloudBackup) return true;
+  if (current.cloudPreference === 'disabled' || current.cloudDefaultAttempted) return false;
+  try { save({ cloudDefaultAttempted: true }); }
+  catch (error) { return false; }
+  try {
+    await authorizeWeChatPrivacy();
+    setCloudBackup(true);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 module.exports = {
   SETTINGS_KEY, POLICY_CONFIG: policy, getSettings, acceptPolicy, setCloudBackup,
-  revokeCloudBackup, isCloudBackupEnabled, getCloudConsent, authorizeWeChatPrivacy
+  revokeCloudBackup, isCloudBackupEnabled, getCloudConsent, authorizeWeChatPrivacy,
+  enableCloudBackupByDefault
 };
