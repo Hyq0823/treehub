@@ -298,6 +298,16 @@ function myTreePage(records = [], assetResolver = async () => '') {
   return page;
 }
 
+test('my-tree initially resolves only the visible atlas batch and current hero', async () => {
+  const requested = [];
+  const page = myTreePage([], async id => { requested.push(id); return `https://example.com/${id}.webp`; });
+  page.onLoad({}); page.onShow();
+  await new Promise(done => setImmediate(done));
+  assert.deepEqual([...new Set(requested)].sort(), ['adventurer', 'moon', 'romantic']);
+  assert.equal(requested.includes('aurora'), false);
+  page.onUnload();
+});
+
 test('unknown visitor aurora link cannot request hidden art or export an owned poster', async () => {
   const requested = [], dialogs = [];
   global.wx.showModal = value => dialogs.push(value);

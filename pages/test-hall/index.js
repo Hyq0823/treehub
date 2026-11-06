@@ -44,6 +44,8 @@ Page({
     this._hidden = false;
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/test-hall/index');
     this.loadTests();
+    const observe = () => { if (!this._hidden) this.setupCardObserver(); };
+    if (wx.nextTick) wx.nextTick(observe); else observe();
   },
   loadTests() {
     try {
@@ -87,7 +89,6 @@ Page({
         filteredCards: this.data.category === 'all' ? cards : cards.filter(c => c.category === this.data.category)
       });
       this.loadThemeImage(themeId);
-      this.loadCardImages(cards);
     } catch (error) {
       this.setData({ error: '暂时无法读取本机档案。请重试，你的记录不会被自动覆盖。' });
     }
@@ -115,19 +116,31 @@ Page({
       if (!this._hidden && request === this._shareRequest && this.data.themeId === themeId) this.setData({ shareImagePath });
     } catch (error) { /* Keep the bundled 5:4 share cover. */ }
   },
-  loadCardImages(cards) {
-    const request = this._cardAssetRequest = (this._cardAssetRequest || 0) + 1;
-    this._cardImages = this._cardImages || {};
-    cards.forEach(card => {
-      Promise.resolve(themeAssets.resolveThemeAsset(card.artThemeId)).then(url => {
-        if (!url || this._hidden || request !== this._cardAssetRequest) return;
-        this._cardImages[card.id] = url;
-        const next = this.data.cards.map(item => item.id === card.id ? Object.assign({}, item, { image: url }) : item);
-        this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
-      }).catch(() => {});
+  setupCardObserver() {
+    if (this._cardObserver) this._cardObserver.disconnect();
+    this._cardObserver = null;
+    if (!this.createIntersectionObserver) return;
+    const observer = this.createIntersectionObserver({ observeAll: true });
+    this._cardObserver = observer;
+    observer.relativeToViewport({ bottom: 160 }).observe('.test-art', entry => {
+      if (!this._hidden && entry && entry.intersectionRatio > 0 && entry.dataset) this.loadCardImage(entry.dataset.id);
     });
   },
-  retryThemeImage() { this.loadThemeImage(this.data.themeId); this.loadCardImages(this.data.cards); },
+  loadCardImage(testId) {
+    const card = this.data.cards.find(item => item.id === testId);
+    if (!card || card.image) return;
+    this._cardImages = this._cardImages || {};
+    this._cardPending = this._cardPending || new Set();
+    if (this._cardImages[testId] || this._cardPending.has(testId)) return;
+    this._cardPending.add(testId);
+    Promise.resolve(themeAssets.resolveThemeAsset(card.artThemeId)).then(url => {
+      if (!url || this._hidden) return;
+      this._cardImages[testId] = url;
+      const next = this.data.cards.map(item => item.id === testId ? Object.assign({}, item, { image: url }) : item);
+      this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
+    }).catch(() => {}).finally(() => this._cardPending.delete(testId));
+  },
+  retryThemeImage() { this.loadThemeImage(this.data.themeId); },
   themeImageFailed(event) {
     if (event.currentTarget.dataset.theme === this.data.themeId) this.setData({ themeImage: '', artState: 'unavailable' });
   },
@@ -137,7 +150,13 @@ Page({
     const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
   },
-  onHide() { this._hidden = true; this._themeAssetRequest = (this._themeAssetRequest || 0) + 1; this._cardAssetRequest = (this._cardAssetRequest || 0) + 1; this._shareRequest = (this._shareRequest || 0) + 1; },
+  onHide() {
+    this._hidden = true;
+    this._themeAssetRequest = (this._themeAssetRequest || 0) + 1;
+    this._shareRequest = (this._shareRequest || 0) + 1;
+    if (this._cardObserver) this._cardObserver.disconnect();
+    this._cardObserver = null;
+  },
   onUnload() { this.onHide(); },
   selectCategory(event) {
     const category = event.currentTarget.dataset.id;

@@ -24,7 +24,8 @@ button { margin: 0; }button::after { border: 0; }
 
 .section-caption { display: flex; align-items: center; gap: 10rpx; }.filter-chevron { width: 10rpx; height: 10rpx; border-right: 2rpx solid #7396c4; border-bottom: 2rpx solid #7396c4; transform: rotate(45deg); margin-top: -4rpx; }.filter-open { transform: rotate(225deg); margin-top: 6rpx; }
 
-.welcome-art image { animation: hall-tree-drift 7s ease-in-out infinite; }.welcome-art image, .tree-shortcut, .explore-card { will-change: transform; }
+.welcome-art image { animation: hall-tree-drift 7s ease-in-out infinite; will-change: transform; }
 @keyframes hall-tree-drift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5rpx); } }
 @media (prefers-reduced-motion: reduce) { .welcome-art image { animation: none; } }
 .share-canvas { position:fixed; left:-3000px; top:0; width:500px; height:400px; pointer-events:none; }
+.async-image-hidden { opacity:0; pointer-events:none; }.async-image-ready { opacity:1; }.async-placeholder-hidden { visibility:hidden; opacity:0; pointer-events:none; }

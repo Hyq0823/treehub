@@ -46,6 +46,8 @@ Page({
     this._assetRequest = 0;
     this._galleryRequest = 0;
     this._galleryUrls = {};
+    this._galleryCatalog = [];
+    this._galleryVisibleCount = 3;
     this._posterRequest = 0;
     this._shareRequest = 0;
   },
@@ -79,6 +81,7 @@ Page({
         };
       });
       const count = state.uniqueCount;
+      this._galleryCatalog = state.catalog;
       const localPreview = typeof previewId === 'string' && !!previewId && previewId !== state.selectedId;
       this.setData({
         loaded: true, error: '', state, current,
@@ -100,7 +103,7 @@ Page({
         this._assetRequest++;
         this.setData({ heroUrl: '', imageLoading: false, assetError: false });
       } else this.loadHero(current.id);
-      this.loadGalleryAssets(state.catalog);
+      this.loadGalleryAssets(state.catalog.slice(0, this._galleryVisibleCount).concat(current));
       if (this.data.tab === 'companions' && current.discovered) this.loadCompanionSprite();
     } catch (error) {
       this.setData({ loaded: true, error: error.message || '暂时无法读取你的主题收藏。' });
@@ -108,7 +111,8 @@ Page({
   },
   async loadGalleryAssets(catalog) {
     const request = ++this._galleryRequest;
-    const resolved = await Promise.all(catalog.filter(theme => theme.discovered).map(async theme => {
+    const unique = Array.from(new Map(catalog.map(theme => [theme.id, theme])).values());
+    const resolved = await Promise.all(unique.filter(theme => theme.discovered && !this._galleryUrls[theme.id]).map(async theme => {
       try {
         const url = await assets.resolveThemeAsset(theme.id);
         return url ? [theme.id, url] : null;
@@ -119,6 +123,11 @@ Page({
     // Update the whole atlas once. Replacing image/text branches repeatedly in
     // concurrent callbacks can trip WeChat's removeTextView renderer error.
     this.setData({ gallery: this.data.gallery.map(item => Object.assign({}, item, { thumbnailUrl: this._galleryUrls[item.id] || '' })) });
+  },
+  loadMoreGallery() {
+    if (!this._galleryCatalog.length || this._galleryVisibleCount >= this._galleryCatalog.length) return;
+    this._galleryVisibleCount = Math.min(this._galleryCatalog.length, this._galleryVisibleCount + 3);
+    this.loadGalleryAssets(this._galleryCatalog.slice(0, this._galleryVisibleCount));
   },
   async loadHero(themeId) {
     const request = ++this._assetRequest;
@@ -181,6 +190,8 @@ Page({
   openThemePicker() {
     if (!this.data.loaded || this.data.busy || this.data.saving) return;
     this.setData({ pickerOpen: true });
+    if (this._galleryVisibleCount < 6) this._galleryVisibleCount = Math.min(6, this._galleryCatalog.length);
+    this.loadGalleryAssets(this._galleryCatalog.slice(0, this._galleryVisibleCount));
   },
   closeThemePicker() { this.setData({ pickerOpen: false }); },
   keepPickerOpen() {},
