@@ -157,6 +157,9 @@ test('all registered pages, components and packaged assets exist within main-pac
     }
   }
   const project = JSON.parse(fs.readFileSync(path.join(root, 'project.config.json')));
+  assert.ok(project.packOptions.include.some(item =>
+    item.type === 'folder' && item.value === 'assets/tests'),
+  'dynamically referenced test fallbacks must be explicitly included for real-device packages');
   const cloudRoot = String(project.cloudfunctionRoot || '').replace(/\/$/, '');
   const excluded = ['.git', cloudRoot, ...project.packOptions.ignore.map(item => item.value)].filter(Boolean);
   const files = [];

@@ -5,6 +5,11 @@ const root = path.resolve(__dirname, '..');
 const { validateRuntimeDependencies } = require('./runtime-dependencies.cjs');
 const issues = validateRuntimeDependencies(root);
 const assets = require('../config/theme-assets.js');
+const project = require('../project.config.json');
+const packagedFolders = project.packOptions && project.packOptions.include || [];
+if (!packagedFolders.some(item => item.type === 'folder' && item.value === 'assets/tests')) {
+  issues.push('动态引用的测试兜底图目录未显式加入真机代码包');
+}
 if (!/^v[1-9]\d*$/.test(assets.assetRelease || '')) issues.push('主题素材缺少有效的独立发布版本');
 for (const [id, fileId] of Object.entries(assets.files)) {
   if (typeof fileId !== 'string' || !fileId.startsWith(`cloud://${assets.environmentId}.`) ||
