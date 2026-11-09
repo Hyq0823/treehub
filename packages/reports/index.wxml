@@ -64,7 +64,7 @@
       <scroll-view scroll-x class="priority-order-scroll" show-scrollbar="{{false}}">
         <view class="priority-order-grid" style="width:{{rankingGridWidth}}rpx; grid-template-columns:repeat({{rankingProfile.length}}, 104rpx);">
           <view wx:for="{{rankingProfile}}" wx:key="id" class="priority-order-item">
-            <view class="priority-order-visual"><image src="{{item.image}}" mode="aspectFit"/><text>{{item.rank}}</text></view>
+            <view class="priority-order-visual"><image wx:if="{{item.image}}" src="{{item.image}}" mode="aspectFit"/><view wx:else class="priority-order-placeholder">✦</view><text>{{item.rank}}</text></view>
             <view class="priority-order-label">{{item.label}}</view>
             <view wx:if="{{index < rankingProfile.length - 1}}" class="priority-order-arrow">→</view>
           </view>

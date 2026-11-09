@@ -62,7 +62,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `data/themes.js`、`utils/themes.js`：九主题、首测推荐、探索成长和主题权益。报告与主题使用独立的存储键和完成回调。
 - `packages/reports/rewarded-video.js`：激励视频管理器与报告页同属报告分包，避免主包包含仅由分包使用的脚本。按广告位管理整个小程序会话，仅在用户点击后创建。正常播放结束后复用实例；页面退出只撤销该页的回调，等待当前视频结束。失败时使用独立实例重试，旧回调不能解锁其他报告；页面和广告回调均不调用原生 `destroy()`。
 - `utils/theme-assets.js`、`config/theme-assets.js`：按需解析云文件；九套新美术不进入应用包。管理端上传与配置导入脚本在 `scripts/`，不随小程序发布。
-- `utils/public-assets.js`：解析 `public/v2/tests/<test-id>/` 下的通用测试插图。新增素材只需上传并配置安全相对路径，不需要逐文件修改云函数；题库可保留压缩后的本地图作为断网兜底。
+- `utils/public-assets.js`：解析 `public/v2/tests/<test-id>/` 下的通用测试插图。新增素材只需上传并配置安全相对路径，不需要逐文件修改云函数；测试业务图片禁止放入本地代码包，加载失败时显示轻量 CSS 占位。
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果；`weighted-ranking` 策略按配置权重汇总完整排序，并校验每轮题目和维度集合。
 - `packages/reports/deep-report.js`：按七套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
 - VIP 报告拆为“画像图表、深度解读、行动卡”三屏；画像页使用倾向清晰度雷达图或单维光谱，并组合本次人格树，方便手机截图保存。

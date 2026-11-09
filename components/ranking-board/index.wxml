@@ -18,7 +18,8 @@
     >
       <view class="rank-card-light"></view>
       <view wx:if="{{item.rank}}" class="rank-badge"><text class="rank-badge-number">{{item.rank}}</text><text class="rank-badge-copy">第 {{item.rank}} 处理</text></view>
-      <image class="rank-image" src="{{item.image}}" mode="aspectFit" lazy-load="{{index > 1}}" aria-hidden="true" />
+      <image wx:if="{{item.image}}" class="rank-image" src="{{item.image}}" mode="aspectFit" lazy-load="{{index > 1}}" aria-hidden="true" />
+      <view wx:else class="rank-image rank-image-placeholder" aria-hidden="true">✦</view>
       <view class="rank-card-title">{{item.text}}</view>
       <view class="rank-card-state">{{completed ? '顺序已确认' : item.rank ? '已放入顺序 · 点击可撤回' : '点击选择'}}</view>
     </view>

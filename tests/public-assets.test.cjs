@@ -1,7 +1,5 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const assets = require('../utils/public-assets.js');
 
 test('public assets batch, deduplicate and cache safe v2 relative paths', async () => {
@@ -40,9 +38,8 @@ test('public asset resolver rejects traversal and arbitrary cloud paths before a
   assert.equal(calls, 0);
 });
 
-test('configured test artwork has a safe cloud path and a small bundled fallback', () => {
+test('configured test artwork has a safe cloud path and no bundled business image', () => {
   const catalog = require('../data/tests/index.js').default;
-  const root = path.resolve(__dirname, '..');
   const entries = [];
   catalog.forEach(questionnaire => {
     if (questionnaire.coverAssetPath) entries.push([questionnaire.coverAssetPath, questionnaire.cover]);
@@ -52,11 +49,8 @@ test('configured test artwork has a safe cloud path and a small bundled fallback
     questionnaire.reports.forEach(report => { if (report.assetPath) entries.push([report.assetPath, report.image]); });
   });
   assert.ok(entries.length >= 11);
-  entries.forEach(([assetPath, fallback]) => {
+  entries.forEach(([assetPath, localImage]) => {
     assert.equal(assets.validPath(assetPath), true, assetPath);
-    assert.match(fallback, /^\/assets\//);
-    const file = path.join(root, fallback.slice(1));
-    assert.ok(fs.existsSync(file), fallback);
-    assert.ok(fs.statSync(file).size <= 200000, fallback);
+    assert.equal(localImage, undefined, `${assetPath} must not ship a local business image`);
   });
 });

@@ -56,12 +56,7 @@
         "type": "file"
       }
     ],
-    "include": [
-      {
-        "value": "assets/tests",
-        "type": "folder"
-      }
-    ]
+    "include": []
   },
   "setting": {
     "urlCheck": true,

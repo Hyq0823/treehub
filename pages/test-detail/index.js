@@ -56,7 +56,7 @@ Page({
       if (!this._disposed && url && this.data.test.id === test.id) {
         this.setData({ test: Object.assign({}, this.data.test, { cover: url }) });
       }
-    } catch (error) { /* Keep the bundled fallback cover. */ }
+    } catch (error) { /* Keep the lightweight icon placeholder. */ }
   },
   selectContext(event) {
     const id = event.currentTarget.dataset.id;

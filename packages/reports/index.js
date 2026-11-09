@@ -152,7 +152,7 @@ Page({
       const nextProfile = (this.data.rankingProfile || []).map(item => item.assetPath && urls[item.assetPath]
         ? Object.assign({}, item, { image: urls[item.assetPath] }) : item);
       this.setData({ result: nextResult, rankingProfile: nextProfile });
-    } catch (error) { /* Bundled fallback artwork remains available. */ }
+    } catch (error) { /* The report keeps its lightweight icon placeholder. */ }
   },
   prepareStarterReveal() {
     try {

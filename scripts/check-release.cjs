@@ -5,10 +5,10 @@ const root = path.resolve(__dirname, '..');
 const { validateRuntimeDependencies } = require('./runtime-dependencies.cjs');
 const issues = validateRuntimeDependencies(root);
 const assets = require('../config/theme-assets.js');
-const project = require('../project.config.json');
-const packagedFolders = project.packOptions && project.packOptions.include || [];
-if (!packagedFolders.some(item => item.type === 'folder' && item.value === 'assets/tests')) {
-  issues.push('动态引用的测试兜底图目录未显式加入真机代码包');
+const localTestAssets = path.join(root, 'assets/tests');
+if (fs.existsSync(localTestAssets) && fs.readdirSync(localTestAssets, { recursive: true }).some(name =>
+  /\.(?:png|jpe?g|webp|gif|svg|mp3|wav|ogg|aac|m4a|mp4)$/i.test(name))) {
+  issues.push('测试业务素材必须放在 public/v2 云目录，禁止打进本地代码包');
 }
 if (!/^v[1-9]\d*$/.test(assets.assetRelease || '')) issues.push('主题素材缺少有效的独立发布版本');
 for (const [id, fileId] of Object.entries(assets.files)) {

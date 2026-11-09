@@ -91,7 +91,7 @@ Page({
         if (option.assetPath && urls[option.assetPath]) option.image = urls[option.assetPath];
       }));
       this.updateQuestion({ animate: false });
-    } catch (error) { /* Bundled fallback artwork remains available. */ }
+    } catch (error) { /* Ranking cards keep their lightweight CSS placeholders. */ }
   },
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
