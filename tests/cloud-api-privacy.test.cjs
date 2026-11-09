@@ -48,7 +48,12 @@ function fixture() {
       return result;
     }
   };
-  const cloud = { DYNAMIC_CURRENT_ENV: 'env', init() {}, database: () => db, getWXContext: () => ({ OPENID: openid }) };
+  const cloud = {
+    DYNAMIC_CURRENT_ENV: 'env', init() {}, database: () => db, getWXContext: () => ({ OPENID: openid }),
+    async getTempFileURL({ fileList }) {
+      return { fileList: fileList.map(fileID => ({ fileID, status: 0, tempFileURL: `https://cloud.example/${fileID.split('/').pop()}` })) };
+    }
+  };
   const exports = {};
   class Clock extends Date { static now() { return now; } }
   const file = path.resolve(__dirname, '../cloudfunctions/treehub-api/index.js');
@@ -81,6 +86,18 @@ test('server refuses legacy automatic backup without a separate current consent 
   const response = await f.call('syncArchive', { operation: 'push', seed: 'seed', records: [record()] });
   assert.equal(response.ok, false);
   assert.equal(f.rows('treehub_assessments').length, 0);
+});
+
+test('public theme URLs need no backup consent and expose only the v2 allowlist', async () => {
+  const f = fixture();
+  const response = await f.call('getThemeAssetUrls', { ids: ['adventurer', 'companions', 'adventurer'] });
+  assert.equal(response.ok, true, response.message);
+  assert.match(response.urls.adventurer, /adventurer\.webp$/);
+  assert.match(response.urls.companions, /companions\.webp$/);
+  assert.equal(f.rows('treehub_users').length, 0);
+  assert.equal(f.rows('treehub_assessments').length, 0);
+  assert.equal((await f.call('getThemeAssetUrls', { ids: ['../private-record'] })).ok, false);
+  assert.equal((await f.call('getThemeAssetUrls', { ids: [] })).ok, false);
 });
 
 test('the current client can authorize default backup after native privacy approval and sync a result', async () => {

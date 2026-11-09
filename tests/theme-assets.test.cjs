@@ -122,6 +122,41 @@ test('an unavailable cloud asset remains recoverable on the next request', async
   } finally { config.files.moon = original; assets.clearCache(); }
 });
 
+test('private v2 artwork falls back to the public cloud-function allowlist', async () => {
+  const ids = ['adventurer', 'companions'];
+  const originals = Object.fromEntries(ids.map(id => [id, config.files[id]]));
+  let directRequests = 0, functionRequests = 0;
+  global.wx = {
+    getStorageSync() { return ''; }, setStorageSync() {},
+    cloud: {
+      init() {},
+      async getTempFileURL({ fileList }) {
+        directRequests++;
+        return { fileList: fileList.map(fileID => ({ fileID, status: -1, errMsg: 'permission denied' })) };
+      },
+      async callFunction({ name, data }) {
+        functionRequests++;
+        assert.equal(name, 'treehub-api');
+        assert.equal(data.action, 'getThemeAssetUrls');
+        assert.deepEqual(data.ids, ids);
+        return { result: { ok: true, urls: Object.fromEntries(ids.map(id => [id, `https://cloud.example/v2/${id}.webp`])) } };
+      }
+    }
+  };
+  try {
+    assets.clearCache();
+    assert.deepEqual(await assets.resolveThemeAssets(ids), {
+      adventurer: 'https://cloud.example/v2/adventurer.webp',
+      companions: 'https://cloud.example/v2/companions.webp'
+    });
+    assert.equal(directRequests, 1);
+    assert.equal(functionRequests, 1);
+  } finally {
+    ids.forEach(id => { config.files[id] = originals[id]; });
+    assets.clearCache();
+  }
+});
+
 test('production theme manifest maps every asset to the expected environment and path', () => {
   const expected = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora', 'companions'];
   assert.equal(config.assetRelease, 'v2');

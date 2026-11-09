@@ -9,6 +9,8 @@ const MAX_PAGE_SIZE = 100;
 // check and client-generated authorization test both reject version drift.
 const POLICY_VERSION = '2026-11-06';
 const THEME_IDS = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora'];
+const THEME_ASSET_IDS = THEME_IDS.concat('companions');
+const THEME_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/themes/v2/';
 const TEST_IDS = ['firstreaction', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const EXPLORATION_THEME_RULES = {
   moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
@@ -284,7 +286,22 @@ async function deleteMyData(openid) {
 
 // Public asset/theme handlers can be registered here without weakening the
 // owner-scoped assessment handlers or invoking backup authorization implicitly.
-const extensionHandlers = {};
+async function getThemeAssetUrls(_openid, event) {
+  if (!Array.isArray(event.ids) || event.ids.length > THEME_ASSET_IDS.length) return fail('主题素材请求无效');
+  const ids = Array.from(new Set(event.ids.map(String)));
+  if (!ids.length || ids.some(id => !THEME_ASSET_IDS.includes(id))) return fail('主题素材请求无效');
+  const fileList = ids.map(id => `${THEME_ASSET_PREFIX}${id}.webp`);
+  const result = await cloud.getTempFileURL({ fileList });
+  const urls = {};
+  for (const item of result && result.fileList || []) {
+    const index = fileList.indexOf(item.fileID);
+    if (index !== -1 && item.status === 0 && /^https:\/\//.test(item.tempFileURL || '')) urls[ids[index]] = item.tempFileURL;
+  }
+  ids.forEach(id => { if (!urls[id]) urls[id] = ''; });
+  return { ok: true, urls };
+}
+
+const extensionHandlers = { getThemeAssetUrls };
 
 exports.main = async event => {
   try {
