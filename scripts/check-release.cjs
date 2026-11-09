@@ -5,8 +5,12 @@ const root = path.resolve(__dirname, '..');
 const { validateRuntimeDependencies } = require('./runtime-dependencies.cjs');
 const issues = validateRuntimeDependencies(root);
 const assets = require('../config/theme-assets.js');
+if (!/^v[1-9]\d*$/.test(assets.assetRelease || '')) issues.push('主题素材缺少有效的独立发布版本');
 for (const [id, fileId] of Object.entries(assets.files)) {
-  if (typeof fileId !== 'string' || !fileId.startsWith(`cloud://${assets.environmentId}.`)) issues.push(`素材 ${id} 尚未配置当前环境的云文件 ID`);
+  if (typeof fileId !== 'string' || !fileId.startsWith(`cloud://${assets.environmentId}.`) ||
+      !fileId.endsWith(`/themes/${assets.assetRelease}/${id}.webp`)) {
+    issues.push(`素材 ${id} 尚未配置 themes/${assets.assetRelease} 的云文件 ID`);
+  }
 }
 const policyPath = path.join(root, 'config/privacy.js');
 if (!fs.existsSync(policyPath)) issues.push('缺少隐私政策运营者配置');

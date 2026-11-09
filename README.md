@@ -8,7 +8,7 @@
 
 从小红书分支切回微信分支后，应关闭并重新打开开发者工具项目，再清除编译/文件缓存并完整编译，保留数据缓存。若仍提示缺少 `.agents/skills/...` 或 `data/tests/yierbubu.js`，从开发者工具项目列表移除该项目后重新导入当前目录（保留磁盘源码），刷新旧文件清单。两条路径属于小红书分支，不应在微信分支补空文件。发布调试配置统一关闭热重载与 API Hook；技能、编辑器配置和 `artifacts` 不打进小程序包。`__subPageFrameEndTime__` 是运行时内部字段，若重启后仍在空闲时出错，使用更新的稳定版开发者工具及体验版真机复核；仅修改项目配置不能保证修复工具自身异常。
 
-云环境 ID 为 `cloud1-d2ghbskq3663254ce`。十个主题素材 File ID 已写入 `config/theme-assets.js`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。微信隐私授权通过后自动同步结果摘要，拒绝授权、主动关闭或网络失败时保留本机记录。
+云环境 ID 为 `cloud1-d2ghbskq3663254ce`。线上旧版继续读取不可变的 `themes/v1/`，当前待审版本从 `config/theme-assets.js` 读取 `themes/v2/`；按 [`cloudfunctions/README.md`](cloudfunctions/README.md) 配置数据库与云函数，并按 [`素材与发布.md`](docs/素材与发布.md) 完成真机读取验收。微信隐私授权通过后自动同步结果摘要，拒绝授权、主动关闭或网络失败时保留本机记录。
 
 发布前执行 `node scripts/check-release.cjs`，检查运行脚本依赖、云素材 ID 及客户端与云函数的授权版本是否一致；缺少题库等运行模块时会列出引用文件和缺失路径。检查通过后仍需在微信后台完成实际发布配置并进行真机验收。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
 

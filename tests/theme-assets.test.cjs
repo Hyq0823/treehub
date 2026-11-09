@@ -124,10 +124,11 @@ test('an unavailable cloud asset remains recoverable on the next request', async
 
 test('production theme manifest maps every asset to the expected environment and path', () => {
   const expected = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora', 'companions'];
+  assert.equal(config.assetRelease, 'v2');
   assert.deepEqual(Object.keys(config.files), expected);
   for (const id of expected) {
     assert.ok(config.files[id].startsWith(`cloud://${config.environmentId}.`), id);
-    assert.ok(config.files[id].endsWith(`/themes/v1/${id}.webp`), id);
+    assert.ok(config.files[id].endsWith(`/themes/${config.assetRelease}/${id}.webp`), id);
   }
   assert.equal(new Set(Object.values(config.files)).size, expected.length);
 });
