@@ -7,11 +7,85 @@ const BIG_FIVE = [
 ];
 
 function questionKey(id) { return String(id).replace(/^q/, ''); }
+
+function resolveRankedOption(question, value) {
+  if (Number.isInteger(value)) return question.options[value] || null;
+  return question.options.find(option => String(option.id || option.value) === String(value)) || null;
+}
+
+function rankingRoundCount(weights, scores) {
+  if (!Array.isArray(weights) || !weights.length || !weights.every(weight => Number.isFinite(weight) && weight > 0) ||
+      !scores || !Object.keys(scores).length || !Object.keys(scores).every(id => Number.isFinite(scores[id]))) return 0;
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const scoreTotal = Object.keys(scores).reduce((sum, id) => sum + scores[id], 0);
+  const rounds = scoreTotal / weightTotal;
+  return Number.isInteger(rounds) && rounds > 0 && rounds <= 100 ? rounds : 0;
+}
+
+function possibleRankingTotals(weights, rounds) {
+  let totals = new Set([0]);
+  for (let round = 0; round < rounds; round++) {
+    const next = new Set();
+    totals.forEach(total => weights.forEach(weight => next.add(total + weight)));
+    // A ranking questionnaire should stay small. Refuse hostile or accidental
+    // configurations rather than spending unbounded time restoring a summary.
+    if (next.size > 50000) return null;
+    totals = next;
+  }
+  return totals;
+}
+
+function scoreRanking(test, questions, answers) {
+  const weights = test.scoring.weights;
+  const dimensions = test.scoring.dimensions;
+  if (!Array.isArray(weights) || !weights.length || !weights.every(weight => Number.isFinite(weight) && weight > 0) ||
+      new Set(weights).size !== weights.length || weights.some((weight, index) => index && weight >= weights[index - 1])) {
+    throw new Error('排序评分配置无效');
+  }
+  if (!Array.isArray(dimensions) || !dimensions.length || new Set(dimensions.map(String)).size !== dimensions.length) {
+    throw new Error('排序维度配置无效');
+  }
+  const canonicalIds = new Set(test.questions.map(question => questionKey(question.id)));
+  const incomingIds = new Set(questions.map(question => questionKey(question.id)));
+  if (canonicalIds.size !== test.questions.length || incomingIds.size !== questions.length ||
+      canonicalIds.size !== incomingIds.size || Array.from(canonicalIds).some(id => !incomingIds.has(id))) {
+    throw new Error('题目数据不一致，请重新进入测试');
+  }
+  const scores = {};
+  dimensions.forEach(dim => { scores[dim] = 0; });
+  questions.forEach((question, questionIndex) => {
+    const optionDimensions = question.options.map(option => String(option.dimension || option.value));
+    if (weights.length !== question.options.length || new Set(optionDimensions).size !== dimensions.length ||
+        dimensions.some(dimension => !optionDimensions.includes(String(dimension)))) {
+      throw new Error('每个排序情境必须完整包含全部维度');
+    }
+    const ranking = answers[questionIndex];
+    if (!Array.isArray(ranking) || ranking.length !== question.options.length) {
+      throw new Error('请排完所有选项后再查看报告');
+    }
+    const seen = new Set();
+    ranking.forEach((value, rank) => {
+      const option = resolveRankedOption(question, value);
+      if (!option) throw new Error('排序选项无效，请重新作答');
+      const optionId = String(option.id || option.value);
+      if (seen.has(optionId)) throw new Error('排序中出现了重复选项，请重新作答');
+      seen.add(optionId);
+      const dimension = String(option.dimension || option.value);
+      if (!Object.prototype.hasOwnProperty.call(scores, dimension)) throw new Error('排序维度无效');
+      scores[dimension] += weights[rank];
+    });
+  });
+  const resultType = test.scoring.resultRule(scores);
+  if (typeof resultType !== 'string' || !resultType) throw new Error('无法生成测试结果');
+  return { scores, resultType };
+}
+
 function scoreTest(test, questions, answers) {
   if (!test || !test.scoring || !Array.isArray(questions) || !Array.isArray(answers) ||
       questions.length !== test.questions.length || answers.length !== questions.length) {
     throw new Error('测试数据不完整，请重新进入测试');
   }
+  if (test.scoring.strategy === 'weighted-ranking') return scoreRanking(test, questions, answers);
   const byId = {};
   questions.forEach((question, index) => {
     const answer = answers[index];
@@ -93,6 +167,40 @@ function resolveReport(test, record) {
   const result = test.reports.find(item => item.type === record.resultType);
   if (!result) return null;
   const report = Object.assign({}, result);
+  if (test.scoring.strategy === 'weighted-ranking') {
+    const meta = Array.isArray(test.scoring.dimensionMeta) ? test.scoring.dimensionMeta : [];
+    const weights = test.scoring.weights || [];
+    const rounds = rankingRoundCount(weights, record.scores);
+    const possibleTotals = rounds ? possibleRankingTotals(weights, rounds) : null;
+    const minimum = Math.min.apply(null, weights) * rounds;
+    const maximum = Math.max.apply(null, weights) * rounds;
+    const dimensionIds = test.scoring.dimensions.map(String);
+    const scoreKeys = record.scores && Object.keys(record.scores);
+    const metaIds = meta.map(item => String(item.id));
+    if (!scoreKeys || scoreKeys.length !== dimensionIds.length || scoreKeys.some(id => !dimensionIds.includes(id)) ||
+        metaIds.length !== dimensionIds.length || new Set(metaIds).size !== dimensionIds.length || metaIds.some(id => !dimensionIds.includes(id)) ||
+        !possibleTotals || scoreKeys.some(id => !Number.isFinite(record.scores[id]) || record.scores[id] < minimum ||
+          record.scores[id] > maximum || !possibleTotals.has(record.scores[id])) ||
+        scoreKeys.reduce((sum, id) => sum + record.scores[id], 0) !== weights.reduce((sum, weight) => sum + weight, 0) * rounds ||
+        test.scoring.resultRule(record.scores) !== record.resultType) return null;
+    const ranked = meta.map(item => ({
+      id: item.id, label: item.label, image: item.image,
+      score: Number(record.scores[item.id]) || 0
+    })).sort((first, second) => second.score - first.score || meta.findIndex(item => item.id === first.id) - meta.findIndex(item => item.id === second.id));
+    report.ranking = ranked.map((item, index) => Object.assign({}, item, { rank: index + 1 }));
+    report.rankingRoundCount = rounds;
+    report.rankingMode = rounds > 1 ? 'aggregate' : 'sequence';
+    report.rankingTitle = rounds > 1 ? '我的综合优先方向' : '我的处理动作链';
+    report.rankingSubtitle = rounds > 1 ? `综合 ${rounds} 个情境后的相对优先方向，没有高低优劣` : '先后顺序记录的是这一次的直觉，没有标准答案';
+    report.dimensions = ranked.map((item, index) => ({
+      id: item.id, label: item.label, rank: index + 1, score: item.score,
+      scoreText: `第 ${index + 1} 顺位`,
+      percent: maximum === minimum ? 50 : Math.round((item.score - minimum) / (maximum - minimum) * 100),
+      level: index < 2 ? '优先照顾' : index === ranked.length - 1 ? '容易稍后处理' : '视情境安排',
+      summary: `本次排序里，“${item.label}”是你第 ${index + 1} 个照顾的方向。`
+    }));
+    report.note = '顺位图只描述这一次的直觉排序，不代表能力高低，也不用于判断焦虑程度。';
+  }
   if (test.id === 'enneagram' && record.scoringVersion === SCORING_VERSION) {
     const max = Math.max.apply(null, Object.keys(record.scores).map(key => record.scores[key]));
     const ties = Object.keys(record.scores).filter(key => record.scores[key] === max);

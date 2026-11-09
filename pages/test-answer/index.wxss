@@ -51,3 +51,11 @@ page { background: #f2f7ff; color: #244777; }
 .answer-dock .next-btn { min-width: 0; }
 .answer-dock .privacy-line { min-height: 31rpx; margin-top: 12rpx; line-height: 31rpx; }
 .choice-feedback, .choice-feedback-visible { box-sizing: border-box; height: 52rpx; padding-top: 12rpx; line-height: 30rpx; transition: opacity .2s ease; }
+
+/* Ranking tests scroll naturally and own a stable order tray instead of the fixed answer dock. */
+.ranking-answer-page { min-height: 100vh; padding-bottom: calc(38rpx + env(safe-area-inset-bottom)); overflow: hidden; }
+.ranking-answer-page .answer-shell { min-height: auto; }
+.ranking-answer-page .question-card { flex: 0 0 auto; padding-bottom: 10rpx; }
+.ranking-answer-page .question-content { font-size: 37rpx; line-height: 1.5; }
+.ranking-context { margin-top: 8rpx; color: #718caf; font-size: 22rpx; line-height: 1.65; }
+.ranking-answer-page .answer-world-bg { position: fixed; bottom: -80rpx; opacity: .13; }

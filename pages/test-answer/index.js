@@ -8,7 +8,9 @@ Page({
     test: {}, question: null, currentQuestionIndex: 0, selectedOption: -1,
     submitted: false, submitting: false, revealingResult: false, error: '',
     progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false,
-    themeHeroUrl: ''
+    themeHeroUrl: '', interactionType: 'single', rankingItems: [], rankingSelected: [],
+    rankingComplete: false, rankingHelper: '', rankingSaveError: '',
+    revealTitle: '正在收集你的答案', revealCopy: '让这些选择，慢慢长成属于你的画像'
   },
   onLoad(options) {
     this._unloaded = false;
@@ -57,8 +59,14 @@ Page({
       this._test = test;
       const questions = testId === 'sbti' ? this.shuffleArray(test.questions.slice()) : test.questions;
       this._questions = questions;
-      this._answers = new Array(questions.length).fill(-1);
-      this.setData({ test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, error: '' });
+      this._answers = questions.map(question => question.type === 'ranking' ? [] : -1);
+      const interaction = test.interaction || {};
+      this.setData({
+        test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, error: '',
+        interactionType: interaction.type || 'single', rankingHelper: interaction.helper || '',
+        revealTitle: interaction.revealTitle || '正在收集你的答案',
+        revealCopy: interaction.revealCopy || '让这些选择，慢慢长成属于你的画像'
+      });
       this.updateQuestion();
     } catch (error) {
       this.setData({ error: error.message || '测试加载失败，请返回大厅重试' });
@@ -71,21 +79,35 @@ Page({
     }
     return array;
   },
-  updateQuestion() {
+  updateQuestion(options = {}) {
     const questions = this._questions || [];
     const answers = this._answers || [];
     const question = questions[this.data.currentQuestionIndex];
     if (!question) return;
-    const answeredCount = answers.filter(answer => answer !== -1).length;
+    const ranking = question.type === 'ranking' && Array.isArray(answers[this.data.currentQuestionIndex])
+      ? answers[this.data.currentQuestionIndex] : [];
+    const isRanking = question.type === 'ranking';
+    const answeredCount = isRanking
+      ? ranking.length
+      : answers.filter(answer => answer !== -1).length;
+    const rankingItems = isRanking ? question.options.map((option, index) => Object.assign({}, option, {
+      rank: ranking.indexOf(index) + 1
+    })) : [];
+    const rankingSelected = isRanking ? ranking.map(index => Object.assign({}, question.options[index], {
+      rank: ranking.indexOf(index) + 1
+    })) : [];
+    const completedShare = isRanking ? ranking.length / Math.max(1, question.options.length) : 1;
     this.setData({
       question: Object.assign({}, question, {
-        options: question.options.map((option, index) => Object.assign({}, option, { letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index] }))
+        options: isRanking ? [] : question.options.map((option, index) => Object.assign({}, option, { letter: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[index] }))
       }),
-      selectedOption: answers[this.data.currentQuestionIndex],
-      progressPercent: Math.round((this.data.currentQuestionIndex + 1) / questions.length * 100),
+      selectedOption: isRanking ? -1 : answers[this.data.currentQuestionIndex],
+      progressPercent: Math.round((this.data.currentQuestionIndex + completedShare) / questions.length * 100),
       answeredCount,
-      motionKey: this.data.motionKey ? 0 : 1,
-      autoAdvancing: false
+      motionKey: options.animate === false ? this.data.motionKey : this.data.motionKey ? 0 : 1,
+      autoAdvancing: false,
+      interactionType: isRanking ? 'ranking' : 'single',
+      rankingItems, rankingSelected, rankingComplete: isRanking && ranking.length === question.options.length
     });
   },
   selectOption(event) {
@@ -105,6 +127,43 @@ Page({
       if (!this._unloaded && this.data.currentQuestionIndex === current) this.nextQuestion();
     }, 300);
   },
+  changeRanking(event) {
+    if (this.data.submitted || this.data.submitting || this.data.rankingComplete) return;
+    const index = Number(event.detail && event.detail.index);
+    const current = this.data.currentQuestionIndex;
+    const question = (this._questions || [])[current];
+    if (!question || question.type !== 'ranking' || !Number.isInteger(index) || !question.options[index]) return;
+    this.clearAdvance();
+    const order = Array.isArray(this._answers[current]) ? this._answers[current].slice() : [];
+    const existing = order.indexOf(index);
+    if (existing >= 0) order.splice(existing, 1); else order.push(index);
+    this._answers[current] = order;
+    this.updateQuestion({ animate: false });
+    if (order.length === question.options.length) {
+      this.setData({ rankingComplete: true, autoAdvancing: true });
+      this._advanceTimer = setTimeout(() => {
+        this._advanceTimer = null;
+        if (!this._unloaded && this.data.currentQuestionIndex === current) this.nextQuestion();
+      }, 650);
+    }
+  },
+  undoRanking() {
+    if (this.data.submitting || this.data.submitted) return;
+    this.clearAdvance();
+    const current = this.data.currentQuestionIndex;
+    const order = Array.isArray(this._answers[current]) ? this._answers[current].slice() : [];
+    order.pop();
+    this._answers[current] = order;
+    if (this.data.rankingSaveError) this.setData({ rankingSaveError: '' });
+    this.updateQuestion({ animate: false });
+  },
+  resetRanking() {
+    if (this.data.submitting || this.data.submitted) return;
+    this.clearAdvance();
+    this._answers[this.data.currentQuestionIndex] = [];
+    if (this.data.rankingSaveError) this.setData({ rankingSaveError: '' });
+    this.updateQuestion({ animate: false });
+  },
   prevQuestion() {
     this.clearAdvance();
     if (this.data.submitting || this.data.submitted) return;
@@ -116,7 +175,12 @@ Page({
   nextQuestion() {
     this.clearAdvance();
     if (this.data.submitting || this.data.submitted) return;
-    if (this.data.selectedOption === -1) {
+    const currentQuestion = (this._questions || [])[this.data.currentQuestionIndex];
+    const currentAnswer = (this._answers || [])[this.data.currentQuestionIndex];
+    const complete = currentQuestion && currentQuestion.type === 'ranking'
+      ? Array.isArray(currentAnswer) && currentAnswer.length === currentQuestion.options.length
+      : this.data.selectedOption !== -1;
+    if (!complete) {
       wx.showToast({ title: '请选择答案', icon: 'none' });
       return;
     }
@@ -132,21 +196,28 @@ Page({
     this.clearAdvance();
     const questions = this._questions || [];
     const answers = this._answers || [];
-    const missing = answers.findIndex(answer => answer === -1);
+    const missing = answers.findIndex((answer, index) => questions[index].type === 'ranking'
+      ? !Array.isArray(answer) || answer.length !== questions[index].options.length
+      : answer === -1);
     if (missing !== -1) {
       this.setData({ currentQuestionIndex: missing });
       this.updateQuestion();
       wx.showToast({ title: '还有题目未完成', icon: 'none' });
       return;
     }
-    this.setData({ submitting: true, revealingResult: true });
+    this.setData({ submitting: true, revealingResult: true, rankingSaveError: '' });
     try {
       const result = scoreTest(this._test, questions, answers);
       const saved = archive.saveResult(Object.assign({
         testId: this.data.test.id, testVersion: TEST_VERSION, scoringVersion: SCORING_VERSION,
         lifeContext: this._lifeContext || undefined,
         // Store canonical question IDs because SBTI question order is shuffled.
-        answers: questions.map((question, index) => ({ questionId: question.id, optionIndex: answers[index] }))
+        answers: questions.map((question, index) => question.type === 'ranking'
+          ? {
+              questionId: question.id,
+              ranking: answers[index].map(optionIndex => String(question.options[optionIndex].id || question.options[optionIndex].value))
+            }
+          : { questionId: question.id, optionIndex: answers[index] })
       }, result));
       this.setData({ submitted: true });
       report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
@@ -162,9 +233,16 @@ Page({
         });
       }, 1100);
     } catch (error) {
-      this.setData({ submitting: false, revealingResult: false });
-      wx.showModal({ title: '暂时无法保存', content: error.message || '请检查设备存储空间后重试，本次答案仍保留在页面中。', showCancel: false });
+      const message = error.message || '请检查设备存储空间后重试，本次答案仍保留在页面中。';
+      const rankingSaveError = this.data.interactionType === 'ranking' ? '报告还没有保存，顺序已为你保留。' : '';
+      this.setData({ submitting: false, revealingResult: false, rankingSaveError });
+      if (rankingSaveError) wx.showToast({ title: '保存未完成，可直接重试', icon: 'none' });
+      else wx.showModal({ title: '暂时无法保存', content: message, showCancel: false });
     }
+  },
+  retryRanking() {
+    if (!this.data.rankingSaveError || this.data.submitting || this.data.submitted) return;
+    this.submitTest();
   },
   calculateScores() {
     return scoreTest(this._test, this._questions || [], this._answers || []).scores;

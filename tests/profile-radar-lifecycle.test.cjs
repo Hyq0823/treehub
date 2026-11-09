@@ -91,3 +91,21 @@ test('unchanged dimensions do not schedule another canvas draw', async () => {
     assert.equal(env.contexts(), 1);
   } finally { global.wx = originalWx; }
 });
+
+test('switching from preference clarity to ranking priority redraws the same dimensions', async () => {
+  const env = createInstance();
+  const originalWx = global.wx;
+  global.wx = { getWindowInfo: () => ({ pixelRatio: 1 }) };
+  try {
+    env.instance.data.mode = 'clarity';
+    definition.lifetimes.ready.call(env.instance);
+    await nextTimer();
+    env.callbacks[0](env.field());
+    env.instance.data.mode = 'priority';
+    env.instance.queueDraw();
+    await nextTimer();
+    assert.equal(env.callbacks.length, 2);
+    env.callbacks[1](env.field());
+    assert.equal(env.contexts(), 2);
+  } finally { global.wx = originalWx; }
+});

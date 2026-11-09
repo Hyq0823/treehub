@@ -28,6 +28,20 @@ test('lightweight catalog stays aligned with the full questionnaire metadata and
   }), '你的五维特质');
 });
 
+test('every test is registered in display order, exploration metadata and cloud theme counting', () => {
+  const ids = light.catalog.map(item => item.id);
+  const display = require('../data/exploration.js');
+  assert.deepEqual(Object.keys(display.tests).sort(), ids.slice().sort());
+  const hallSource = fs.readFileSync(path.join(root, 'pages/test-hall/index.js'), 'utf8');
+  const orderSource = hallSource.match(/const DISPLAY_ORDER = (\[[^;]+\]);/);
+  assert.ok(orderSource, 'hall display order remains statically inspectable');
+  assert.deepEqual(Array.from(vm.runInNewContext(orderSource[1])).sort(), ids.slice().sort());
+  const cloudSource = fs.readFileSync(path.join(root, 'cloudfunctions/treehub-api/index.js'), 'utf8');
+  const cloudIdsSource = cloudSource.match(/const TEST_IDS = (\[[^;]+\]);/);
+  assert.ok(cloudIdsSource, 'cloud exploration allowlist remains statically inspectable');
+  assert.deepEqual(Array.from(vm.runInNewContext(cloudIdsSource[1])).sort(), ids.slice().sort());
+});
+
 function evaluateWithoutFullCatalog(relativeFile, globals = {}) {
   const file = path.join(root, relativeFile);
   const nativeRequire = createRequire(file);

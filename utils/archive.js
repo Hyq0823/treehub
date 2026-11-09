@@ -79,7 +79,7 @@ function validateAnswers(input, test) {
     throw storageError('答题记录不完整，无法保存到档案。');
   }
   // New assessments store canonical IDs so shuffled SBTI answers remain usable.
-  if (answers.every(answer => Number.isInteger(answer))) {
+  if (!test.questions.some(question => question.type === 'ranking') && answers.every(answer => Number.isInteger(answer))) {
     if (answers.some((answer, index) => answer < 0 || !test.questions[index].options[answer])) {
       throw storageError('答题记录不完整，无法保存到档案。');
     }
@@ -87,10 +87,18 @@ function validateAnswers(input, test) {
   }
   const seen = new Set();
   const valid = answers.every(answer => {
-    if (!plainObject(answer) || !Number.isInteger(answer.optionIndex) || answer.optionIndex < 0) return false;
+    if (!plainObject(answer)) return false;
     const key = String(answer.questionId);
     const question = test.questions.find(item => String(item.id) === key);
-    if (!question || seen.has(key) || !question.options[answer.optionIndex]) return false;
+    if (!question || seen.has(key)) return false;
+    if (question.type === 'ranking') {
+      if (!Array.isArray(answer.ranking) || answer.ranking.length !== question.options.length) return false;
+      const validIds = new Set(question.options.map(option => String(option.id || option.value)));
+      const rankedIds = answer.ranking.map(String);
+      if (new Set(rankedIds).size !== rankedIds.length || rankedIds.some(id => !validIds.has(id))) return false;
+    } else if (!Number.isInteger(answer.optionIndex) || answer.optionIndex < 0 || !question.options[answer.optionIndex]) {
+      return false;
+    }
     seen.add(key);
     return true;
   });

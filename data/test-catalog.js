@@ -3,6 +3,11 @@
 // the full question and report modules are evaluated.
 const catalog = [
   {
+    id: 'firstreaction', name: '第一反应排序测试', icon: '✦',
+    description: '五件日常小事同时发生，你会先接住哪一件？排出此刻的处理顺序，看看忙乱时你本能先保护什么。',
+    time: '约1分钟', questionsCount: 1
+  },
+  {
     id: 'sbti', name: 'SBTI人格测试', icon: '🎭',
     description: 'MBTI已经过时，SBTI来了。一种更有趣、更贴合现代年轻人的人格测试。',
     time: '3-5分钟', questionsCount: 30
@@ -35,6 +40,7 @@ const catalog = [
 ];
 
 const resultTitles = {
+  firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
   sbti: {
     CTRL: '拿捏者', 'ATM-er': '送钱者', 'Dior-s': '屌丝', BOSS: '领导者', 'THAN-K': '感恩者',
     'OH-NO': '哦不人', GOGO: '行者', SEXY: '尤物', 'LOVE-R': '多情者', MUM: '妈妈', FAKE: '伪人',

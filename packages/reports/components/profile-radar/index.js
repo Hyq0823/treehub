@@ -1,6 +1,7 @@
 Component({
   properties: {
-    dimensions: { type: Array, value: [], observer: 'queueDraw' }
+    dimensions: { type: Array, value: [], observer: 'queueDraw' },
+    mode: { type: String, value: 'clarity', observer: 'queueDraw' }
   },
   lifetimes: {
     ready() {
@@ -20,7 +21,7 @@ Component({
     queueDraw() {
       if (!this._ready) return;
       const dimensions = (this.data.dimensions || []).slice(0, 9);
-      const signature = JSON.stringify(dimensions.map(item => Number(item && item.percent)));
+      const signature = `${this.data.mode || 'clarity'}:${JSON.stringify(dimensions.map(item => Number(item && item.percent)))}`;
       if (signature === this._drawSignature) return;
       if (this._drawTimer) clearTimeout(this._drawTimer);
       const request = this._drawRequest = (this._drawRequest || 0) + 1;
@@ -83,7 +84,9 @@ Component({
         // Keep balanced answers visible instead of collapsing the whole portrait
         // into the center. The chart still expands with preference clarity.
         const values = dimensions.map(item => {
-          const clarity = Math.min(1, Math.abs(Number(item.percent) - 50) / 50);
+          const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
+          if (this.data.mode === 'priority') return 0.18 + percent / 100 * 0.82;
+          const clarity = Math.min(1, Math.abs(percent - 50) / 50);
           return 0.46 + clarity * 0.54;
         });
         context.beginPath();

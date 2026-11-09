@@ -41,7 +41,7 @@
     <button class="text-button" bindtap="goToHome">返回探索大厅</button>
   </view>
   <block wx:else>
-    <view class="report-page-heading"><view><view class="report-heading-title">我的人格报告</view><view class="report-heading-subtitle">{{test.name}} · {{playful ? '趣味探索' : '本次测评'}}</view></view><view class="report-heading-mark">{{premiumUnlocked ? '深度版已解锁' : '基础报告'}}</view></view>
+    <view class="report-page-heading"><view><view class="report-heading-title">{{rankingProfile.length ? '我的第一反应报告' : '我的人格报告'}}</view><view class="report-heading-subtitle">{{test.name}} · {{playful ? '趣味探索' : '本次测评'}}</view></view><view class="report-heading-mark">{{premiumUnlocked ? '深度版已解锁' : '基础报告'}}</view></view>
     <view class="result-header">
       <view class="result-header-glow"></view>
       <image wx:if="{{result.image}}" class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
@@ -52,10 +52,25 @@
         <image wx:if="{{themeHeroUrl}}" class="visual-theme-thumb" src="{{themeHeroUrl}}" mode="aspectFit" />
       </view>
       <view class="result-type">{{result.title}}</view>
-      <view class="result-code" wx:if="{{result.type !== 'profile'}}">{{result.type}}</view>
+      <view class="result-code" wx:if="{{result.type !== 'profile' && !rankingProfile.length}}">{{result.type}}</view>
       <view class="result-summary">{{result.summary}}</view>
       <view class="saved-badge">已收集 · {{savedAt}}</view>
       <view wx:if="{{themeHeroUrl && !result.image}}" class="report-companion-line">{{companionNames}}，陪你看见更多面的自己</view>
+    </view>
+    <view wx:if="{{rankingProfile.length}}" class="priority-order-card">
+      <view class="priority-order-kicker">MY FIRST REACTION · 适合截图保存</view>
+      <view class="priority-order-title">{{result.rankingTitle}}</view>
+      <view class="priority-order-subtitle">{{result.rankingSubtitle}}</view>
+      <scroll-view scroll-x class="priority-order-scroll" show-scrollbar="{{false}}">
+        <view class="priority-order-grid" style="width:{{rankingGridWidth}}rpx; grid-template-columns:repeat({{rankingProfile.length}}, 104rpx);">
+          <view wx:for="{{rankingProfile}}" wx:key="id" class="priority-order-item">
+            <view class="priority-order-visual"><image src="{{item.image}}" mode="aspectFit"/><text>{{item.rank}}</text></view>
+            <view class="priority-order-label">{{item.label}}</view>
+            <view wx:if="{{index < rankingProfile.length - 1}}" class="priority-order-arrow">→</view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="priority-order-insight">{{rankingLeadText}}<text>{{rankingTailText}}</text></view>
     </view>
     <view wx:if="{{legacy}}" class="legacy-note">这是旧版本记录，不用于新版人格树匹配。重新测试会保留这份历史记录。</view>
     <view class="report-tier-label"><text>基础报告</text><text>完成测试即可查看</text></view>
@@ -64,7 +79,7 @@
       <view class="body-copy">{{result.description}}</view>
       <view wx:if="{{basicDimensions.length}}" class="dimensions basic-dimensions">
         <view class="dimension" wx:for="{{basicDimensions}}" wx:key="id">
-          <view class="dimension-heading"><text>{{item.label}}</text><text>{{item.score}} / 5 · {{item.level}}</text></view>
+          <view class="dimension-heading"><text>{{item.label}}</text><text>{{item.scoreText || item.score + ' / 5'}} · {{item.level}}</text></view>
           <view class="dimension-track"><view class="dimension-fill" style="width: {{item.percent}}%"></view></view>
           <view class="dimension-summary">{{item.summary}}</view>
         </view>
@@ -127,19 +142,19 @@
           <view class="capture-label"><text>PERSONAL MAP</text><text>适合截图保存</text></view>
           <view class="portrait-heading"><view><view class="portrait-test">{{test.name}} · 本次画像</view><view class="portrait-title">{{result.title}}</view><view class="portrait-tagline">{{deepReport.tagline}}</view></view><view wx:if="{{themeHeroUrl || record.treeSnapshot}}" class="portrait-tree"><image wx:if="{{themeHeroUrl}}" class="portrait-theme-image" src="{{themeHeroUrl}}" mode="aspectFit" /><personality-tree wx:else tree="{{record.treeSnapshot}}" size="small" /></view></view>
           <view wx:if="{{themeHeroUrl}}" class="portrait-theme-label">我的树 · {{themeName}}<text>当前主题意象，图表对应本次结果</text></view>
-          <view class="chart-title"><text>多维倾向图</text><text>形状越舒展，表示该维度的倾向越鲜明</text></view>
-          <profile-radar wx:if="{{deepReport.dimensions.length >= 3}}" dimensions="{{deepReport.dimensions}}" />
+          <view class="chart-title"><text>{{deepReport.mode === 'ranking' ? '综合优先顺位图' : '多维倾向图'}}</text><text>{{deepReport.mode === 'ranking' ? '越靠外，表示本次越优先处理' : '形状越舒展，表示该维度的倾向越鲜明'}}</text></view>
+          <profile-radar wx:if="{{deepReport.dimensions.length >= 3}}" dimensions="{{deepReport.dimensions}}" mode="{{deepReport.mode === 'ranking' ? 'priority' : 'clarity'}}" />
           <view wx:else class="single-spectrum">
             <view class="single-spectrum-labels"><text>{{deepReport.dimensions[0].left}}</text><text>{{deepReport.dimensions[0].right}}</text></view>
             <view class="single-spectrum-track"><view class="single-spectrum-mid"></view><view class="single-spectrum-dot" style="left:{{deepReport.dimensions[0].percent}}%;"></view></view>
             <view class="single-spectrum-result">本次更靠近 · {{deepReport.dimensions[0].preference}}</view>
           </view>
           <view class="profile-legend">
-            <view wx:for="{{deepReport.dimensions}}" wx:key="id" class="legend-item legend-{{item.tone}}"><view class="legend-top"><text>{{item.label}}</text><text>{{item.scoreText}}</text></view><view class="legend-preference">{{item.preference}} · 清晰度 {{item.clarity}}%</view></view>
+            <view wx:for="{{deepReport.dimensions}}" wx:key="id" class="legend-item legend-{{item.tone}}"><view class="legend-top"><text>{{item.label}}</text><text>{{item.scoreText}}</text></view><view class="legend-preference">{{item.legendText}}</view></view>
           </view>
           <view class="portrait-summary">
             <view class="portrait-summary-title">本次画像关键词</view>
-            <view class="highlight-list"><view wx:for="{{deepReport.highlights}}" wx:key="id" class="highlight-chip">{{item.preference}}</view></view>
+            <view class="highlight-list"><view wx:for="{{deepReport.highlights}}" wx:key="id" class="highlight-chip">{{item.highlightText || item.preference}}</view></view>
             <view wx:if="{{deepReport.balancedCount}}" class="balance-note">其中 {{deepReport.balancedCount}} 个维度接近中间，说明你可能会随情境调整。</view>
           </view>
           <view wx:if="{{comparison}}" class="premium-comparison">
@@ -149,7 +164,7 @@
           </view>
           <view class="capture-footer"><text>人格测试树</text><text>{{savedAt}}</text></view>
         </view>
-        <view class="chart-note">图表展示本次自评的倾向位置和清晰程度，不代表能力高低或人群排名。</view>
+        <view class="chart-note">{{deepReport.mode === 'ranking' ? '图表展示这一次的直觉处理顺序，不代表能力高低、焦虑程度或人群排名。' : '图表展示本次自评的倾向位置和清晰程度，不代表能力高低或人群排名。'}}</view>
       </view>
 
       <view wx:elif="{{premiumPage === 'insights'}}" class="premium-page insight-page">

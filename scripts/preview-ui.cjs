@@ -72,7 +72,9 @@ function page(route) {
 }
 function complete(testId, lifeContext = '', offset = 0) {
   const test = catalog.find(item => item.id === testId);
-  const indices = test.questions.map((question, index) => (index + offset) % question.options.length);
+  const indices = test.questions.map((question, index) => question.type === 'ranking'
+    ? question.options.map((option, optionIndex) => (optionIndex + offset) % question.options.length)
+    : (index + offset) % question.options.length);
   return archive.saveResult({ testId, lifeContext: lifeContext || undefined, ...scoring.scoreTest(test, test.questions, indices) });
 }
 function localArt(id) {
@@ -104,7 +106,7 @@ function componentTree(tree, size) {
   definition.methods.updateTree.call(value, tree);
   return html(render('components/personality-tree/index.wxml')({ ...value.data, tree, size: size || 'medium', animated: true }), {});
 }
-function radar(dimensions) {
+function radar(dimensions, mode) {
   // The native Canvas component is represented by SVG from the SAME dimensions.
   // This is a layout stand-in; production Canvas rendering still needs DevTools.
   const list = dimensions.slice(0, 9);
@@ -116,7 +118,11 @@ function radar(dimensions) {
   const points = scale => list.map((_, i) => p(i, scale).join(',')).join(' ');
   const rings = [1, .75, .5, .25].map(scale => `<polygon points="${points(scale)}" fill="none" stroke="#b7ceee"/>`).join('');
   const axes = list.map((_, index) => `<line x1="150" y1="150" x2="${p(index, 1)[0]}" y2="${p(index, 1)[1]}" stroke="#c8dbf5"/>`).join('');
-  const marks = list.map((item, index) => p(index, Math.max(.16, Math.min(1, Math.abs(Number(item.percent) - 50) / 50))).join(',')).join(' ');
+  const marks = list.map((item, index) => {
+    const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
+    const scale = mode === 'priority' ? .18 + percent / 100 * .82 : .46 + Math.abs(percent - 50) / 50 * .54;
+    return p(index, scale).join(',');
+  }).join(' ');
   return `<div class="radar-shell" data-native-canvas-preview="true"><svg class="radar-canvas" viewBox="0 0 300 300" aria-label="本次倾向清晰度雷达图">${rings}${axes}<polygon points="${marks}" fill="#76a6ff66" stroke="#467fff" stroke-width="2"/></svg><div class="radar-center"><span>偏好</span><span>清晰度</span></div></div>`;
 }
 function html(node, data) {
@@ -124,7 +130,14 @@ function html(node, data) {
   if (typeof node === 'string' || typeof node === 'number') return escape(node);
   const attrs = node.attr || {};
   if (node.tag === 'wx-personality-tree') return componentTree(attrs.tree || data.record && data.record.treeSnapshot || data.tree, attrs.size);
-  if (node.tag === 'wx-profile-radar') return radar(attrs.dimensions || data.deepReport && data.deepReport.dimensions || []);
+  if (node.tag === 'wx-profile-radar') return radar(attrs.dimensions || data.deepReport && data.deepReport.dimensions || [], attrs.mode);
+  if (node.tag === 'wx-ranking-board') {
+    return html(render('components/ranking-board/index.wxml')({
+      items: Array.isArray(attrs.items) ? attrs.items : data.rankingItems || [],
+      selectedItems: Array.isArray(attrs.selectedItems) ? attrs.selectedItems : data.rankingSelected || [],
+      completed: !!attrs.completed, disabled: !!attrs.disabled, helper: attrs.helper || ''
+    }), data);
+  }
   if (node.tag === 'virtual' || node.tag === 'wx-page') return (node.children || []).map(value => html(value, data)).join('');
   if (node.tag === 'wx-canvas') return ''; // hidden poster export is not a UI block
   let tag = ({ 'wx-image': 'img', 'wx-text': 'span', 'wx-button': 'button' })[node.tag] || 'div';
@@ -162,7 +175,7 @@ function stylesheet(file, visited = new Set()) {
   });
 }
 function css(route) {
-  const files = ['app.wxss', 'components/personality-tree/index.wxss', 'packages/reports/components/profile-radar/index.wxss', route + '.wxss'];
+  const files = ['app.wxss', 'components/personality-tree/index.wxss', 'components/ranking-board/index.wxss', 'packages/reports/components/profile-radar/index.wxss', route + '.wxss'];
   return files.map(file => stylesheet(file)).join('\n')
     .replace(/(?<![-\w])page(?=\s*[{,])/g, 'body')
     .replace(/(?<![-\w])view(?=[\s.,:#>+~\[{])/g, ':is(div,h1)')
@@ -205,7 +218,7 @@ async function fixtures() {
   const hall = page('pages/test-hall/index'); hall.onLoad(); hall.onShow();
   await Promise.resolve();
   hall.data.themeImage = localArt('adventurer'); hall.data.artState = 'ready';
-  hall.data.cards = hall.data.cards.map(item => ({ ...item, image: localArt(item.artThemeId || 'adventurer') }));
+  hall.data.cards = hall.data.cards.map(item => ({ ...item, image: item.image || localArt(item.artThemeId || 'adventurer') }));
   hall.data.filteredCards = hall.data.cards;
   add('pages/test-hall/index', 'hall', hall.data);
   const archivePage = page('pages/user-center/index'); archivePage.onShow();
@@ -227,7 +240,19 @@ async function fixtures() {
     answer.data.selectedOption = Math.min(1, answer.data.question.options.length - 1);
     add('pages/test-answer/index', 'answer-' + count, answer.data);
   }
+  const rankingAnswer = page('pages/test-answer/index'); rankingAnswer.onLoad({ id: 'firstreaction' });
+  rankingAnswer.changeRanking({ detail: { index: 1 } });
+  rankingAnswer.changeRanking({ detail: { index: 2 } });
+  add('pages/test-answer/index', 'answer-ranking', rankingAnswer.data);
   const detail = page('pages/test-detail/index'); detail.onLoad({ id: 'mbti' }); add('pages/test-detail/index', 'detail', detail.data);
+  const rankingDetail = page('pages/test-detail/index'); rankingDetail.onLoad({ id: 'firstreaction' }); add('pages/test-detail/index', 'detail-ranking', rankingDetail.data);
+  const rankingResult = complete('firstreaction', 'ordinary', 0);
+  const rankingReport = page('packages/reports/index'); rankingReport.onLoad({ id: 'firstreaction', recordId: rankingResult.id });
+  add('packages/reports/index', 'report-ranking', rankingReport.data);
+  archive.unlockPremium(rankingResult.id);
+  const rankingVip = page('packages/reports/index'); rankingVip.onLoad({ id: 'firstreaction', recordId: rankingResult.id });
+  rankingVip.data.premiumPage = 'portrait';
+  add('packages/reports/index', 'report-ranking-vip', rankingVip.data);
   complete('bigfive', 'ordinary', 0);
   const result = complete('bigfive', 'work', 1); archive.unlockPremium(result.id);
   const report = page('packages/reports/index'); report.onLoad({ id: 'bigfive', recordId: result.id });
@@ -246,7 +271,12 @@ async function screenshot(scenarios) {
   const metrics = [];
   try {
     for (const scenario of scenarios) {
-      const scenarioWidths = ['hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden', 'answer-2', 'answer-3', 'answer-5', 'starter-reveal'].includes(scenario.name) ? widths : [390];
+      const responsiveScreens = [
+        'hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden',
+        'answer-2', 'answer-3', 'answer-5', 'answer-ranking', 'starter-reveal',
+        'detail-ranking', 'report-ranking', 'report-ranking-vip'
+      ];
+      const scenarioWidths = responsiveScreens.includes(scenario.name) ? widths : [390];
       for (const width of scenarioWidths) {
         const browserPage = await browser.newPage({ viewport: { width, height: width === 430 ? 932 : width === 360 ? 800 : 844 }, deviceScaleFactor: 1 });
         await browserPage.setContent(fs.readFileSync(scenario.file, 'utf8'), { waitUntil: 'load' });

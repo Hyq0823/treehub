@@ -35,7 +35,9 @@ function page(route) {
 function complete(id, choice = 0, context = '') {
   const answer = page('pages/test-answer');
   answer.onLoad({ id, context });
-  answer._answers = answer._questions.map(q => Math.min(choice, q.options.length - 1));
+  answer._answers = answer._questions.map(q => q.type === 'ranking'
+    ? q.options.map((option, index) => index)[choice ? 'reverse' : 'slice']()
+    : Math.min(choice, q.options.length - 1));
   answer.submitTest();
   assert.equal(answer.data.submitted, true, `${id} persisted`);
   const record = archive.getLatest(id);
@@ -49,7 +51,7 @@ function complete(id, choice = 0, context = '') {
 test('real page flow: first exploration, grow through five tests, repeat, reload, read exact historical record', () => {
   const hall = page('pages/test-hall'); hall.onLoad(); hall.onShow();
   assert.equal(hall.data.tree.stage.id, 'seed');
-  assert.equal(hall.data.cards.length, 6);
+  assert.equal(hall.data.cards.length, 7);
   assert.ok(hall.data.cards.every(c => !c.collected));
   const first = complete('mbti', 0, 'ordinary');
   hall.onShow();
@@ -87,10 +89,10 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(networkCalls, 0, 'local-only analytics never upload results');
   assert.equal(notifications.length, 0);
 });
-test('all six tests can be collected and revisited; filtering and navigation stay functional', () => {
+test('all seven tests can be collected and revisited; filtering and navigation stay functional', () => {
   catalog.forEach(t => complete(t.id));
   const hall = page('pages/test-hall'); hall.onShow();
-  assert.equal(hall.data.tree.uniqueCount, 6);
+  assert.equal(hall.data.tree.uniqueCount, 7);
   assert.equal(hall.data.recommendation, null);
   hall.selectCategory({ currentTarget: { dataset: { id: 'playful' } } });
   assert.deepEqual(Array.from(hall.data.filteredCards, c => c.id), ['sbti', 'shadow']);
@@ -98,6 +100,11 @@ test('all six tests can be collected and revisited; filtering and navigation sta
   assert.match(navigation.at(-1), /^\/packages\/reports\/index\?.*recordId=/);
   hall.exploreNext();
   assert.equal(navigation.at(-1), '/pages/user-center/index');
+});
+test('first-reaction card starts its one-minute ranking flow without an extra detail-page tap', () => {
+  const hall = page('pages/test-hall'); hall.onShow();
+  hall.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
+  assert.equal(navigation.at(-1), '/pages/test-answer/index?id=firstreaction&context=ordinary');
 });
 test('hall preserves invalid local archive and renders recoverable state', () => {
   memory.set(archive.STORAGE_KEY, { broken: 'preserve me' });
@@ -209,7 +216,7 @@ test('custom tab bar routes once and only marks a tab selected after navigation 
 });
 
 test('custom component styles avoid unsupported tag, ID and attribute selectors', () => {
-  const components = ['custom-tab-bar', 'components/personality-tree', 'packages/reports/components/profile-radar'];
+  const components = ['custom-tab-bar', 'components/personality-tree', 'components/ranking-board', 'packages/reports/components/profile-radar'];
   for (const component of components) {
     const file = path.join(root, component, 'index.wxss');
     const css = fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

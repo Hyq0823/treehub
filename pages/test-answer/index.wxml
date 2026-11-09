@@ -1,4 +1,4 @@
-<view class="answer-page">
+<view class="answer-page {{interactionType === 'ranking' ? 'ranking-answer-page' : ''}}">
   <view class="ambient ambient-one"></view><view class="ambient ambient-two"></view><view class="tech-grid"></view>
   <image wx:if="{{themeHeroUrl}}" class="answer-world-bg" src="{{themeHeroUrl}}" mode="aspectFit" aria-hidden="true" />
   <view wx:if="{{error}}" class="loading-container glass-panel"><view class="error-core">!</view><text class="loading-text">{{error}}</text><button class="return-button" bindtap="goToHome">返回探索大厅</button></view>
@@ -6,29 +6,49 @@
 
   <view wx:else class="answer-shell">
     <view class="session-header">
-      <view class="session-meta"><view><view class="live-dot"></view><text>慢慢来，听听自己的答案</text></view><text>{{test.name}}</text></view>
+      <view class="session-meta"><view><view class="live-dot"></view><text>{{interactionType === 'ranking' ? '第一反应没有标准答案' : '慢慢来，听听自己的答案'}}</text></view><text>{{test.name}}</text></view>
       <view class="progress-console">
         <view class="session-mascot" aria-hidden="true"><view class="mascot-leaf"></view><view class="mascot-cloud"><view class="mascot-eye eye-left"></view><view class="mascot-eye eye-right"></view><view class="mascot-smile"></view><view class="mascot-cheek cheek-left"></view><view class="mascot-cheek cheek-right"></view></view><text class="mascot-star">✦</text><view class="mascot-island"></view></view>
         <view class="progress-numbers"><view><text class="current-number">{{currentQuestionIndex + 1}}</text><text class="total-number"> / {{test.questionsCount}}</text></view><text>{{progressPercent}}%</text></view>
         <view class="progress-track"><view class="progress-fill" style="width:{{progressPercent}}%;"><view class="progress-scan"></view></view></view>
-        <view class="progress-caption"><text>探索进度</text><text>已记录 {{answeredCount}} 个选择</text></view>
+        <view class="progress-caption"><text>探索进度</text><text>{{interactionType === 'ranking' ? '已排 ' : '已记录 '}}{{answeredCount}} 个选择</text></view>
       </view>
     </view>
 
     <view class="question-card motion-{{motionKey}}">
       <view class="question-topline"><view class="question-number">QUESTION {{currentQuestionIndex + 1}}</view><view class="signal"><view></view><view></view><view></view></view></view>
       <view class="question-content">{{question.text}}</view>
-      <view class="options-list option-count-{{question.options.length}}">
-        <view wx:for="{{question.options}}" wx:key="letter" class="option-item option-{{index}} {{selectedOption === index ? 'option-selected' : ''}}" bindtap="selectOption" data-index="{{index}}" hover-class="option-pressed">
-          <view class="option-glow"></view>
-          <view class="option-content"><view class="option-letter">{{item.letter}}</view><view class="option-text">{{item.text}}</view></view>
-          <view class="option-state"><view class="state-ring"><view class="state-core {{selectedOption === index ? '' : 'state-core-hidden'}}">✓</view></view></view>
+      <view wx:if="{{interactionType === 'ranking' && question.context}}" class="ranking-context">{{question.context}}</view>
+      <ranking-board
+        wx:if="{{interactionType === 'ranking'}}"
+        items="{{rankingItems}}"
+        selectedItems="{{rankingSelected}}"
+        completed="{{rankingComplete}}"
+        disabled="{{submitting || submitted}}"
+        canGoBack="{{currentQuestionIndex > 0}}"
+        canGoForward="{{rankingComplete && currentQuestionIndex < test.questionsCount - 1}}"
+        error="{{rankingSaveError}}"
+        helper="{{rankingHelper}}"
+        bindchange="changeRanking"
+        bindundo="undoRanking"
+        bindreset="resetRanking"
+        bindback="prevQuestion"
+        bindforward="nextQuestion"
+        bindretry="retryRanking"
+      />
+      <block wx:else>
+        <view class="options-list option-count-{{question.options.length}}">
+          <view wx:for="{{question.options}}" wx:key="letter" class="option-item option-{{index}} {{selectedOption === index ? 'option-selected' : ''}}" bindtap="selectOption" data-index="{{index}}" hover-class="option-pressed">
+            <view class="option-glow"></view>
+            <view class="option-content"><view class="option-letter">{{item.letter}}</view><view class="option-text">{{item.text}}</view></view>
+            <view class="option-state"><view class="state-ring"><view class="state-core {{selectedOption === index ? '' : 'state-core-hidden'}}">✓</view></view></view>
+          </view>
         </view>
-      </view>
-      <view class="choice-feedback {{autoAdvancing ? 'choice-feedback-visible' : ''}}"><text>✓</text> 选择已记录，正在进入下一题</view>
+        <view class="choice-feedback {{autoAdvancing ? 'choice-feedback-visible' : ''}}"><text>✓</text> 选择已记录，正在进入下一题</view>
+      </block>
     </view>
 
-    <view class="answer-dock">
+    <view wx:if="{{interactionType !== 'ranking'}}" class="answer-dock">
       <view class="footer-console">
         <button class="nav-btn prev-btn" bindtap="prevQuestion" disabled="{{currentQuestionIndex === 0}}"><text>←</text> 上一题</button>
         <button class="nav-btn next-btn" bindtap="nextQuestion" disabled="{{submitting || submitted}}">{{currentQuestionIndex === test.questionsCount - 1 ? '生成我的报告' : '下一题'}} <text class="{{submitting ? 'answer-arrow-hidden' : ''}}">→</text></button>
@@ -38,8 +58,8 @@
   </view>
   <view class="reveal-mask {{revealingResult ? '' : 'reveal-mask-hidden'}}">
     <view class="reveal-orbit"><view class="reveal-ring reveal-ring-one"></view><view class="reveal-ring reveal-ring-two"></view><view class="reveal-seed">✦</view></view>
-    <view class="reveal-title">正在收集你的答案</view>
-    <view class="reveal-copy">让这些选择，慢慢长成属于你的画像</view>
+    <view class="reveal-title">{{revealTitle}}</view>
+    <view class="reveal-copy">{{revealCopy}}</view>
     <view class="reveal-dots"><view></view><view></view><view></view></view>
   </view>
 </view>

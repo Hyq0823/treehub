@@ -7,8 +7,8 @@ const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
-const CARD_THEMES = { mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
-const DISPLAY_ORDER = ['mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
+const CARD_THEMES = { firstreaction: 'adventurer', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['firstreaction', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();
@@ -73,8 +73,10 @@ Page({
         return Object.assign({}, metadata, {
           id: test.id, number: String(index + 1).padStart(2, '0'), questionsCount: test.questionsCount, time: test.time,
           count: records.length, collected: !!latest, recordId: latest && latest.id,
+          quickStart: !!metadata.quickStart,
           artThemeId: CARD_THEMES[test.id] || 'adventurer',
-          image: this._cardImages && this._cardImages[test.id] || '',
+          image: metadata.image || this._cardImages && this._cardImages[test.id] || '',
+          localImage: metadata.image || '',
           resultTitle
         });
       });
@@ -229,8 +231,9 @@ Page({
     const card = this.data.cards.find(item => item.id === id);
     if (card) themeAssets.invalidateThemeAsset(card.artThemeId);
     if (this._cardImages) delete this._cardImages[id];
-    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
+    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '', localImage: '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
+    if (wx.nextTick) wx.nextTick(() => this.loadCardImage(id)); else this.loadCardImage(id);
   },
   onHide() {
     this._hidden = true;
@@ -263,11 +266,13 @@ Page({
     if (!card) return;
     const url = card.collected ?
       `/packages/reports/index?id=${card.id}&recordId=${encodeURIComponent(card.recordId)}` :
-      `/pages/test-detail/index?id=${card.id}`;
+      card.quickStart ? `/pages/test-answer/index?id=${card.id}&context=ordinary` : `/pages/test-detail/index?id=${card.id}`;
     wx.navigateTo({ url });
   },
   exploreNext() {
-    if (this.data.recommendation) wx.navigateTo({ url: `/pages/test-detail/index?id=${this.data.recommendation.id}` });
+    if (this.data.recommendation) wx.navigateTo({ url: this.data.recommendation.quickStart
+      ? `/pages/test-answer/index?id=${this.data.recommendation.id}&context=ordinary`
+      : `/pages/test-detail/index?id=${this.data.recommendation.id}` });
     else this.openArchive();
   },
   openArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
@@ -275,7 +280,7 @@ Page({
   openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
   onShareAppMessage() {
     return {
-      title: '人格测试树｜MBTI、大五与九型性格测试，收集独特的你',
+      title: '人格测试树｜第一反应、MBTI、大五与九型人格测试',
       path: '/pages/test-hall/index', imageUrl: this.data.shareImagePath || DEFAULT_SHARE_IMAGE
     };
   }

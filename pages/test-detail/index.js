@@ -30,7 +30,12 @@ Page({
         icon: test.icon,
         description: test.description,
         questionsCount: test.questionsCount,
-        time: test.time
+        time: test.time,
+        cover: test.cover || '',
+        formatValue: test.format && test.format.value || String(test.questionsCount),
+        formatLabel: test.format && test.format.label || '道自我观察',
+        shareTitle: test.interaction && test.interaction.shareTitle || '',
+        timelineTitle: test.interaction && test.interaction.timelineTitle || ''
       };
       this.setData({
         test: summary, error: '',
@@ -60,13 +65,13 @@ Page({
   onShareAppMessage() {
     const test = this.data.test;
     return {
-      title: `${test.displayName || '人格测试树'}｜认识自己，让人格树长出新叶`,
+      title: test.shareTitle || `${test.displayName || '人格测试树'}｜认识自己，让人格树长出新叶`,
       path: test.id ? `/pages/test-detail/index?id=${encodeURIComponent(test.id)}` : '/pages/test-hall/index',
       imageUrl: DEFAULT_SHARE_IMAGE
     };
   },
   onShareTimeline() {
     const test = this.data.test;
-    return { title: `${test.displayName || '人格测试树'}｜一起探索独特的自己`, query: test.id ? `id=${encodeURIComponent(test.id)}` : '' };
+    return { title: test.timelineTitle || `${test.displayName || '人格测试树'}｜一起探索独特的自己`, query: test.id ? `id=${encodeURIComponent(test.id)}` : '' };
   }
 })

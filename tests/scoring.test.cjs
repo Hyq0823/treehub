@@ -10,7 +10,10 @@ const { buildDeepReport, basicDimensions, buildComparison } = require('../packag
 const get = id => catalog.find(item => item.id === id);
 function result(id, choice) {
   const selected = get(id);
-  const scored = scoreTest(selected, selected.questions, selected.questions.map(() => choice));
+  const answers = selected.questions.map(question => question.type === 'ranking'
+    ? question.options.map((option, index) => index)[choice ? 'reverse' : 'slice']()
+    : choice);
+  const scored = scoreTest(selected, selected.questions, answers);
   return Object.assign({ testId: id, scoringVersion: '2' }, scored);
 }
 
@@ -80,6 +83,58 @@ test('unanswered or duplicate/missing question sets cannot produce a result', ()
   const duplicate = selected.questions.slice();
   duplicate[0] = duplicate[1];
   assert.throws(() => scoreTest(selected, duplicate, selected.questions.map(() => 0)), /不一致/);
+});
+
+test('weighted ranking keeps the full order, changes the leading profile and rejects duplicates', () => {
+  const selected = get('firstreaction');
+  const natural = selected.questions[0].options.map((option, index) => index);
+  const reversed = natural.slice().reverse();
+  const first = scoreTest(selected, selected.questions, [natural]);
+  const last = scoreTest(selected, selected.questions, [reversed]);
+  assert.equal(first.resultType, 'order');
+  assert.equal(last.resultType, 'security');
+  assert.deepEqual(Object.values(first.scores).sort((a, b) => b - a), [100, 78, 56, 34, 18]);
+  assert.throws(() => scoreTest(selected, selected.questions, [[0, 0, 1, 2, 3]]), /重复/);
+  assert.throws(() => scoreTest(selected, selected.questions, [[0, 1, 2]]), /排完所有/);
+  const report = resolveReport(selected, Object.assign({ testId: selected.id, scoringVersion: '2' }, first));
+  assert.deepEqual(report.ranking.map(item => item.id), ['order', 'connection', 'risk', 'joy', 'security']);
+  assert.equal(report.dimensions[0].scoreText, '第 1 顺位');
+  assert.equal(resolveReport(selected, Object.assign({}, first, { testId: selected.id, scoringVersion: '2', resultType: 'connection' })), null);
+  assert.equal(resolveReport(selected, {
+    testId: selected.id, scoringVersion: '2', resultType: first.resultType,
+    scores: Object.assign({}, first.scores, { order: 999 })
+  }), null);
+  assert.equal(resolveReport(selected, {
+    testId: selected.id, scoringVersion: '2', resultType: first.resultType,
+    scores: Object.assign({}, first.scores, { order: 99, connection: 79 })
+  }), null, 'a matching total is not enough; every score must be achievable from the configured ranks');
+});
+
+test('multi-round ranking is order-independent, rejects duplicate scenes and reports an aggregate direction', () => {
+  const original = get('firstreaction');
+  const second = Object.assign({}, original.questions[0], { id: 'daily-rush-2' });
+  const selected = Object.assign({}, original, { questions: [original.questions[0], second], questionsCount: 2 });
+  const natural = original.questions[0].options.map((option, index) => index);
+  const reversed = natural.slice().reverse();
+  const forward = scoreTest(selected, selected.questions, [natural, reversed]);
+  const swapped = scoreTest(selected, selected.questions.slice().reverse(), [reversed, natural]);
+  assert.deepEqual(swapped, forward);
+  assert.throws(() => scoreTest(selected, [selected.questions[0], selected.questions[0]], [natural, reversed]), /题目数据不一致/);
+  const report = resolveReport(selected, Object.assign({ testId: selected.id, scoringVersion: '2' }, forward));
+  assert.equal(report.rankingMode, 'aggregate');
+  assert.match(report.rankingTitle, /综合/);
+
+  const historical = scoreTest(original, original.questions, [natural]);
+  const historicalRecord = Object.assign({
+    testId: selected.id, testVersion: '1', scoringVersion: '2'
+  }, historical);
+  const historicalReport = resolveReport(selected, historicalRecord);
+  assert.equal(historicalReport.rankingMode, 'sequence', 'adding a later scene must not reinterpret a one-scene record');
+  assert.equal(historicalReport.rankingRoundCount, 1);
+  assert.doesNotMatch(buildDeepReport(selected, historicalRecord, historicalReport).sections[0].title, /综合/);
+  assert.equal(buildComparison(selected,
+    Object.assign({ testId: selected.id, testVersion: '1', scoringVersion: '2' }, forward), historicalRecord), null,
+  'records built from different scene counts are not compared as equivalent retests');
 });
 
 function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
@@ -154,6 +209,72 @@ test('answer page saves once, reveals the result, then redirects to the exact re
   assert.equal(timers.size, 1);
   [...timers.values()][0]();
   assert.equal(calls.redirect[0].url, '/packages/reports/index?id=ie&recordId=record-1');
+});
+
+test('ranking answer stays in place, supports undo and submits automatically after the fifth choice', () => {
+  const { page, calls, timers } = loadPage('pages/test-answer/index.js');
+  page.onLoad({ id: 'firstreaction', context: 'ordinary' });
+  assert.equal(page.data.interactionType, 'ranking');
+  assert.equal(page.data.progressPercent, 0);
+  for (let index = 0; index < 4; index++) page.changeRanking({ detail: { index } });
+  assert.equal(page.data.rankingSelected.length, 4);
+  assert.equal(page.data.rankingItems[0].rank, 1);
+  page.undoRanking();
+  assert.equal(page.data.rankingSelected.length, 3);
+  page.changeRanking({ detail: { index: 3 } });
+  page.changeRanking({ detail: { index: 4 } });
+  assert.equal(page.data.rankingComplete, true);
+  assert.equal(page.data.progressPercent, 100);
+  assert.equal(timers.size, 1);
+  [...timers.values()][0]();
+  assert.equal(calls.saved.length, 1);
+  assert.deepEqual(Array.from(calls.saved[0].answers[0].ranking), ['order', 'connection', 'risk', 'joy', 'security']);
+  assert.equal(page.data.revealingResult, true);
+});
+
+test('failed ranking save keeps the complete order and exposes an explicit retry path', () => {
+  let fail = true;
+  const saved = [];
+  const { page, calls } = loadPage('pages/test-answer/index.js', {
+    saveResult(input) {
+      if (fail) throw new Error('storage full');
+      saved.push(input);
+      return Object.assign({ id: 'ranking-record' }, input);
+    }
+  });
+  page.onLoad({ id: 'firstreaction', context: 'ordinary' });
+  page._answers = [page._questions[0].options.map((option, index) => index)];
+  page.updateQuestion({ animate: false });
+  page.submitTest();
+  assert.equal(page.data.submitted, false);
+  assert.equal(page.data.rankingComplete, true);
+  assert.match(page.data.rankingSaveError, /顺序已为你保留/);
+  assert.equal(calls.modal.length, 0);
+  assert.match(calls.toast[0].title, /重试/);
+  fail = false;
+  page.retryRanking();
+  assert.equal(saved.length, 1);
+  assert.equal(page.data.submitted, true);
+  assert.equal(page.data.rankingSaveError, '');
+});
+
+test('a multi-round ranking can revisit a completed previous scene and continue forward', () => {
+  const { page } = loadPage('pages/test-answer/index.js');
+  page.onLoad({ id: 'firstreaction', context: 'ordinary' });
+  const first = page._questions[0];
+  const second = Object.assign({}, first, { id: 'daily-rush-2' });
+  const order = first.options.map((option, index) => index);
+  page._questions = [first, second];
+  page._answers = [order.slice(), order.slice().reverse()];
+  page.data.test.questionsCount = 2;
+  page.data.currentQuestionIndex = 1;
+  page.updateQuestion();
+  page.prevQuestion();
+  assert.equal(page.data.currentQuestionIndex, 0);
+  assert.equal(page.data.rankingComplete, true);
+  page.nextQuestion();
+  assert.equal(page.data.currentQuestionIndex, 1);
+  assert.equal(page.data.rankingComplete, true);
 });
 
 test('same-version retest comparison describes movement without ranking it as improvement', () => {
@@ -256,7 +377,7 @@ test('migrated report labels original assessment time as unknown', () => {
 });
 
 test('all current tests produce a distinct deep report with useful dimensions and actions', () => {
-  const expectedDimensions = { sbti: 5, mbti: 4, enneagram: 9, bigfive: 5, shadow: 1, ie: 1 };
+  const expectedDimensions = { firstreaction: 5, sbti: 5, mbti: 4, enneagram: 9, bigfive: 5, shadow: 1, ie: 1 };
   for (const selected of catalog) {
     const scored = result(selected.id, 0);
     const base = resolveReport(selected, scored);

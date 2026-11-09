@@ -242,16 +242,32 @@ test('canonical shuffled answers persist question identity and reject duplicates
   assert.deepEqual(archive.getArchive(), previous);
 });
 
+test('ranking answers cannot use the legacy integer shortcut or an incomplete permutation', () => {
+  const { scoreTest } = require('../utils/scoring.js');
+  setup();
+  const selected = catalog.find(item => item.id === 'firstreaction');
+  const ranking = selected.questions[0].options.map((option, index) => index);
+  const scored = scoreTest(selected, selected.questions, [ranking]);
+  assert.throws(() => archive.saveResult(Object.assign({ testId: selected.id, answers: [0] }, scored)), /答题记录不完整/);
+  assert.throws(() => archive.saveResult(Object.assign({
+    testId: selected.id,
+    answers: [{ questionId: selected.questions[0].id, ranking: ['order', 'connection'] }]
+  }, scored)), /答题记录不完整/);
+});
+
 test('real scoring output can be archived and resolved for every catalog test', () => {
   const { scoreTest, resolveReport } = require('../utils/scoring.js');
   setup();
   catalog.forEach(item => {
     const questions = item.questions.slice().reverse();
-    const indices = questions.map(() => 0);
+    const indices = questions.map(question => question.type === 'ranking'
+      ? question.options.map((option, index) => index) : 0);
     const result = scoreTest(item, questions, indices);
     const saved = archive.saveResult(Object.assign({
       testId: item.id,
-      answers: questions.map((question, index) => ({ questionId: question.id, optionIndex: indices[index] }))
+      answers: questions.map((question, index) => question.type === 'ranking'
+        ? { questionId: question.id, ranking: indices[index].map(optionIndex => String(question.options[optionIndex].id || question.options[optionIndex].value)) }
+        : { questionId: question.id, optionIndex: indices[index] })
     }, result));
     const report = resolveReport(item, archive.getRecord(saved.id));
     assert.ok(report && report.title, item.id + ' report resolves after storage');

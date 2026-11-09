@@ -188,6 +188,15 @@ test('the hidden theme requires five distinct current-version explorations on th
   assert.equal((await f.call('exportMyData')).themeState.selectedId, 'aurora');
 });
 
+test('the first-reaction test counts toward cloud exploration-grown themes', async () => {
+  const f = fixture(); await f.authorize();
+  const aurora = { version: 1, selectedId: 'aurora', starterClaimed: false, unlocked: [{ themeId: 'aurora', source: 'exploration', unlockedAt: f.time() }] };
+  const records = ['ie', 'mbti', 'enneagram', 'bigfive', 'firstreaction'].map((id, index) => record(`new-${index}`, id));
+  const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records, themeState: aurora });
+  assert.equal(response.ok, true, response.message);
+  assert.equal((await f.call('exportMyData')).themeState.selectedId, 'aurora');
+});
+
 test('the server accepts exploration-grown themes only after their matching test', async () => {
   const f = fixture(); await f.authorize();
   const moon = { version: 1, selectedId: 'moon', starterClaimed: false, unlocked: [{ themeId: 'moon', source: 'exploration', unlockedAt: f.time() }] };

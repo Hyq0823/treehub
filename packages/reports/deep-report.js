@@ -115,7 +115,35 @@ function shadowDimensions(record) {
     `本次原始分为 ${raw} / 40。它描述答题选择，不代表“阴影”好坏或临床程度。`)];
 }
 
-function dimensionsFor(test, record) {
+function rankingRoundCount(test, record) {
+  const weights = test.scoring.weights || [];
+  const scores = record && record.scores || {};
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const scoreTotal = Object.keys(scores).reduce((sum, id) => sum + (Number(scores[id]) || 0), 0);
+  const rounds = weightTotal ? scoreTotal / weightTotal : 0;
+  return Number.isInteger(rounds) && rounds > 0 ? rounds : 1;
+}
+
+function rankingDimensions(test, record, knownRounds) {
+  const meta = Array.isArray(test.scoring.dimensionMeta) ? test.scoring.dimensionMeta : [];
+  const weights = test.scoring.weights || [];
+  const rounds = knownRounds || rankingRoundCount(test, record);
+  const minimum = Math.min.apply(null, weights) * rounds;
+  const maximum = Math.max.apply(null, weights) * rounds;
+  const ranked = meta.slice().sort((first, second) =>
+    (Number(record.scores[second.id]) || 0) - (Number(record.scores[first.id]) || 0)
+  );
+  const ranks = new Map(ranked.map((item, index) => [item.id, index + 1]));
+  return meta.map(item => {
+    const score = Number(record.scores[item.id]) || 0;
+    const percent = maximum === minimum ? 50 : (score - minimum) / (maximum - minimum) * 100;
+    const rank = ranks.get(item.id);
+    return Object.assign(dimension(item.id, item.label, '稍后照顾', '优先保护', percent,
+      `本次位于第 ${rank} 顺位，表示这一次情境中的处理先后，不是能力分。`), { rank });
+  });
+}
+
+function dimensionsFor(test, record, rankingRounds) {
   if (!test || !record || record.scoringVersion !== '2') return [];
   if (test.id === 'mbti') return mbtiDimensions(test, record);
   if (test.id === 'bigfive') return bigFiveDimensions(test, record);
@@ -123,6 +151,7 @@ function dimensionsFor(test, record) {
   if (test.id === 'sbti') return sbtiDimensions(record);
   if (test.id === 'ie') return ieDimensions(record);
   if (test.id === 'shadow') return shadowDimensions(record);
+  if (test.scoring.strategy === 'weighted-ranking') return rankingDimensions(test, record, rankingRounds);
   return [];
 }
 
@@ -130,6 +159,8 @@ function buildComparison(test, current, previous) {
   if (!test || !current || !previous || current.testId !== previous.testId ||
       current.scoringVersion !== previous.scoringVersion || current.scoringVersion !== '2' ||
       current.testVersion !== previous.testVersion) return null;
+  if (test.scoring.strategy === 'weighted-ranking' &&
+      rankingRoundCount(test, current) !== rankingRoundCount(test, previous)) return null;
   const before = new Map(dimensionsFor(test, previous).map(item => [item.id, item]));
   const changes = dimensionsFor(test, current).map(item => {
     const prior = before.get(item.id);
@@ -277,13 +308,45 @@ function buildSimple(test, record, base, dimensions) {
   };
 }
 
+function buildRanking(test, record, base, dimensions) {
+  const meta = new Map((test.scoring.dimensionMeta || []).map(item => [item.id, item]));
+  const ranked = dimensions.slice().sort((first, second) => second.percent - first.percent);
+  const first = ranked[0];
+  const second = ranked[1];
+  const last = ranked[ranked.length - 1];
+  const firstName = meta.get(first.id) && meta.get(first.id).label || first.label;
+  const secondName = meta.get(second.id) && meta.get(second.id).label || second.label;
+  const lastName = meta.get(last.id) && meta.get(last.id).label || last.label;
+  const rounds = base.rankingRoundCount || rankingRoundCount(test, record);
+  const aggregate = rounds > 1;
+  return {
+    mode: 'ranking', tagline: aggregate
+      ? `综合来看，你更优先保护「${firstName}」，其次是「${secondName}」。`
+      : `你先保护「${firstName}」，接着照顾「${secondName}」。`, dimensions,
+    sections: [
+      { title: aggregate ? '你的综合优先方向' : '你的处理动作链', content: aggregate
+        ? `${rounds} 个情境综合后，“${firstName}”和“${secondName}”更靠前。这描述跨情境的相对关注方向，不等同于某一轮真实的处理顺序。`
+        : `这一次，你的第一反应从“${firstName}”开始，然后转向“${secondName}”。这条顺序描述当下如何从忙乱中找回节奏。` },
+      { title: '自然优势', content: `${base.description} 当事情同时涌来时，明确第一步能帮你更快启动，而不是停在“每件都很急”的感觉里。` },
+      { title: '容易最后才想起的事', content: `“${lastName}”被放在最后，不等于它不重要。它更像是你在这个情境里容易稍后才顾及的需要。` },
+      { title: '放回真实生活', content: '现实中的轻重缓急会随安全、时限和他人需要改变。把直觉当成观察入口，再用实际风险校准顺序。' }
+    ],
+    actions: [
+      `下次多件事同时发生时，先说出：“我现在最想保护的是${firstName}。”`,
+      `刻意给“${lastName}”留一个不会被遗忘的时间点。`,
+      '30 天后在相似状态下再排一次，比较顺序是否随生活阶段改变。'
+    ]
+  };
+}
+
 function buildDeepReport(test, record, base) {
   if (!test || !record || !base || record.scoringVersion !== '2') return null;
-  const dimensions = dimensionsFor(test, record);
+  const dimensions = dimensionsFor(test, record, base.rankingRoundCount);
   if (!dimensions.length) return null;
 
   let report;
-  if (test.id === 'mbti') report = buildMbti(test, record, base, dimensions);
+  if (test.scoring.strategy === 'weighted-ranking') report = buildRanking(test, record, base, dimensions);
+  else if (test.id === 'mbti') report = buildMbti(test, record, base, dimensions);
   else if (test.id === 'enneagram') report = buildEnneagram(record, base, dimensions);
   else if (test.id === 'bigfive') report = buildBigFive(base, dimensions);
   else report = buildSimple(test, record, base, dimensions);
@@ -295,6 +358,9 @@ function buildDeepReport(test, record, base) {
 
 function basicDimensions(result) {
   if (!result || !Array.isArray(result.dimensions)) return [];
+  if (result.dimensions.every(item => Number.isInteger(item.rank))) {
+    return result.dimensions.slice().sort((a, b) => a.rank - b.rank).slice(0, 2);
+  }
   return result.dimensions.slice().sort((a, b) =>
     Math.abs(Number(b.percent) - 50) - Math.abs(Number(a.percent) - 50)
   ).slice(0, 2);

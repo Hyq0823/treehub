@@ -84,6 +84,20 @@ page {
 .result-header {
   text-align: center;
 }
+.priority-order-card { margin-bottom: 28rpx; padding: 31rpx 22rpx 28rpx; overflow: hidden; border: 1rpx solid #dfe9fa; border-radius: 34rpx; background: radial-gradient(circle at 90% 0, #eee9ff, transparent 42%), linear-gradient(160deg, #fafdff, #eef6ff); box-shadow: 0 14rpx 38rpx rgba(65, 105, 166, .09); }
+.priority-order-kicker { color: #829bc0; font-size: 18rpx; letter-spacing: 2rpx; }
+.priority-order-title { margin-top: 11rpx; color: #244c7f; font-size: 34rpx; font-weight: 750; }
+.priority-order-subtitle { margin-top: 7rpx; color: #7d93b2; font-size: 21rpx; line-height: 1.6; }
+.priority-order-scroll { width: 100%; }
+.priority-order-grid { display: grid; gap: 4rpx; margin: 24rpx auto 0; }
+.priority-order-item { position: relative; min-width: 0; text-align: center; }
+.priority-order-visual { position: relative; width: 92rpx; height: 92rpx; margin: 0 auto; border: 1rpx solid #dce8f9; border-radius: 25rpx; background: #fff; box-shadow: 0 7rpx 18rpx rgba(75, 117, 177, .1); }
+.priority-order-visual image { width: 100%; height: 100%; border-radius: inherit; }
+.priority-order-visual text { position: absolute; right: -5rpx; top: -7rpx; display: flex; align-items: center; justify-content: center; width: 31rpx; height: 31rpx; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #6ab2ff, #7b7eea); font-size: 17rpx; font-weight: 800; box-shadow: 0 5rpx 13rpx rgba(74, 111, 198, .22); }
+.priority-order-label { margin-top: 11rpx; color: #4d6f9c; font-size: 18rpx; line-height: 1.35; }
+.priority-order-arrow { position: absolute; z-index: 2; top: 34rpx; right: -9rpx; color: #a7bada; font-size: 20rpx; }
+.priority-order-insight { margin-top: 24rpx; padding: 20rpx; border-radius: 22rpx; color: #315f99; background: rgba(255,255,255,.76); font-size: 23rpx; font-weight: 650; line-height: 1.55; }
+.priority-order-insight text { display: block; margin-top: 5rpx; color: #7c8fa8; font-size: 20rpx; font-weight: 400; }
 .result-icon {
   margin: 0 auto 24rpx;
   width: 136rpx;
@@ -585,3 +599,10 @@ button::after {
   line-height: 1.5;
 }
 .comparison-card { margin:24rpx 0; padding:29rpx; border:1rpx solid #c9defb; border-radius:30rpx; background:linear-gradient(150deg,#f7fbff,#e8f3ff); box-shadow:0 13rpx 32rpx #6e9ed21a; }.comparison-kicker { color:#6590c8; font-size:20rpx; letter-spacing:2rpx; }.comparison-kicker text { color:#3c7ed9; }.comparison-title { margin-top:13rpx; color:#214f88; font-size:32rpx; font-weight:700; line-height:1.5; }.comparison-context { display:flex; align-items:center; gap:12rpx; margin-top:16rpx; color:#6f8eb5; font-size:21rpx; }.comparison-context text:first-child,.comparison-context text:last-child { padding:7rpx 13rpx; border-radius:18rpx; background:#ffffffc9; }.comparison-headline { margin-top:20rpx; color:#476d9c; font-size:25rpx; line-height:1.8; }.comparison-list { margin-top:18rpx; }.comparison-row { display:flex; justify-content:space-between; align-items:center; gap:20rpx; padding:17rpx 0; border-top:1rpx solid #dbe8f8; }.comparison-row > view:first-child text { display:block; }.comparison-row > view:first-child text:first-child { color:#355d8e; font-size:24rpx; }.comparison-row > view:first-child text:last-child { margin-top:5rpx; color:#8298b4; font-size:19rpx; }.comparison-delta { flex:none; min-width:83rpx; text-align:right; color:#758ca9; font-size:27rpx; font-weight:700; }.delta-up { color:#4383d5; }.delta-down { color:#8b78ba; }.comparison-note { margin-top:9rpx; color:#8295ad; font-size:19rpx; line-height:1.7; }.comparison-share { min-height:82rpx; margin:22rpx 0 0; border:1rpx solid #bed7f7; border-radius:41rpx; color:#3975bd; background:#ffffffc7; font-size:23rpx; }.comparison-share::after { border:0; }.premium-comparison { margin-top:20rpx; padding:20rpx; border:1rpx solid #d9e8fd; border-radius:22rpx; background:#f7fbff; }.premium-change { display:grid; grid-template-columns:1fr auto auto; gap:15rpx; padding:14rpx 0; border-bottom:1rpx solid #e4eefb; color:#57799f; font-size:19rpx; }.premium-change text:last-child { min-width:62rpx; text-align:right; color:#3f7bc3; font-weight:650; }.premium-reflection { margin-top:16rpx; color:#647f9f; font-size:20rpx; line-height:1.75; }
+
+/* Keep primary report actions comfortably tappable on narrow phones. */
+.result-page .premium-unlock-button,
+.result-page .premium-tab,
+.result-page .primary-button,
+.result-page .secondary-button,
+.result-page .text-button { min-height: 44px; }

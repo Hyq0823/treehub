@@ -13,7 +13,8 @@ const RESULT_VISUALS = {
   enneagram: { symbol: '✺', title: '内在动力罗盘', note: '看见此刻最先推动你的内在方向' },
   ie: { symbol: '◐', title: '社交能量光谱', note: '连接世界，也照顾自己的充电节奏' },
   sbti: { symbol: '◈', title: '趣味人格徽章', note: '把有趣的这一面，收藏进今天' },
-  shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' }
+  shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' },
+  firstreaction: { symbol: '✦', title: '第一反应优先图', note: '先保护什么 · 最后才顾到什么' }
 };
 
 function formatTime(value) {
@@ -25,22 +26,30 @@ function formatTime(value) {
 
 function decorateDeepReport(report) {
   if (!report) return null;
+  const rankingMode = report.mode === 'ranking';
   const dimensions = (report.dimensions || []).map(item => {
     const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
     const clarity = Math.round(Math.abs(percent - 50) * 2);
+    const preference = percent > 60 ? item.right : percent < 40 ? item.left : '相对均衡';
     return Object.assign({}, item, {
       percent, clarity,
-      preference: percent > 60 ? item.right : percent < 40 ? item.left : '相对均衡',
-      tone: percent > 60 ? 'right' : percent < 40 ? 'left' : 'middle'
+      preference,
+      tone: percent > 60 ? 'right' : percent < 40 ? 'left' : 'middle',
+      legendText: rankingMode && Number.isInteger(item.rank)
+        ? `第 ${item.rank} 顺位 · 本次相对优先度 ${percent}%`
+        : `${preference} · 清晰度 ${clarity}%`
     });
   });
-  const ranked = dimensions.slice().sort((first, second) => second.clarity - first.clarity);
+  const ranked = dimensions.slice().sort((first, second) => rankingMode
+    ? first.rank - second.rank : second.clarity - first.clarity);
   const icons = ['✦', '❧', '◐', '◇', '◎'];
   const timing = ['今天', '7 天内', '30 天后'];
   return Object.assign({}, report, {
     dimensions,
-    highlights: ranked.slice(0, Math.min(3, ranked.length)),
-    balancedCount: dimensions.filter(item => item.tone === 'middle').length,
+    highlights: ranked.slice(0, Math.min(3, ranked.length)).map(item => Object.assign({}, item, {
+      highlightText: rankingMode ? `${item.label} · 第 ${item.rank} 顺位` : item.preference
+    })),
+    balancedCount: rankingMode ? 0 : dimensions.filter(item => item.tone === 'middle').length,
     sections: (report.sections || []).map((section, index) => Object.assign({ icon: icons[index % icons.length] }, section)),
     actionPlan: (report.actions || []).map((content, index) => ({ timing: timing[index] || `第 ${index + 1} 步`, content }))
   });
@@ -50,7 +59,8 @@ Page({
   data: {
     test: {}, result: {}, record: null, savedAt: '', state: 'loading',
     stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦', resultVisual: RESULT_VISUALS.mbti,
-    basicDimensions: [], deepReport: null, premiumAvailable: false,
+    basicDimensions: [], deepReport: null, premiumAvailable: false, rankingProfile: [],
+    rankingGridWidth: 0, rankingLeadText: '', rankingTailText: '',
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
     premiumSavePending: false, premiumSaving: false, premiumSaveError: '', comparison: null,
@@ -72,7 +82,7 @@ Page({
       this._test = test;
       this.setData({
         test: { id: test.id, name: test.name, icon: test.icon },
-        playful: ['sbti', 'shadow'].includes(test.id), resultIcon: test.icon || '✦',
+        playful: ['sbti', 'shadow'].includes(test.id) || test.interaction && test.interaction.type === 'ranking', resultIcon: test.icon || '✦',
         resultVisual: RESULT_VISUALS[test.id] || { symbol: test.icon || '✦', title: '本次人格画像', note: '收藏这一次认真回答的自己' }
       });
       // A record-specific URL must never fall through to a different historical result.
@@ -95,12 +105,20 @@ Page({
         item.scoringVersion === record.scoringVersion && item.testVersion === record.testVersion) : null;
       const comparison = buildComparison(test, record, previous);
       const pendingGrant = !record.premiumUnlockedAt && premiumAccess.getPendingGrant(record.id);
+      const rankingProfile = Array.isArray(result.ranking) ? result.ranking : [];
       this.setData({
         record: { id: record.id, treeSnapshot: record.treeSnapshot || null, lifeContext: record.lifeContext || '' },
         result, savedAt: record.migrated || record.scoringVersion === 'legacy'
           ? '旧版导入 · 原测评时间未知' : formatTime(record.completedAt),
         legacy: record.scoringVersion !== SCORING_VERSION,
         basicDimensions: basicDimensions(result), deepReport, comparison,
+        rankingProfile,
+        rankingGridWidth: rankingProfile.length * 108,
+        rankingLeadText: rankingProfile.length ? result.rankingMode === 'aggregate'
+          ? `综合上更优先「${rankingProfile[0].label}」` : `你先保护「${rankingProfile[0].label}」` : '',
+        rankingTailText: rankingProfile.length ? result.rankingMode === 'aggregate'
+          ? `综合相对靠后的是「${rankingProfile[rankingProfile.length - 1].label}」`
+          : `这次排在最后的是「${rankingProfile[rankingProfile.length - 1].label}」` : '',
         premiumAvailable: !!deepReport,
         premiumUnlocked: !!record.premiumUnlockedAt || !!pendingGrant,
         premiumUnlockedAt: record.premiumUnlockedAt ? formatTime(record.premiumUnlockedAt) :
@@ -330,8 +348,10 @@ Page({
         imageUrl: this.data.starterShareImage || DEFAULT_SHARE_IMAGE
       };
     }
+    const firstPriority = this.data.rankingProfile && this.data.rankingProfile[0];
     return {
-      title: this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
+      title: firstPriority ? `${this.data.rankingProfile.length}件事一起发生，我先保护「${firstPriority.label}」｜你会怎么排？` :
+        this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
       imageUrl: DEFAULT_SHARE_IMAGE
     };

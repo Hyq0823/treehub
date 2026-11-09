@@ -1,0 +1,46 @@
+<view class="rank-board {{completed ? 'rank-board-complete' : ''}}">
+  <view class="rank-helper">
+    <view class="rank-helper-copy">{{helper}}</view>
+    <view class="rank-helper-count">{{selectedItems.length}} / {{items.length}}</view>
+  </view>
+
+  <view class="rank-grid">
+    <view
+      wx:for="{{items}}"
+      wx:key="id"
+      class="rank-card {{item.rank ? 'rank-card-selected' : ''}} {{index === items.length - 1 && items.length % 2 === 1 ? 'rank-card-wide' : ''}}"
+      data-index="{{index}}"
+      bindtap="choose"
+      hover-class="rank-card-pressed"
+      role="button"
+      aria-disabled="{{completed || disabled}}"
+      aria-label="{{item.text}}，{{completed ? '顺序已确认' : item.rank ? '当前第' + item.rank + '处理，再次点击撤回' : '尚未选择，点击加入处理顺序'}}"
+    >
+      <view class="rank-card-light"></view>
+      <view wx:if="{{item.rank}}" class="rank-badge"><text class="rank-badge-number">{{item.rank}}</text><text class="rank-badge-copy">第 {{item.rank}} 处理</text></view>
+      <image class="rank-image" src="{{item.image}}" mode="aspectFit" lazy-load="{{index > 1}}" aria-hidden="true" />
+      <view class="rank-card-title">{{item.text}}</view>
+      <view class="rank-card-state">{{completed ? '顺序已确认' : item.rank ? '已放入顺序 · 点击可撤回' : '点击选择'}}</view>
+    </view>
+  </view>
+
+  <view class="rank-tray">
+    <view class="rank-tray-heading">
+      <view><text class="rank-tray-kicker">MY ORDER</text><text class="rank-tray-title">我的处理顺序</text></view>
+      <view class="rank-tray-actions">
+        <view wx:if="{{canGoBack}}" class="rank-action" bindtap="back" role="button" aria-label="返回上一情境">上一轮</view>
+        <view class="rank-action {{selectedItems.length ? '' : 'rank-action-disabled'}}" bindtap="undo" role="button" aria-label="撤回上一步" aria-disabled="{{!selectedItems.length}}">撤回</view>
+        <view class="rank-action {{selectedItems.length ? '' : 'rank-action-disabled'}}" bindtap="reset" role="button" aria-label="重新排序" aria-disabled="{{!selectedItems.length}}">重排</view>
+        <view wx:if="{{canGoForward}}" class="rank-action" bindtap="forward" role="button" aria-label="前往下一情境">下一轮</view>
+      </view>
+    </view>
+    <view wx:if="{{selectedItems.length}}" class="rank-order-row">
+      <view wx:for="{{selectedItems}}" wx:key="id" class="rank-order-chip">
+        <text class="rank-order-number">{{index + 1}}</text><text class="rank-order-name">{{item.short || item.text}}</text>
+      </view>
+    </view>
+    <view wx:else class="rank-order-empty"><block wx:for="{{items}}" wx:key="id"><text class="rank-order-slot">{{index + 1}}</text><view wx:if="{{index < items.length - 1}}" class="rank-order-link"></view></block></view>
+    <view class="rank-complete-copy {{completed ? 'rank-complete-copy-visible' : ''}}">{{error ? '报告尚未生成，请直接重试' : canGoForward ? '顺序已收集，可继续下一情境' : '顺序已收集，正在读取你的第一反应…'}}</view>
+  </view>
+  <view wx:if="{{error}}" class="rank-retry"><text>{{error}}</text><view class="rank-retry-button" bindtap="retry" role="button" aria-label="重试生成报告">重试生成报告</view></view>
+</view>

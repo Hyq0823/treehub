@@ -9,7 +9,7 @@ const MAX_PAGE_SIZE = 100;
 // check and client-generated authorization test both reject version drift.
 const POLICY_VERSION = '2026-11-06';
 const THEME_IDS = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora'];
-const TEST_IDS = ['sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
+const TEST_IDS = ['firstreaction', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const EXPLORATION_THEME_RULES = {
   moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
   wanderer: { count: 3 }, listener: { count: 4 }, aurora: { count: 5 }
