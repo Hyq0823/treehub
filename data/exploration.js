@@ -5,7 +5,7 @@ module.exports = {
     { id: 'emotion', name: '情绪' }, { id: 'energy', name: '能量' }, { id: 'playful', name: '趣味' }
   ],
   tests: {
-    firstreaction: { title: '第一反应排序测试', category: 'emotion', prompt: '五件事一起发生，你本能会先保护什么？', symbol: '✦', art: 'compass', color: '#778eea', image: '/assets/tests/first-reaction/cover.webp', quickStart: true },
+    firstreaction: { title: '第一反应排序测试', category: 'emotion', prompt: '五件事一起发生，你本能会先保护什么？', symbol: '✦', art: 'compass', color: '#778eea', image: '/assets/tests/first-reaction/cover.webp', assetPath: 'tests/first-reaction/cover.webp', quickStart: true },
     sbti: { title: 'SBTI 趣味人格测试', category: 'playful', prompt: '遇见有趣的自己，收集一份轻松的自我观察', symbol: '◈', art: 'mask', color: '#6e82db' },
     mbti: { title: 'MBTI 性格测试', category: 'personality', prompt: '探索十六型偏好，看见你的思考与生活方式', symbol: '✦', art: 'facets', color: '#548bfa' },
     enneagram: { title: '九型人格测试', category: 'personality', prompt: '了解内在动机，是什么在温柔地驱动你', symbol: '✺', art: 'compass', color: '#cda45e' },

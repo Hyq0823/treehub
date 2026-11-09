@@ -34,6 +34,7 @@ Page({
   },
   onUnload() {
     this._unloaded = true;
+    this._assetRequest = (this._assetRequest || 0) + 1;
     this.clearAdvance();
     this.clearReveal();
     if (!this.data.submitted && this.data.test.id) {
@@ -57,7 +58,10 @@ Page({
       const test = (imported.default || imported).find(item => item.id === testId);
       if (!test) throw new Error('没有找到这项测试，请返回大厅重新选择');
       this._test = test;
-      const questions = testId === 'sbti' ? this.shuffleArray(test.questions.slice()) : test.questions;
+      const clonedQuestions = test.questions.map(question => Object.assign({}, question, {
+        options: question.options.map(option => Object.assign({}, option))
+      }));
+      const questions = testId === 'sbti' ? this.shuffleArray(clonedQuestions) : clonedQuestions;
       this._questions = questions;
       this._answers = questions.map(question => question.type === 'ranking' ? [] : -1);
       const interaction = test.interaction || {};
@@ -68,9 +72,26 @@ Page({
         revealCopy: interaction.revealCopy || '让这些选择，慢慢长成属于你的画像'
       });
       this.updateQuestion();
+      this.loadQuestionAssets();
     } catch (error) {
       this.setData({ error: error.message || '测试加载失败，请返回大厅重试' });
     }
+  },
+  async loadQuestionAssets() {
+    const questions = this._questions || [];
+    const found = new Set();
+    questions.forEach(question => question.options.forEach(option => { if (option.assetPath) found.add(option.assetPath); }));
+    const paths = Array.from(found);
+    if (!paths.length) return;
+    const request = this._assetRequest = (this._assetRequest || 0) + 1;
+    try {
+      const urls = await require('../../utils/public-assets.js').resolvePublicAssets(paths);
+      if (this._unloaded || request !== this._assetRequest) return;
+      questions.forEach(question => question.options.forEach(option => {
+        if (option.assetPath && urls[option.assetPath]) option.image = urls[option.assetPath];
+      }));
+      this.updateQuestion({ animate: false });
+    } catch (error) { /* Bundled fallback artwork remains available. */ }
   },
   shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {

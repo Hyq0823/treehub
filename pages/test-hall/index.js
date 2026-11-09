@@ -75,8 +75,9 @@ Page({
           count: records.length, collected: !!latest, recordId: latest && latest.id,
           quickStart: !!metadata.quickStart,
           artThemeId: CARD_THEMES[test.id] || 'adventurer',
-          image: metadata.image || this._cardImages && this._cardImages[test.id] || '',
+          image: this._cardImages && this._cardImages[test.id] || metadata.image || '',
           localImage: metadata.image || '',
+          assetPath: metadata.assetPath || '',
           resultTitle
         });
       });
@@ -163,7 +164,7 @@ Page({
   },
   loadCardImage(testId) {
     const card = this.data.cards.find(item => item.id === testId);
-    if (!card || card.image) return;
+    if (!card || card.image && !card.assetPath) return;
     this._cardImages = this._cardImages || {};
     this._cardPending = this._cardPending || new Set();
     this._cardQueue = this._cardQueue || new Set();
@@ -188,16 +189,21 @@ Page({
   async flushCardImages(testIds, generation) {
     const pending = this._cardPending = this._cardPending || new Set();
     const cards = testIds.map(id => this.data.cards.find(item => item.id === id)).filter(card =>
-      card && !card.image && !this._cardImages[card.id] && !pending.has(card.id));
+      card && (card.assetPath || !card.image) && !this._cardImages[card.id] && !pending.has(card.id));
     if (!cards.length) return;
     cards.forEach(card => pending.add(card.id));
     try {
-      const themeIds = Array.from(new Set(cards.map(card => card.artThemeId)));
-      const urls = await themeAssets.resolveThemeAssets(themeIds);
+      const publicAssets = require('../../utils/public-assets.js');
+      const themeIds = Array.from(new Set(cards.filter(card => !card.assetPath).map(card => card.artThemeId)));
+      const assetPaths = Array.from(new Set(cards.map(card => card.assetPath).filter(Boolean)));
+      const [themeUrls, publicUrls] = await Promise.all([
+        themeIds.length ? themeAssets.resolveThemeAssets(themeIds) : {},
+        assetPaths.length ? publicAssets.resolvePublicAssets(assetPaths) : {}
+      ]);
       if (this._hidden || generation !== (this._cardGeneration || 0)) return;
       let changed = false;
       cards.forEach(card => {
-        const url = urls[card.artThemeId];
+        const url = card.assetPath ? publicUrls[card.assetPath] : themeUrls[card.artThemeId];
         if (!url) return;
         this._cardImages[card.id] = url;
         changed = true;
@@ -229,9 +235,10 @@ Page({
   cardImageFailed(event) {
     const id = event.currentTarget.dataset.id;
     const card = this.data.cards.find(item => item.id === id);
-    if (card) themeAssets.invalidateThemeAsset(card.artThemeId);
+    if (card && card.assetPath) require('../../utils/public-assets.js').invalidatePublicAsset(card.assetPath);
+    else if (card) themeAssets.invalidateThemeAsset(card.artThemeId);
     if (this._cardImages) delete this._cardImages[id];
-    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '', localImage: '' }) : card);
+    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: card.localImage || '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
     if (wx.nextTick) wx.nextTick(() => this.loadCardImage(id)); else this.loadCardImage(id);
   },

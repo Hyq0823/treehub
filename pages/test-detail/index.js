@@ -9,6 +9,7 @@ Page({
     test: {}, error: '', contextOptions: CONTEXT_OPTIONS, selectedContext: 'ordinary', hasHistory: false
   },
   onLoad(options) {
+    this._disposed = false;
     const testId = options && options.id;
     report(EVENTS.DETAIL_VIEW, { testId: testId });
     this.loadTestData(testId);
@@ -32,6 +33,7 @@ Page({
         questionsCount: test.questionsCount,
         time: test.time,
         cover: test.cover || '',
+        coverAssetPath: test.coverAssetPath || '',
         formatValue: test.format && test.format.value || String(test.questionsCount),
         formatLabel: test.format && test.format.label || '道自我观察',
         shareTitle: test.interaction && test.interaction.shareTitle || '',
@@ -41,10 +43,20 @@ Page({
         test: summary, error: '',
         hasHistory: archive.getRecords(testId).some(record => record.scoringVersion !== 'legacy')
       });
+      this.loadCoverAsset(summary);
       if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: displayName });
     } catch (error) {
       this.setData({ error: error.message || '测试暂时未能打开，请返回探索页重试。' });
     }
+  },
+  async loadCoverAsset(test) {
+    if (!test.coverAssetPath) return;
+    try {
+      const url = await require('../../utils/public-assets.js').resolvePublicAsset(test.coverAssetPath);
+      if (!this._disposed && url && this.data.test.id === test.id) {
+        this.setData({ test: Object.assign({}, this.data.test, { cover: url }) });
+      }
+    } catch (error) { /* Keep the bundled fallback cover. */ }
   },
   selectContext(event) {
     const id = event.currentTarget.dataset.id;
@@ -62,6 +74,7 @@ Page({
     });
   },
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); },
+  onUnload() { this._disposed = true; },
   onShareAppMessage() {
     const test = this.data.test;
     return {

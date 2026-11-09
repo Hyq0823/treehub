@@ -126,6 +126,7 @@ Page({
         premiumSavePending: !!pendingGrant,
         state: 'ready'
       });
+      this.loadResultAssets(result, rankingProfile);
       this.prepareStarterReveal();
       this.loadReportTheme();
       if (deepReport && !record.premiumUnlockedAt && !pendingGrant) this.setupRewardedVideoAd();
@@ -136,6 +137,22 @@ Page({
   },
   onShow() {
     if (!this._disposed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
+  },
+  async loadResultAssets(result, rankingProfile) {
+    const paths = Array.from(new Set([result && result.assetPath].concat(
+      (rankingProfile || []).map(item => item.assetPath)
+    ).filter(Boolean)));
+    if (!paths.length) return;
+    const request = this._reportAssetRequest = (this._reportAssetRequest || 0) + 1;
+    try {
+      const urls = await require('../../utils/public-assets.js').resolvePublicAssets(paths);
+      if (this._disposed || request !== this._reportAssetRequest) return;
+      const nextResult = Object.assign({}, this.data.result);
+      if (nextResult.assetPath && urls[nextResult.assetPath]) nextResult.image = urls[nextResult.assetPath];
+      const nextProfile = (this.data.rankingProfile || []).map(item => item.assetPath && urls[item.assetPath]
+        ? Object.assign({}, item, { image: urls[item.assetPath] }) : item);
+      this.setData({ result: nextResult, rankingProfile: nextProfile });
+    } catch (error) { /* Bundled fallback artwork remains available. */ }
   },
   prepareStarterReveal() {
     try {
@@ -323,6 +340,7 @@ Page({
   },
   onUnload() {
     this._disposed = true;
+    this._reportAssetRequest = (this._reportAssetRequest || 0) + 1;
     this.cancelStarterShareTimer(true);
     this._themeRequest++;
     this._starterRequest = (this._starterRequest || 0) + 1;

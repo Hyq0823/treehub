@@ -184,7 +184,7 @@ function resolveReport(test, record) {
         scoreKeys.reduce((sum, id) => sum + record.scores[id], 0) !== weights.reduce((sum, weight) => sum + weight, 0) * rounds ||
         test.scoring.resultRule(record.scores) !== record.resultType) return null;
     const ranked = meta.map(item => ({
-      id: item.id, label: item.label, image: item.image,
+      id: item.id, label: item.label, image: item.image, assetPath: item.assetPath,
       score: Number(record.scores[item.id]) || 0
     })).sort((first, second) => second.score - first.score || meta.findIndex(item => item.id === first.id) - meta.findIndex(item => item.id === second.id));
     report.ranking = ranked.map((item, index) => Object.assign({}, item, { rank: index + 1 }));

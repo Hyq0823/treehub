@@ -98,6 +98,14 @@ test('public theme URLs need no backup consent and expose only the v2 allowlist'
   assert.equal(f.rows('treehub_assessments').length, 0);
   assert.equal((await f.call('getThemeAssetUrls', { ids: ['../private-record'] })).ok, false);
   assert.equal((await f.call('getThemeAssetUrls', { ids: [] })).ok, false);
+
+  const publicAssets = await f.call('getPublicAssetUrls', {
+    paths: ['tests/first-reaction/cover.webp', 'tests/first-reaction/order.webp']
+  });
+  assert.equal(publicAssets.ok, true, publicAssets.message);
+  assert.match(publicAssets.urls['tests/first-reaction/cover.webp'], /cover\.webp$/);
+  assert.equal((await f.call('getPublicAssetUrls', { paths: ['../private-record.webp'] })).ok, false);
+  assert.equal((await f.call('getPublicAssetUrls', { paths: ['tests/first-reaction/../../private.webp'] })).ok, false);
 });
 
 test('the current client can authorize default backup after native privacy approval and sync a result', async () => {

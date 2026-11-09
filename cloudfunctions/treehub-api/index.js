@@ -11,6 +11,8 @@ const POLICY_VERSION = '2026-11-06';
 const THEME_IDS = ['adventurer', 'moon', 'romantic', 'dreamer', 'wanderer', 'listener', 'collector', 'observer', 'aurora'];
 const THEME_ASSET_IDS = THEME_IDS.concat('companions');
 const THEME_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/themes/v2/';
+const PUBLIC_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/public/v2/';
+const PUBLIC_ASSET_PATH = /^(?:tests|shared)\/[a-z0-9][a-z0-9-]{0,63}\/[a-z0-9][a-z0-9._-]{0,95}\.(?:webp|png|jpe?g)$/;
 const TEST_IDS = ['firstreaction', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const EXPLORATION_THEME_RULES = {
   moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
@@ -301,7 +303,22 @@ async function getThemeAssetUrls(_openid, event) {
   return { ok: true, urls };
 }
 
-const extensionHandlers = { getThemeAssetUrls };
+async function getPublicAssetUrls(_openid, event) {
+  if (!Array.isArray(event.paths) || !event.paths.length || event.paths.length > 50) return fail('公共素材请求无效');
+  const paths = Array.from(new Set(event.paths.map(String)));
+  if (paths.some(assetPath => !PUBLIC_ASSET_PATH.test(assetPath))) return fail('公共素材请求无效');
+  const fileList = paths.map(assetPath => `${PUBLIC_ASSET_PREFIX}${assetPath}`);
+  const result = await cloud.getTempFileURL({ fileList });
+  const urls = {};
+  for (const item of result && result.fileList || []) {
+    const index = fileList.indexOf(item.fileID);
+    if (index !== -1 && item.status === 0 && /^https:\/\//.test(item.tempFileURL || '')) urls[paths[index]] = item.tempFileURL;
+  }
+  paths.forEach(assetPath => { if (!urls[assetPath]) urls[assetPath] = ''; });
+  return { ok: true, urls };
+}
+
+const extensionHandlers = { getThemeAssetUrls, getPublicAssetUrls };
 
 exports.main = async event => {
   try {

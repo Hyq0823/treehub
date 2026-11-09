@@ -5,3 +5,5 @@
 https://github.com/Hyq0823/treehub/raw/45656f657e797081573065c9d6e90feeb7052422/artifacts/theme-cloud-assets-under-200k.zip
 
 ZIP 的 SHA-256：`ab0ef1ed12441ccc12cf72d8abd20fef544bb5c7ae54245edc259e775b846769`。
+
+第一反应测试的通用云素材包为 `first-reaction-public-assets-v2.zip`，解压后按包内目录上传到云存储根目录；最终路径是 `public/v2/tests/first-reaction/*.webp`。该 ZIP 约 40KB，保留在 `artifacts/`，且该目录不会进入微信代码包。
