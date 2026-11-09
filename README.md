@@ -70,7 +70,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `components/ranking-board/`：通用情境排序组件，支持任意卡片数量、多轮返回、撤回、重排与保存失败重试。新增排序测试只需配置题目、维度、权重和报告文案，不需要复制答题页面。
 - `data/exploration.js`：大厅分类、卡片标题、探索引导。新增测试仍需在 `data/tests/index.js` 注册，并检查评分、版本和报告适配；自动测试会同时校验轻目录、大厅顺序与云端探索计数白名单，避免漏登记。
 - 既有 `assets/trees/` 与报告分包中的旧结果图片保留历史兼容；新九主题美术完全从云开发空间加载。
-- `components/personality-tree/`：树形展示；`assets/trees/species.png` 为成熟树透明素材，3列×2行依次银杏、榕树、松树、枫树、柳树、橄榄树；`assets/trees/growth.png` 为前四个成长阶段的 2列×2行透明素材。新增树种或阶段时同步增加匹配规则、素材位置和组件配置。
+- `components/personality-tree/`：树形展示；`assets/trees/species.webp` 为成熟树透明素材，3列×2行依次银杏、榕树、松树、枫树、柳树、橄榄树；`assets/trees/growth.webp` 为前四个成长阶段的 2列×2行透明素材。两张精灵图已压缩为 WebP；新增树种或阶段时同步增加匹配规则、素材位置和组件配置。
 - `pages/tree-history/`：每次测评的树形历史；不会用当前结果重算过去的快照。
 - `packages/reports/`：报告页与 SBTI 结果图片所在分包，打开报告时由微信按需加载。应用内链接直接进入分包；旧的 `pages/test-result/index` 地址保留轻量跳转，继续支持已有报告链接与记录 ID。
 

@@ -186,7 +186,7 @@ test('all registered pages, components and packaged assets exist within main-pac
   for (const file of mediaFiles) {
     assert.ok(file.bytes <= 200000, `${file.relative}: ${file.bytes} bytes exceed the 200KB media budget`);
   }
-  assert.ok(fs.statSync(path.join(root, 'assets/trees/species.png')).size > 10000);
+  assert.ok(fs.statSync(path.join(root, 'assets/trees/species.webp')).size > 10000);
 });
 
 test('custom tab bar routes once and only marks a tab selected after navigation succeeds', () => {

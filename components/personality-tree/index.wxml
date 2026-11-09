@@ -4,10 +4,10 @@
     <view class="soil"></view><view class="seed"></view><view class="seed-spark">✦</view>
   </view>
   <view wx:elif="{{earlyStage}}" class="growth-shape">
-    <view class="growth-window"><image class="growth-sprite" src="/assets/trees/growth.png" mode="scaleToFill" style="{{growthSpriteStyle}}"/></view>
+    <view class="growth-window"><image class="growth-sprite" src="/assets/trees/growth.webp" mode="scaleToFill" style="{{growthSpriteStyle}}"/></view>
   </view>
   <view wx:else class="tree-shape" style="{{shapeStyle}}">
-    <view class="sprite-window"><image class="tree-sprite" src="/assets/trees/species.png" mode="scaleToFill" style="{{spriteStyle}}"/></view>
+    <view class="sprite-window"><image class="tree-sprite" src="/assets/trees/species.webp" mode="scaleToFill" style="{{spriteStyle}}"/></view>
   </view>
   <view wx:if="{{animated}}" wx:for="{{sparks}}" wx:key="id" class="tree-spark" style="left:{{item.left}}%;top:{{item.top}}%;">◆</view>
   <view class="ground-shadow"></view>
