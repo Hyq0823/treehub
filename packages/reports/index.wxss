@@ -607,3 +607,26 @@ button::after {
 .result-page .primary-button,
 .result-page .secondary-button,
 .result-page .text-button { min-height: 44px; }
+
+/* These portraits are CSS only; business artwork stays in cloud storage. */
+.result-visual-historicalecho { background: repeating-linear-gradient(0deg, transparent, transparent 38rpx, #c6d8e333 39rpx, transparent 40rpx), linear-gradient(145deg, #fffcf4, #edf5ff 70%, #e4eaff); }
+.result-visual-lifepath { background: radial-gradient(ellipse at 85% 0, #c3ecdd, transparent 48%), linear-gradient(135deg, #edf5ff 49%, #d9e9fc 49.5%, #e7f8f0 50%); }
+.result-visual-hiddentalent { background: radial-gradient(circle at 76% 20%, #ffe8af, transparent 25%), radial-gradient(circle at 85% 70%, #e4cfff, transparent 40%), linear-gradient(145deg, #f9fcff, #eaf4ff); }
+.profile-capture-card { box-sizing: border-box; margin-bottom: 28rpx; padding: 30rpx 26rpx 22rpx; border: 2rpx solid #fff; border-radius: 34rpx; background: linear-gradient(155deg, #fff, #f2f8ff 70%, #edf0ff); box-shadow: 0 14rpx 36rpx #557eb318; }
+.profile-capture-historicalecho { background: linear-gradient(155deg, #fffdf7, #f7faff 60%, #edf1ff); }
+.profile-capture-lifepath { background: linear-gradient(155deg, #fff, #f1f9fb 60%, #e9f4f3); }
+.profile-capture-hiddentalent { background: linear-gradient(155deg, #fff, #f7f3ff 60%, #edf5ff); }
+.profile-capture-kicker { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; color: #8a9bb4; font-size: 17rpx; line-height: 1.5; }
+.profile-capture-title { margin-top: 24rpx; color: #244b7b; font-size: 39rpx; line-height: 1.4; font-weight: 750; }
+.profile-capture-quote { margin-top: 10rpx; color: #6684a9; font-size: 24rpx; line-height: 1.65; }
+.profile-chart-caption { display: flex; justify-content: space-between; gap: 10rpx; margin-top: 26rpx; color: #4a73a5; font-size: 23rpx; line-height: 1.5; }
+.profile-chart-caption > text + text { font-size: 17rpx; color: #92a6c1; }
+.profile-capture-dimensions { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; }
+.profile-capture-dimension { min-width: 0; padding: 16rpx 14rpx; border: 1rpx solid #e0eaf8; border-radius: 18rpx; background: #ffffffc9; }
+.profile-capture-dimension-top { display: flex; justify-content: space-between; gap: 8rpx; color: #416b9b; font-size: 22rpx; font-weight: 650; }
+.profile-capture-dimension-bar { height: 7rpx; overflow: hidden; margin-top: 12rpx; border-radius: 8rpx; background: #e9f0fb; }
+.profile-capture-dimension-bar > view { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #86bdff, #8e94e9); }
+.profile-capture-poles { display: flex; justify-content: space-between; gap: 8rpx; margin-top: 8rpx; color: #8a9db7; font-size: 17rpx; line-height: 1.5; }
+.profile-capture-note { margin-top: 20rpx; color: #91a4be; font-size: 18rpx; line-height: 1.6; }
+.profile-capture-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8rpx; padding-top: 16rpx; margin-top: 18rpx; border-top: 1rpx solid #dfebf8; color: #92a6c0; font-size: 17rpx; line-height: 1.5; }
+.profile-share-button { margin-top: 20rpx; border-radius: 22rpx; color: #497db7; background: #e8f2ff; font-size: 23rpx; line-height: 76rpx; }

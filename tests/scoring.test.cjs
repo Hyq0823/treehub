@@ -377,7 +377,7 @@ test('migrated report labels original assessment time as unknown', () => {
 });
 
 test('all current tests produce a distinct deep report with useful dimensions and actions', () => {
-  const expectedDimensions = { firstreaction: 5, sbti: 5, mbti: 4, enneagram: 9, bigfive: 5, shadow: 1, ie: 1 };
+  const expectedDimensions = { firstreaction: 5, sbti: 5, mbti: 4, enneagram: 9, bigfive: 5, shadow: 1, ie: 1, historicalecho: 4, lifepath: 4, hiddentalent: 5 };
   for (const selected of catalog) {
     const scored = result(selected.id, 0);
     const base = resolveReport(selected, scored);

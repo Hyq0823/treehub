@@ -14,6 +14,9 @@ const RESULT_VISUALS = {
   ie: { symbol: '◐', title: '社交能量光谱', note: '连接世界，也照顾自己的充电节奏' },
   sbti: { symbol: '◈', title: '趣味人格徽章', note: '把有趣的这一面，收藏进今天' },
   shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' },
+  historicalecho: { symbol: '卷', title: '与古人的隔空回信', note: '穿越时间，找到一种生活共鸣' },
+  lifepath: { symbol: '⌁', title: '你的生活路线图', note: '轨道与旷野，都可以由你定义' },
+  hiddentalent: { symbol: '✧', title: '给天赋的一封邀请函', note: '从愿意做的小事，发现新的可能' },
   firstreaction: { symbol: '✦', title: '第一反应优先图', note: '先保护什么 · 最后才顾到什么' }
 };
 
@@ -27,6 +30,7 @@ function formatTime(value) {
 function decorateDeepReport(report) {
   if (!report) return null;
   const rankingMode = report.mode === 'ranking';
+  const profileMode = report.mode === 'profile';
   const dimensions = (report.dimensions || []).map(item => {
     const percent = Math.max(0, Math.min(100, Number(item.percent) || 0));
     const clarity = Math.round(Math.abs(percent - 50) * 2);
@@ -37,7 +41,7 @@ function decorateDeepReport(report) {
       tone: percent > 60 ? 'right' : percent < 40 ? 'left' : 'middle',
       legendText: rankingMode && Number.isInteger(item.rank)
         ? `第 ${item.rank} 顺位 · 本次相对优先度 ${percent}%`
-        : `${preference} · 清晰度 ${clarity}%`
+        : profileMode ? `${item.left} ↔ ${item.right}` : `${preference} · 清晰度 ${clarity}%`
     });
   });
   const ranked = dimensions.slice().sort((first, second) => rankingMode
@@ -59,7 +63,7 @@ Page({
   data: {
     test: {}, result: {}, record: null, savedAt: '', state: 'loading',
     stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦', resultVisual: RESULT_VISUALS.mbti,
-    basicDimensions: [], deepReport: null, premiumAvailable: false, rankingProfile: [],
+    basicDimensions: [], profileMode: false, profileDimensions: [], deepReport: null, premiumAvailable: false, rankingProfile: [],
     rankingGridWidth: 0, rankingLeadText: '', rankingTailText: '',
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
@@ -82,7 +86,7 @@ Page({
       this._test = test;
       this.setData({
         test: { id: test.id, name: test.name, icon: test.icon },
-        playful: ['sbti', 'shadow'].includes(test.id) || test.interaction && test.interaction.type === 'ranking', resultIcon: test.icon || '✦',
+        playful: test.scoring.strategy === 'profile' || ['sbti', 'shadow'].includes(test.id) || test.interaction && test.interaction.type === 'ranking', resultIcon: test.icon || '✦',
         resultVisual: RESULT_VISUALS[test.id] || { symbol: test.icon || '✦', title: '本次人格画像', note: '收藏这一次认真回答的自己' }
       });
       // A record-specific URL must never fall through to a different historical result.
@@ -111,7 +115,10 @@ Page({
         result, savedAt: record.migrated || record.scoringVersion === 'legacy'
           ? '旧版导入 · 原测评时间未知' : formatTime(record.completedAt),
         legacy: record.scoringVersion !== SCORING_VERSION,
-        basicDimensions: basicDimensions(result), deepReport, comparison,
+        basicDimensions: test.scoring.strategy === 'profile' ? [] : basicDimensions(result),
+        profileMode: test.scoring.strategy === 'profile',
+        profileDimensions: test.scoring.strategy === 'profile' && deepReport ? deepReport.dimensions : [],
+        deepReport, comparison,
         rankingProfile,
         rankingGridWidth: rankingProfile.length * 108,
         rankingLeadText: rankingProfile.length ? result.rankingMode === 'aggregate'
@@ -366,10 +373,15 @@ Page({
         imageUrl: this.data.starterShareImage || DEFAULT_SHARE_IMAGE
       };
     }
+    const profileTitles = {
+      historicalecho: `我与「${this.data.result.title}」有点像，你会遇见哪位古人？`,
+      lifepath: `我的生活路线是「${this.data.result.title}」，你更靠近轨道还是旷野？`,
+      hiddentalent: `我的隐藏偏好是「${this.data.result.title}」，你愿意试试哪种可能？`
+    };
     const firstPriority = this.data.rankingProfile && this.data.rankingProfile[0];
     return {
-      title: firstPriority ? `${this.data.rankingProfile.length}件事一起发生，我先保护「${firstPriority.label}」｜你会怎么排？` :
-        this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`,
+      title: profileTitles[this.data.test.id] || (firstPriority ? `${this.data.rankingProfile.length}件事一起发生，我先保护「${firstPriority.label}」｜你会怎么排？` :
+        this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`),
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
       imageUrl: DEFAULT_SHARE_IMAGE
     };

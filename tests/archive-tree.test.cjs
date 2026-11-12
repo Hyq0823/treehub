@@ -206,7 +206,7 @@ test('all stages have exact thresholds, and next prompt never exceeds available 
   });
   const complete = catalog.map(item => ({ testId: item.id, scores: {}, resultType: 'done' }));
   const tree = getTree({ seed: 'stage', records: complete }, catalog);
-  assert.equal(tree.stage.id, 'growing');
+  assert.equal(tree.stage.id, 'flourishing');
   assert.equal(tree.nextStage, null);
   assert.equal(tree.remaining, 0);
   assert.equal(tree.progress, 100);
@@ -274,7 +274,7 @@ test('real scoring output can be archived and resolved for every catalog test', 
     assert.equal(saved.treeSnapshot.uniqueCount, archive.getArchive().records.length);
   });
   assert.equal(archive.getArchive().records.length, catalog.length);
-  assert.equal(getTree(archive.getArchive(), catalog).stage.id, 'growing');
+  assert.equal(getTree(archive.getArchive(), catalog).stage.id, 'flourishing');
 });
 
 test('summary-only cloud recovery rebuilds labelled historical growth without overwriting local snapshots', () => {

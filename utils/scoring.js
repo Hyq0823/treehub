@@ -86,6 +86,7 @@ function scoreTest(test, questions, answers) {
     throw new Error('测试数据不完整，请重新进入测试');
   }
   if (test.scoring.strategy === 'weighted-ranking') return scoreRanking(test, questions, answers);
+  if (test.scoring.strategy === 'profile') return require('./profile-scoring.js').scoreProfile(test, questions, answers);
   const byId = {};
   questions.forEach((question, index) => {
     const answer = answers[index];
@@ -167,6 +168,24 @@ function resolveReport(test, record) {
   const result = test.reports.find(item => item.type === record.resultType);
   if (!result) return null;
   const report = Object.assign({}, result);
+  if (test.scoring.strategy === 'profile') {
+    try {
+      if (record.scoringVersion !== SCORING_VERSION || (record.testVersion || '1') !== (test.testVersion || '1')) return null;
+      const matched = require('./profile-scoring.js').matchProfile(test, record.scores);
+      if (matched.type !== record.resultType) return null;
+      report.dimensions = matched.dimensions;
+      report.note = test.note || '本次结果仅描述自评偏好，不代表能力、命运或职业结论。';
+      if (test.id === 'hiddentalent' && Math.max(...matched.dimensions.map(item => item.percent)) -
+          Math.min(...matched.dimensions.map(item => item.percent)) < 17) {
+        report.summary = '这次五项偏好比较接近，暂时没有特别突出的单一方向。先借这张卡作为一个小实践入口，再观察真实感受。';
+        report.tagline = '多向偏好，也可以慢慢试出自己的喜欢。';
+        report.profileNotice = '本次未呈现突出方向，卡片意象不代表你的唯一优势。';
+      }
+      if (matched.ties.length > 1) {
+        report.note += ' 本次有多个意象同样接近，按展示顺序呈现一个，可结合各维度理解。';
+      }
+    } catch (error) { return null; }
+  }
   if (test.scoring.strategy === 'weighted-ranking') {
     const meta = Array.isArray(test.scoring.dimensionMeta) ? test.scoring.dimensionMeta : [];
     const weights = test.scoring.weights || [];

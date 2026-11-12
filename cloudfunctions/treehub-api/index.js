@@ -13,7 +13,7 @@ const THEME_ASSET_IDS = THEME_IDS.concat('companions');
 const THEME_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/themes/v2/';
 const PUBLIC_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/public/v2/';
 const PUBLIC_ASSET_PATH = /^(?:tests|shared)\/[a-z0-9][a-z0-9-]{0,63}\/[a-z0-9][a-z0-9._-]{0,95}\.(?:webp|png|jpe?g)$/;
-const TEST_IDS = ['firstreaction', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
+const TEST_IDS = ['firstreaction', 'historicalecho', 'lifepath', 'hiddentalent', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const EXPLORATION_THEME_RULES = {
   moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
   wanderer: { count: 3 }, listener: { count: 4 }, aurora: { count: 5 }

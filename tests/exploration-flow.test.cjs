@@ -51,7 +51,7 @@ function complete(id, choice = 0, context = '') {
 test('real page flow: first exploration, grow through five tests, repeat, reload, read exact historical record', () => {
   const hall = page('pages/test-hall'); hall.onLoad(); hall.onShow();
   assert.equal(hall.data.tree.stage.id, 'seed');
-  assert.equal(hall.data.cards.length, 7);
+  assert.equal(hall.data.cards.length, catalog.length);
   assert.ok(hall.data.cards.every(c => !c.collected));
   const first = complete('mbti', 0, 'ordinary');
   hall.onShow();
@@ -64,7 +64,7 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   hall.onShow();
   assert.equal(hall.data.tree.stage.id, 'growing');
   assert.equal(hall.data.tree.uniqueCount, 5);
-  assert.equal(hall.data.tree.nextStage, null, 'do not advertise unavailable tenth test');
+  assert.equal(hall.data.tree.nextStage.id, 'flourishing', 'ten tests now make the next growth stage reachable');
   const again = complete('mbti', 1, 'work');
   const reload = page('pages/test-hall'); reload.onShow();
   assert.equal(reload.data.tree.uniqueCount, 5);
@@ -89,13 +89,14 @@ test('real page flow: first exploration, grow through five tests, repeat, reload
   assert.equal(networkCalls, 0, 'local-only analytics never upload results');
   assert.equal(notifications.length, 0);
 });
-test('all seven tests can be collected and revisited; filtering and navigation stay functional', () => {
+test('all available tests can be collected and revisited; filtering and navigation stay functional', () => {
   catalog.forEach(t => complete(t.id));
   const hall = page('pages/test-hall'); hall.onShow();
-  assert.equal(hall.data.tree.uniqueCount, 7);
+  assert.equal(hall.data.tree.uniqueCount, catalog.length);
   assert.equal(hall.data.recommendation, null);
   hall.selectCategory({ currentTarget: { dataset: { id: 'playful' } } });
-  assert.deepEqual(Array.from(hall.data.filteredCards, c => c.id), ['sbti', 'shadow']);
+  assert.deepEqual(Array.from(hall.data.filteredCards, c => c.id).sort(),
+    Object.keys(require('../data/exploration.js').tests).filter(id => require('../data/exploration.js').tests[id].category === 'playful').sort());
   hall.openTest({ currentTarget: { dataset: { id: 'sbti' } } });
   assert.match(navigation.at(-1), /^\/packages\/reports\/index\?.*recordId=/);
   hall.exploreNext();
@@ -105,6 +106,26 @@ test('first-reaction card starts its one-minute ranking flow without an extra de
   const hall = page('pages/test-hall'); hall.onShow();
   hall.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
   assert.equal(navigation.at(-1), '/pages/test-answer/index?id=firstreaction&context=ordinary');
+});
+test('each new quiz can be the first exploration and reveals a free matching starter', () => {
+  const themes = require('../utils/themes.js');
+  for (const id of ['historicalecho', 'lifepath', 'hiddentalent']) {
+    memory.clear();
+    const record = complete(id);
+    const state = themes.getState();
+    const report = page('packages/reports');
+    report.onLoad({ id, recordId: record.id });
+    assert.equal(report.data.profileMode, true);
+    assert.equal(report.data.profileDimensions.length, id === 'hiddentalent' ? 5 : 4);
+    assert.equal(report.data.premiumUnlocked, false);
+    assert.equal(report.data.starterReveal, true);
+    assert.equal(report.data.starterThemeId, state.recommendation);
+    assert.ok(['adventurer', 'romantic', 'observer'].includes(state.recommendation));
+    report.claimStarterTheme();
+    assert.equal(report.data.starterClaimedNow, true);
+    assert.equal(themes.getState().unlocked[0].source, 'starter');
+    report.onUnload();
+  }
 });
 test('hall preserves invalid local archive and renders recoverable state', () => {
   memory.set(archive.STORAGE_KEY, { broken: 'preserve me' });

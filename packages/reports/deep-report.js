@@ -152,6 +152,11 @@ function dimensionsFor(test, record, rankingRounds) {
   if (test.id === 'ie') return ieDimensions(record);
   if (test.id === 'shadow') return shadowDimensions(record);
   if (test.scoring.strategy === 'weighted-ranking') return rankingDimensions(test, record, rankingRounds);
+  if (test.scoring.strategy === 'profile') {
+    if ((record.testVersion || '1') !== (test.testVersion || '1')) return [];
+    try { return require('../../utils/profile-scoring.js').profileDimensions(test, record.scores); }
+    catch (error) { return []; } // A malformed old summary must not hide a valid current report.
+  }
   return [];
 }
 
@@ -339,20 +344,41 @@ function buildRanking(test, record, base, dimensions) {
   };
 }
 
+function buildProfile(test, base, dimensions) {
+  const headings = {
+    historicalecho: ['你与这位古人的共鸣', '可以借用的生活智慧', '和古人走不一样的路', '你与身边人的相处'],
+    lifepath: ['此刻适合你的生活节奏', '让这种节奏运转起来', '做选择前的现实检查', '和重要的人商量边界'],
+    hiddentalent: ['你愿意投入的方向', '把偏好变成一次小实践', '兴趣还需要现实验证', '在合作中找到自己的位置']
+  };
+  const titles = headings[test.id] || ['本次画像', '自然优势', '平衡提醒', '关系中的应用'];
+  return {
+    mode: 'profile', tagline: base.tagline || base.summary, dimensions,
+    sections: [
+      { title: titles[0], content: base.description },
+      { title: titles[1], content: base.strengths || base.summary },
+      { title: titles[2], content: base.watchout || base.advice },
+      { title: titles[3], content: base.relationship || '用一个最近的具体场景，与对方交流自己的需要和边界。' }
+    ],
+    actions: Array.isArray(base.actions) && base.actions.length ? base.actions.slice(0, 3) : [base.advice],
+    note: base.note || test.note || '趣味自评反映这次作答偏好，不是能力测定或人生结论。'
+  };
+}
+
 function buildDeepReport(test, record, base) {
   if (!test || !record || !base || record.scoringVersion !== '2') return null;
   const dimensions = dimensionsFor(test, record, base.rankingRoundCount);
   if (!dimensions.length) return null;
 
   let report;
-  if (test.scoring.strategy === 'weighted-ranking') report = buildRanking(test, record, base, dimensions);
+  if (test.scoring.strategy === 'profile') report = buildProfile(test, base, dimensions);
+  else if (test.scoring.strategy === 'weighted-ranking') report = buildRanking(test, record, base, dimensions);
   else if (test.id === 'mbti') report = buildMbti(test, record, base, dimensions);
   else if (test.id === 'enneagram') report = buildEnneagram(record, base, dimensions);
   else if (test.id === 'bigfive') report = buildBigFive(base, dimensions);
   else report = buildSimple(test, record, base, dimensions);
   return Object.assign(report, {
     title: 'VIP 深度报告',
-    note: '深度解读依据本次自评生成，用于自我探索，不构成心理诊断或能力评价。'
+    note: report.note || '深度解读依据本次自评生成，用于自我探索，不构成心理诊断或能力评价。'
   });
 }
 

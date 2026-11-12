@@ -45,7 +45,7 @@ test('test detail sends only its rendered summary through setData', () => {
   page.onLoad({ id: 'large-test' });
 
   assert.deepEqual(Object.keys(page.data.test).sort(), [
-    'cover', 'coverAssetPath', 'description', 'displayName', 'formatLabel', 'formatValue', 'icon', 'id', 'name', 'questionsCount', 'shareTitle', 'time', 'timelineTitle'
+    'cover', 'coverAssetPath', 'description', 'dimensionLabels', 'displayName', 'formatLabel', 'formatValue', 'icon', 'id', 'name', 'note', 'questionsCount', 'shareTitle', 'time', 'timelineTitle'
   ]);
   assert.equal(page.data.test.questions, undefined);
   assert.equal(page.data.test.reports, undefined);

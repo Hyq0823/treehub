@@ -1,4 +1,4 @@
-<view class="radar-shell">
+<view class="radar-shell" aria-label="{{mode === 'priority' ? '本次作答倾向图，具体位置见下方维度说明' : '偏好清晰度图，具体偏好见下方维度说明'}}">
   <canvas type="2d" id="profile-radar" class="radar-canvas"></canvas>
-  <view class="radar-center"><text class="radar-center-label">偏好</text><text class="radar-center-label">清晰度</text></view>
+  <view class="radar-center"><text class="radar-center-label">{{mode === 'priority' ? '本次' : '偏好'}}</text><text class="radar-center-label">{{mode === 'priority' ? '倾向图' : '清晰度'}}</text></view>
 </view>

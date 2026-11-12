@@ -8,6 +8,21 @@ const catalog = [
     time: '约1分钟', questionsCount: 1
   },
   {
+    id: 'historicalecho', name: '你像哪位古人', icon: '✒',
+    description: '如果把此刻的你写进一页古书，会遇见谁的生活意象？从表达、求知、行动与共情四个角度，找到一份跨时空的共鸣。',
+    time: '约3分钟', questionsCount: 12
+  },
+  {
+    id: 'lifepath', name: '轨道还是旷野', icon: '⌁',
+    description: '现在的你，更需要清晰路线，还是自由探索？从秩序、探索、自主与连接四个角度，看看适合当下的生活配方。',
+    time: '约3分钟', questionsCount: 12
+  },
+  {
+    id: 'hiddentalent', name: '你的隐藏天赋', icon: '✧',
+    description: '有些事你做着顺手，却很少认真夸过自己。用十个生活场景，观察洞察、表达、创造、协作和落地五种自评偏好。',
+    time: '约2分钟', questionsCount: 10
+  },
+  {
     id: 'sbti', name: 'SBTI人格测试', icon: '🎭',
     description: 'MBTI已经过时，SBTI来了。一种更有趣、更贴合现代年轻人的人格测试。',
     time: '3-5分钟', questionsCount: 30
@@ -41,6 +56,9 @@ const catalog = [
 
 const resultTitles = {
   firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
+  historicalecho: { liqingzhao: '李清照式·细腻收藏家', sushi: '苏轼式·旷达生活家', wangyangming: '王阳明式·笃行思考家', libai: '李白式·自由表达家', xuxiake: '徐霞客式·远方探索家', taoyuanming: '陶渊明式·自洽栖居者' },
+  lifepath: { track: '轨道筑梦者', wild: '旷野漫游者', dual: '双栖探索家', builder: '自由建造师' },
+  hiddentalent: { insight: '洞察捕光者', expression: '故事翻译官', creation: '灵感造梦师', coordination: '关系连接者', execution: '行动搭建师' },
   sbti: {
     CTRL: '拿捏者', 'ATM-er': '送钱者', 'Dior-s': '屌丝', BOSS: '领导者', 'THAN-K': '感恩者',
     'OH-NO': '哦不人', GOGO: '行者', SEXY: '尤物', 'LOVE-R': '多情者', MUM: '妈妈', FAKE: '伪人',
@@ -64,6 +82,24 @@ const resultTitles = {
   ie: { E: 'e人', I: 'i人', 'E/I': '中间型' }
 };
 
+// Visual associations are editorial choices, not psychological measurements.
+// Keep these small so a newly completed light test can grow a tree without
+// making listing pages evaluate the full questionnaires.
+const treeAssociations = {
+  historicalecho: {
+    dimensions: ['expression', 'curiosity', 'resolve', 'empathy'], minimum: 3, maximum: 12,
+    results: { liqingzhao: 'willow', sushi: 'olive', wangyangming: 'pine', libai: 'maple', xuxiake: 'maple', taoyuanming: 'ginkgo' }
+  },
+  lifepath: {
+    dimensions: ['structure', 'exploration', 'autonomy', 'connection'], minimum: 3, maximum: 12,
+    results: { track: 'pine', wild: 'maple', dual: 'olive', builder: 'ginkgo' }
+  },
+  hiddentalent: {
+    dimensions: ['insight', 'expression', 'creation', 'coordination', 'execution'], minimum: 2, maximum: 8,
+    results: { insight: 'ginkgo', expression: 'willow', creation: 'maple', coordination: 'banyan', execution: 'pine' }
+  }
+};
+
 function resolveResultTitle(testId, record) {
   if (!record || record.testId !== testId) return '';
   if (record.scoringVersion !== '2' && (!record.scores || !Object.keys(record.scores).length)) return '';
@@ -80,4 +116,4 @@ function resolveResultTitle(testId, record) {
     ? resultTitles[testId][record.resultType] || '' : '';
 }
 
-module.exports = { catalog, resultTitles, resolveResultTitle };
+module.exports = { catalog, resultTitles, resolveResultTitle, treeAssociations };

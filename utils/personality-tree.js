@@ -1,4 +1,5 @@
 const { SPECIES, STAGES } = require('../data/trees.js');
+const { treeAssociations, resultTitles } = require('../data/test-catalog.js');
 
 function hash(value) {
   let result = 2166136261;
@@ -67,6 +68,17 @@ function getTree(archive, catalog) {
       evidence.push('大五最近一次的维度分数用于丰富树形；这些视觉对应没有高低之分。');
     }
   }
+  Object.keys(treeAssociations).forEach(testId => {
+    if (!usable(testId)) return;
+    const record = latest[testId];
+    const association = treeAssociations[testId];
+    const scores = record.scores || {};
+    const speciesId = Object.prototype.hasOwnProperty.call(association.results, record.resultType) ? association.results[record.resultType] : null;
+    if (!speciesId || Object.keys(scores).length !== association.dimensions.length ||
+        !association.dimensions.every(id => Number.isInteger(scores[id]) && scores[id] >= association.minimum && scores[id] <= association.maximum)) return;
+    add(speciesId, 2);
+    evidence.push(`「${resultTitles[testId][record.resultType]}」为树形增加一种共鸣意象；这是趣味视觉对应，不代表能力或命运。`);
+  });
   const maximum = Math.max.apply(null, Object.keys(weights).map(id => weights[id]));
   const candidates = SPECIES.filter(species => weights[species.id] === maximum);
   const variant = hash(archive.seed) % 10000;

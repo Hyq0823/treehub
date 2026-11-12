@@ -9,6 +9,8 @@
       <view class="test-label">一份认识自己的小小开始</view>
       <view class="test-name">{{test.displayName || test.name}}</view>
       <view class="test-description">{{test.description}}</view>
+      <view wx:if="{{test.dimensionLabels.length}}" class="dimension-chips"><text wx:for="{{test.dimensionLabels}}" wx:key="*this">{{item}}</text></view>
+      <view wx:if="{{test.note}}" class="quiz-note">{{test.note}}</view>
       <view class="meta-grid"><view><text>{{test.formatValue}}</text><text>{{test.formatLabel}}</text></view><view><text>{{test.time}}</text><text>预计耗时</text></view><view><text>∞</text><text>可反复探索</text></view></view>
     </view>
     <view class="context-panel">

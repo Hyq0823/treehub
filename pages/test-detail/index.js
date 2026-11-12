@@ -37,7 +37,9 @@ Page({
         formatValue: test.format && test.format.value || String(test.questionsCount),
         formatLabel: test.format && test.format.label || '道自我观察',
         shareTitle: test.interaction && test.interaction.shareTitle || '',
-        timelineTitle: test.interaction && test.interaction.timelineTitle || ''
+        timelineTitle: test.interaction && test.interaction.timelineTitle || '',
+        dimensionLabels: test.scoring.strategy === 'profile' ? test.scoring.dimensionMeta.map(item => item.label) : [],
+        note: test.note || ''
       };
       this.setData({
         test: summary, error: '',

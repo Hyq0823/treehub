@@ -230,7 +230,7 @@ Page({
     try {
       const result = scoreTest(this._test, questions, answers);
       const saved = archive.saveResult(Object.assign({
-        testId: this.data.test.id, testVersion: TEST_VERSION, scoringVersion: SCORING_VERSION,
+        testId: this.data.test.id, testVersion: this._test.testVersion || TEST_VERSION, scoringVersion: SCORING_VERSION,
         lifeContext: this._lifeContext || undefined,
         // Store canonical question IDs because SBTI question order is shuffled.
         answers: questions.map((question, index) => question.type === 'ranking'

@@ -7,8 +7,8 @@ const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
-const CARD_THEMES = { firstreaction: 'adventurer', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
-const DISPLAY_ORDER = ['firstreaction', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
+const CARD_THEMES = { firstreaction: 'adventurer', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['firstreaction', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();

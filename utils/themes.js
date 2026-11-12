@@ -46,6 +46,16 @@ function recommendedTheme(records) {
   if (latest.enneagram && latest.enneagram.resultType === '4') return 'romantic';
   if (latest.enneagram && ['5', '6', '9'].includes(String(latest.enneagram.resultType))) return 'observer';
   if (latest.bigfive && Number(latest.bigfive.scores && latest.bigfive.scores.extraversion) < 24) return 'observer';
+  // Light quizzes provide a starter visual only; they never grant a theme
+  // whose unlock condition belongs to another assessment.
+  const starters = {
+    historicalecho: { liqingzhao: 'romantic', sushi: 'adventurer', wangyangming: 'observer', libai: 'adventurer', xuxiake: 'adventurer', taoyuanming: 'observer' },
+    lifepath: { track: 'observer', wild: 'adventurer', dual: 'adventurer', builder: 'observer' },
+    hiddentalent: { insight: 'observer', expression: 'romantic', creation: 'adventurer', coordination: 'adventurer', execution: 'adventurer' }
+  };
+  const newest = recordsOrLocal(records).find(record => record.scoringVersion === '2' && !record.migrated &&
+    starters[record.testId] && starters[record.testId][record.resultType]);
+  if (newest) return starters[newest.testId][newest.resultType];
   return 'adventurer';
 }
 function earnedThemeIds(records) {
