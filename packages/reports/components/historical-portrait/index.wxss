@@ -1,0 +1,55 @@
+:host { display: block; }
+.portrait { --character-accent: #789fc1; --character-pale: #edf5ff; position: relative; height: 370rpx; overflow: hidden; border-radius: 28rpx; background: linear-gradient(160deg, #fffdf8, var(--character-pale)); }
+.portrait-halo { position: absolute; width: 260rpx; height: 260rpx; top: 7rpx; left: 50%; margin-left: -130rpx; border-radius: 50%; background: #ffffffab; border: 1rpx solid #ffffffed; }
+.portrait-moon { position: absolute; width: 60rpx; height: 60rpx; top: 34rpx; right: 20%; border-radius: 50%; background: #fff2c4; box-shadow: 0 0 35rpx #fff9e8; }
+.portrait-spark { position: absolute; color: #d3b375; font-size: 25rpx; }
+.spark-one { top: 80rpx; left: 19%; }.spark-two { top: 166rpx; right: 18%; font-size: 16rpx; }
+.portrait-scenery { position: absolute; width: 168rpx; height: 98rpx; bottom: 81rpx; border-radius: 90% 90% 0 0; background: var(--character-accent); opacity: .1; }
+.scenery-one { left: 4%; transform: rotate(-13deg); }.scenery-two { right: 2%; bottom: 69rpx; width: 210rpx; transform: rotate(10deg); opacity: .07; }
+.portrait-person { position: absolute; left: 50%; top: 21rpx; width: 230rpx; height: 270rpx; margin-left: -115rpx; }
+.person-shadow { position: absolute; width: 180rpx; height: 22rpx; border-radius: 50%; background: #5880a212; left: 25rpx; bottom: 1rpx; }
+.person-hair-back { position: absolute; z-index: 1; width: 115rpx; height: 102rpx; left: 57rpx; top: 44rpx; border-radius: 50% 50% 40% 40%; background: #3d4652; }
+.person-robe { position: absolute; z-index: 2; width: 134rpx; height: 134rpx; left: 48rpx; top: 130rpx; border-radius: 45% 45% 24% 24%; background: linear-gradient(115deg, #ffffffd9, transparent 60%), var(--character-accent); border: 2rpx solid #ffffffad; box-shadow: inset -7rpx -3rpx 0 #526b8b12; }
+.person-collar { position: absolute; z-index: 4; width: 17rpx; height: 76rpx; top: 131rpx; left: 100rpx; background: #fffaf1; border-radius: 8rpx; }.collar-left { transform: rotate(-28deg); }.collar-right { left: 122rpx; transform: rotate(28deg); height: 85rpx; }
+.person-sleeve { position: absolute; z-index: 3; width: 51rpx; height: 103rpx; top: 141rpx; background: var(--character-accent); border: 2rpx solid #ffffffb8; border-radius: 40% 40% 25% 25%; }.sleeve-left { left: 29rpx; transform: rotate(19deg); }.sleeve-right { right: 29rpx; transform: rotate(-19deg); }
+.person-belt { position: absolute; z-index: 5; left: 55rpx; top: 215rpx; width: 120rpx; height: 12rpx; border-radius: 10rpx; background: #e6c893; border: 1rpx solid #fff9; }
+.person-neck { position: absolute; z-index: 5; top: 116rpx; left: 104rpx; width: 24rpx; height: 30rpx; border-radius: 8rpx; background: #f7d0b5; }
+.person-ear { position: absolute; z-index: 6; width: 18rpx; height: 26rpx; top: 88rpx; background: #ffdcc4; border-radius: 50%; }.ear-left { left: 57rpx; }.ear-right { right: 57rpx; }
+.person-face { position: absolute; z-index: 7; width: 104rpx; height: 94rpx; top: 47rpx; left: 63rpx; border-radius: 47% 47% 44% 44%; background: linear-gradient(150deg, #fff0dc, #ffdfc8); box-shadow: inset -3rpx -4rpx 0 #e8b59a22; }
+.person-eye { position: absolute; top: 41rpx; width: 7rpx; height: 10rpx; border-radius: 50%; background: #38526a; }.eye-left { left: 27rpx; }.eye-right { right: 27rpx; }
+.person-cheek { position: absolute; top: 57rpx; width: 18rpx; height: 9rpx; background: #efab9c66; border-radius: 50%; }.cheek-left { left: 12rpx; }.cheek-right { right: 12rpx; }
+.person-smile { position: absolute; width: 15rpx; height: 9rpx; left: 44rpx; top: 59rpx; border-bottom: 2rpx solid #b07d6a; border-radius: 0 0 50% 50%; }
+.person-fringe { position: absolute; z-index: 8; left: 61rpx; top: 38rpx; width: 109rpx; height: 38rpx; border-radius: 70% 70% 35% 20%; background: #3d4652; transform: rotate(-7deg); }
+.person-bun { position: absolute; z-index: 7; left: 93rpx; top: 10rpx; width: 44rpx; height: 39rpx; border-radius: 50% 50% 25% 25%; background: #3d4652; border-bottom: 6rpx solid #cab48e; }
+.person-hat { display: none; position: absolute; z-index: 9; left: 65rpx; top: 17rpx; width: 102rpx; height: 47rpx; border-radius: 45% 45% 10% 10%; background: #58667a; border-bottom: 6rpx solid #e1cba0; }
+.person-hairpin { display: none; position: absolute; z-index: 10; width: 68rpx; height: 4rpx; top: 32rpx; left: 79rpx; background: #d2b271; border-radius: 3rpx; transform: rotate(-13deg); }
+.person-token { position: absolute; z-index: 10; top: 167rpx; left: 132rpx; width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; white-space: nowrap; line-height: 1; font-size: 43rpx; transform: rotate(-9deg); }
+.person-hand { position: absolute; z-index: 9; top: 195rpx; left: 131rpx; width: 28rpx; height: 19rpx; background: #ffdcc4; border-radius: 50%; }
+.person-beard { display: none; position: absolute; width: 23rpx; height: 23rpx; left: 41rpx; top: 78rpx; border-radius: 10% 10% 75% 75%; background: #52606b; }
+.portrait-female .person-hair-back { height: 123rpx; border-radius: 50% 50% 28% 28%; }
+.portrait-female .person-fringe { height: 32rpx; border-radius: 60% 60% 10% 60%; transform: rotate(-12deg); }
+.portrait-female .person-hairpin { display: block; }
+.portrait-female .person-bun { left: 81rpx; width: 62rpx; top: 6rpx; height: 44rpx; border-radius: 50% 50% 30% 30%; }
+.portrait-sushi .person-hat, .portrait-wangyangming .person-hat, .portrait-shenkuo .person-hat, .portrait-xinqiji .person-hat { display: block; }
+.portrait-sushi .person-hat { left: 53rpx; width: 125rpx; background: #767582; transform: rotate(-6deg); border-radius: 65% 10% 5% 5%; }
+.portrait-sushi .person-beard, .portrait-wangyangming .person-beard { display: block; }
+.portrait-wangyangming .person-hat { width: 92rpx; left: 69rpx; background: #637e82; border-radius: 12rpx 12rpx 0 0; }
+.portrait-xuxiake .person-hat { display: block; width: 172rpx; height: 49rpx; left: 29rpx; top: 26rpx; border-radius: 100% 100% 15% 15%; background: repeating-linear-gradient(100deg, #d9c291, #d9c291 8rpx, #c7aa76 9rpx, #e5d0a4 11rpx); border-bottom: 5rpx solid #b79c68; }
+.portrait-libai .person-bun { transform: rotate(15deg); border-color: #a7bacb; }
+.portrait-libai .person-robe, .portrait-wangwei .person-robe { background: linear-gradient(120deg, #ffffff, #edf5f3); }
+.portrait-taoyuanming .person-hairpin { display: block; background: #927c57; transform: rotate(7deg); }
+.portrait-wuzetian .person-hat { display: block; background: linear-gradient(100deg, #e0b65b, #fff1b5, #d2aa51); width: 120rpx; height: 32rpx; left: 55rpx; top: 24rpx; border-radius: 50% 50% 5rpx 5rpx; border-bottom-color: #d99c77; }
+.portrait-wuzetian .person-hairpin { height: 8rpx; width: 160rpx; left: 35rpx; top: 20rpx; background: #d8b057; box-shadow: 0 9rpx 0 -2rpx #e9c476; }
+.portrait-wuzetian .person-bun { width: 75rpx; left: 77rpx; height: 57rpx; top: 0; }
+.portrait-banzhao .person-bun { left: 110rpx; width: 45rpx; transform: rotate(15deg); }.portrait-banzhao .person-hairpin { top: 25rpx; }
+.portrait-xiedaoyun .person-hairpin { width: 77rpx; height: 6rpx; background: #b5bed8; transform: rotate(-21deg); }
+.portrait-xiedaoyun .portrait-moon { background: #fff; box-shadow: -37rpx 57rpx 0 -24rpx #fff, 24rpx 85rpx 0 -26rpx #fff, -115rpx 2rpx 0 -25rpx #fff; }
+.portrait-shenkuo .person-hat { top: 5rpx; height: 54rpx; width: 89rpx; left: 71rpx; background: #637991; border-radius: 15rpx 15rpx 5rpx 5rpx; }
+.portrait-xinqiji .person-hat { background: #556c71; left: 58rpx; width: 116rpx; border-radius: 35% 35% 0 0; }
+.portrait-xinqiji .person-belt { background: #9d785e; }
+.portrait-era { position: absolute; z-index: 11; top: 19rpx; left: 22rpx; color: var(--character-accent); font-size: 20rpx; letter-spacing: 1rpx; }
+.portrait-scene { position: absolute; left: 22rpx; right: 22rpx; bottom: 22rpx; color: #6f8498; text-align: center; font-size: 21rpx; line-height: 1.65; }
+.portrait-compact { width: 150rpx; height: 166rpx; background: transparent; border-radius: 0; }
+.portrait-compact .portrait-person { transform: scale(.59); transform-origin: top center; top: 4rpx; }
+.portrait-compact .portrait-halo { width: 143rpx; height: 143rpx; margin-left: -71rpx; top: 10rpx; background: var(--character-pale); border: none; }
+.portrait-compact .portrait-moon, .portrait-compact .portrait-spark, .portrait-compact .portrait-scenery { display: none; }

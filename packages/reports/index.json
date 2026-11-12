@@ -2,6 +2,7 @@
   "navigationBarTitleText": "人格测试树-测试结果",
   "usingComponents": {
     "personality-tree": "/components/personality-tree/index",
-    "profile-radar": "/packages/reports/components/profile-radar/index"
+    "profile-radar": "/packages/reports/components/profile-radar/index",
+    "historical-portrait": "/packages/reports/components/historical-portrait/index"
   }
 }

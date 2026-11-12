@@ -1,7 +1,9 @@
 import profileScoring from '../../utils/profile-scoring.js';
+import characters from '../historical-characters.js';
 const { createProfileTest } = profileScoring;
+const { ADDITIONAL_PROFILES, CHARACTER_DETAILS } = characters;
 
-export default createProfileTest({
+const originalConfig = {
   id: 'historicalecho',
   name: '你像哪位古人',
   icon: '✒',
@@ -169,4 +171,17 @@ export default createProfileTest({
       actions: ['写下三件即使没人看见，也想继续做的小事。', '整理一个能让自己安心停留的小角落。', '在熟悉日常里加入一个很小的新尝试，观察真实感受。']
     }
   ]
-});
+};
+
+const withPortrait = profile => Object.assign({}, profile, { portrait: CHARACTER_DETAILS[profile.type] });
+// Preserve the original six prototypes for records saved before this expansion.
+const previous = createProfileTest(Object.assign({}, originalConfig, {
+  profiles: originalConfig.profiles.map(withPortrait)
+}));
+
+export default createProfileTest(Object.assign({}, originalConfig, {
+  testVersion: '2',
+  format: { value: '12题', label: '遇见12位古人意象' },
+  profiles: originalConfig.profiles.concat(ADDITIONAL_PROFILES).map(withPortrait),
+  retainedVersions: { '1': previous }
+}));

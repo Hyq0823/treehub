@@ -49,7 +49,7 @@ function recommendedTheme(records) {
   // Light quizzes provide a starter visual only; they never grant a theme
   // whose unlock condition belongs to another assessment.
   const starters = {
-    historicalecho: { liqingzhao: 'romantic', sushi: 'adventurer', wangyangming: 'observer', libai: 'adventurer', xuxiake: 'adventurer', taoyuanming: 'observer' },
+    historicalecho: { liqingzhao: 'romantic', sushi: 'adventurer', wangyangming: 'observer', libai: 'adventurer', xuxiake: 'adventurer', taoyuanming: 'observer', wuzetian: 'adventurer', banzhao: 'observer', xiedaoyun: 'romantic', wangwei: 'romantic', shenkuo: 'observer', xinqiji: 'adventurer' },
     lifepath: { track: 'observer', wild: 'adventurer', dual: 'adventurer', builder: 'observer' },
     hiddentalent: { insight: 'observer', expression: 'romantic', creation: 'adventurer', coordination: 'adventurer', execution: 'adventurer' }
   };

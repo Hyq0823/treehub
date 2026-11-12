@@ -14,7 +14,7 @@ function result(id, choice) {
     ? question.options.map((option, index) => index)[choice ? 'reverse' : 'slice']()
     : choice);
   const scored = scoreTest(selected, selected.questions, answers);
-  return Object.assign({ testId: id, scoringVersion: '2' }, scored);
+  return Object.assign({ testId: id, testVersion: selected.testVersion || '1', scoringVersion: '2' }, scored);
 }
 
 for (const selected of catalog) {

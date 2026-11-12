@@ -75,7 +75,7 @@ function complete(testId, lifeContext = '', offset = 0) {
   const indices = test.questions.map((question, index) => question.type === 'ranking'
     ? question.options.map((option, optionIndex) => (optionIndex + offset) % question.options.length)
     : (index + offset) % question.options.length);
-  return archive.saveResult({ testId, lifeContext: lifeContext || undefined, ...scoring.scoreTest(test, test.questions, indices) });
+  return archive.saveResult({ testId, testVersion: test.testVersion || '1', lifeContext: lifeContext || undefined, ...scoring.scoreTest(test, test.questions, indices) });
 }
 function localArt(id) {
   const webp = path.join(artRoot, id + '.webp');
@@ -132,6 +132,9 @@ function html(node, data) {
   const attrs = node.attr || {};
   if (node.tag === 'wx-personality-tree') return componentTree(attrs.tree || data.record && data.record.treeSnapshot || data.tree, attrs.size);
   if (node.tag === 'wx-profile-radar') return radar(attrs.dimensions || data.deepReport && data.deepReport.dimensions || [], attrs.mode);
+  if (node.tag === 'wx-historical-portrait') {
+    return `<div class="${escape(attrs.class || '')}">${html(render('packages/reports/components/historical-portrait/index.wxml')({ character: attrs.character || data.result && data.result.portrait, compact: !!attrs.compact }), data)}</div>`;
+  }
   if (node.tag === 'wx-ranking-board') {
     return html(render('components/ranking-board/index.wxml')({
       items: Array.isArray(attrs.items) ? attrs.items : data.rankingItems || [],
@@ -176,7 +179,7 @@ function stylesheet(file, visited = new Set()) {
   });
 }
 function css(route) {
-  const files = ['app.wxss', 'components/personality-tree/index.wxss', 'components/ranking-board/index.wxss', 'packages/reports/components/profile-radar/index.wxss', route + '.wxss'];
+  const files = ['app.wxss', 'components/personality-tree/index.wxss', 'components/ranking-board/index.wxss', 'packages/reports/components/profile-radar/index.wxss', 'packages/reports/components/historical-portrait/index.wxss', route + '.wxss'];
   return files.map(file => stylesheet(file)).join('\n')
     .replace(/(?<![-\w])page(?=\s*[{,])/g, 'body')
     .replace(/(?<![-\w])view(?=[\s.,:#>+~\[{])/g, ':is(div,h1)')
@@ -272,6 +275,24 @@ async function fixtures() {
       vip.data.premiumPage = section;
       add('packages/reports/index', 'report-' + id + '-' + section, vip.data);
     }
+  }
+  const historical = catalog.find(item => item.id === 'historicalecho');
+  for (const profile of historical.scoring.profiles) {
+    const values = new Map();
+    historical.scoring.dimensions.forEach(id => {
+      const questions = historical.questions.filter(question => question.dim === id);
+      let remaining = questions.length + Math.round(questions.length * 3 * profile.vector[id] / 100);
+      questions.forEach((question, index) => {
+        const value = Math.min(4, remaining - (questions.length - index - 1));
+        values.set(question.id, value); remaining -= value;
+      });
+    });
+    const indices = historical.questions.map(question => question.options.findIndex(option => option.value === values.get(question.id)));
+    const saved = archive.saveResult({ testId: historical.id, testVersion: historical.testVersion,
+      ...scoring.scoreTest(historical, historical.questions, indices) });
+    const characterReport = page('packages/reports/index');
+    characterReport.onLoad({ id: historical.id, recordId: saved.id });
+    add('packages/reports/index', 'report-historicalecho-' + profile.type, characterReport.data);
   }
   const journal = page('pages/tree-history/index'); journal.onShow();
   add('pages/tree-history/index', 'year-rings', journal.data);

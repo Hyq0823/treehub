@@ -75,7 +75,7 @@ test('every new quiz profile is reachable and restores with complete free dimens
     for (const profile of quiz.scoring.profiles) {
       const scored = scoreTest(quiz, quiz.questions, answersNearVector(quiz, profile.vector));
       assert.equal(scored.resultType, profile.type, `${quiz.id}:${profile.type} must be reachable`);
-      const report = resolveReport(quiz, { ...scored, testId: quiz.id, scoringVersion: '2' });
+      const report = resolveReport(quiz, { ...scored, testId: quiz.id, testVersion: quiz.testVersion || '1', scoringVersion: '2' });
       assert.equal(report.dimensions.length, quiz.scoring.dimensions.length);
       assert.ok(report.dimensions.every(item => item.percent >= 0 && item.percent <= 100));
       assert.equal(report.image, undefined, 'no local business artwork is introduced');

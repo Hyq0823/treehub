@@ -56,7 +56,7 @@ const catalog = [
 
 const resultTitles = {
   firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
-  historicalecho: { liqingzhao: '李清照式·细腻收藏家', sushi: '苏轼式·旷达生活家', wangyangming: '王阳明式·笃行思考家', libai: '李白式·自由表达家', xuxiake: '徐霞客式·远方探索家', taoyuanming: '陶渊明式·自洽栖居者' },
+  historicalecho: { liqingzhao: '李清照式·细腻收藏家', sushi: '苏轼式·旷达生活家', wangyangming: '王阳明式·笃行思考家', libai: '李白式·自由表达家', xuxiake: '徐霞客式·远方探索家', taoyuanming: '陶渊明式·自洽栖居者', wuzetian: '武则天式·自主开路者', banzhao: '班昭式·沉静求知者', xiedaoyun: '谢道韫式·灵动对话家', wangwei: '王维式·山水留白家', shenkuo: '沈括式·好奇观察家', xinqiji: '辛弃疾式·热忱行动家' },
   lifepath: { track: '轨道筑梦者', wild: '旷野漫游者', dual: '双栖探索家', builder: '自由建造师' },
   hiddentalent: { insight: '洞察捕光者', expression: '故事翻译官', creation: '灵感造梦师', coordination: '关系连接者', execution: '行动搭建师' },
   sbti: {
@@ -88,7 +88,7 @@ const resultTitles = {
 const treeAssociations = {
   historicalecho: {
     dimensions: ['expression', 'curiosity', 'resolve', 'empathy'], minimum: 3, maximum: 12,
-    results: { liqingzhao: 'willow', sushi: 'olive', wangyangming: 'pine', libai: 'maple', xuxiake: 'maple', taoyuanming: 'ginkgo' }
+    results: { liqingzhao: 'willow', sushi: 'olive', wangyangming: 'pine', libai: 'maple', xuxiake: 'maple', taoyuanming: 'ginkgo', wuzetian: 'pine', banzhao: 'ginkgo', xiedaoyun: 'banyan', wangwei: 'willow', shenkuo: 'maple', xinqiji: 'pine' }
   },
   lifepath: {
     dimensions: ['structure', 'exploration', 'autonomy', 'connection'], minimum: 3, maximum: 12,

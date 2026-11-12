@@ -618,6 +618,11 @@ button::after {
 .profile-capture-hiddentalent { background: linear-gradient(155deg, #fff, #f7f3ff 60%, #edf5ff); }
 .profile-capture-kicker { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; color: #8a9bb4; font-size: 17rpx; line-height: 1.5; }
 .profile-capture-title { margin-top: 24rpx; color: #244b7b; font-size: 39rpx; line-height: 1.4; font-weight: 750; }
+.profile-identity-row { display: flex; align-items: center; gap: 12rpx; }
+.profile-identity-copy { flex: 1; min-width: 0; }
+.profile-mini-portrait { flex: 0 0 150rpx; width: 150rpx; }
+.profile-character-tags { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 16rpx; }
+.profile-character-tags text { padding: 7rpx 16rpx; border-radius: 24rpx; color: #6f8b9f; background: #edf4f7; font-size: 20rpx; }
 .profile-capture-quote { margin-top: 10rpx; color: #6684a9; font-size: 24rpx; line-height: 1.65; }
 .profile-chart-caption { display: flex; justify-content: space-between; gap: 10rpx; margin-top: 26rpx; color: #4a73a5; font-size: 23rpx; line-height: 1.5; }
 .profile-chart-caption > text + text { font-size: 17rpx; color: #92a6c1; }

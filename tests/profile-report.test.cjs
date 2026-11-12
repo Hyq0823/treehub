@@ -14,7 +14,7 @@ function scored(questionnaire, high = false) {
     const values = question.options.map(option => option.value);
     return values.indexOf(high ? Math.max(...values) : Math.min(...values));
   });
-  return { testId: questionnaire.id, scoringVersion: '2', testVersion: '1',
+  return { testId: questionnaire.id, scoringVersion: '2', testVersion: questionnaire.testVersion || '1',
     ...scoreTest(questionnaire, questionnaire.questions, answers) };
 }
 

@@ -1,0 +1,21 @@
+<view wx:if="{{character}}" class="portrait portrait-{{character.id}} {{character.female ? 'portrait-female' : ''}} {{compact ? 'portrait-compact' : ''}}" style="--character-accent:{{character.accent}};--character-pale:{{character.pale}};" aria-label="{{character.name}}的原创趣味人物意象">
+  <view class="portrait-halo"></view>
+  <view class="portrait-moon"></view>
+  <view class="portrait-spark spark-one">✧</view><view class="portrait-spark spark-two">✦</view>
+  <view class="portrait-scenery scenery-one"></view><view class="portrait-scenery scenery-two"></view>
+  <view class="portrait-person" aria-hidden="true">
+    <view class="person-shadow"></view>
+    <view class="person-hair-back"></view>
+    <view class="person-robe"></view>
+    <view class="person-collar collar-left"></view><view class="person-collar collar-right"></view>
+    <view class="person-sleeve sleeve-left"></view><view class="person-sleeve sleeve-right"></view>
+    <view class="person-belt"></view>
+    <view class="person-neck"></view>
+    <view class="person-ear ear-left"></view><view class="person-ear ear-right"></view>
+    <view class="person-face"><view class="person-eye eye-left"></view><view class="person-eye eye-right"></view><view class="person-cheek cheek-left"></view><view class="person-cheek cheek-right"></view><view class="person-smile"></view><view class="person-beard"></view></view>
+    <view class="person-fringe"></view><view class="person-bun"></view><view class="person-hat"></view><view class="person-hairpin"></view>
+    <view class="person-hand"></view><view class="person-token">{{character.motif || '✦'}}</view>
+  </view>
+  <view wx:if="{{!compact}}" class="portrait-era">{{character.era}} · {{character.name}}</view>
+  <view wx:if="{{!compact}}" class="portrait-scene">{{character.scene}}</view>
+</view>

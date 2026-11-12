@@ -135,6 +135,10 @@ function scoreTest(test, questions, answers) {
 
 function resolveReport(test, record) {
   if (!test || !record || record.testId !== test.id) return null;
+  if (test.scoring && test.scoring.strategy === 'profile') {
+    test = require('./profile-scoring.js').resolveProfileVersion(test, record.testVersion);
+    if (!test) return null;
+  }
   // The old numeric-ID lookup produced empty scores yet still returned default
   // MBTI/IE/shadow labels. Keep the archive record, but never present that label
   // as a valid assessment. Genuine old SBTI results retain non-empty scores.

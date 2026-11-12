@@ -264,7 +264,7 @@ test('real scoring output can be archived and resolved for every catalog test', 
       ? question.options.map((option, index) => index) : 0);
     const result = scoreTest(item, questions, indices);
     const saved = archive.saveResult(Object.assign({
-      testId: item.id,
+      testId: item.id, testVersion: item.testVersion || '1',
       answers: questions.map((question, index) => question.type === 'ranking'
         ? { questionId: question.id, ranking: indices[index].map(optionIndex => String(question.options[optionIndex].id || question.options[optionIndex].value)) }
         : { questionId: question.id, optionIndex: indices[index] })

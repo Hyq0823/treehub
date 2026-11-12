@@ -153,8 +153,10 @@ function dimensionsFor(test, record, rankingRounds) {
   if (test.id === 'shadow') return shadowDimensions(record);
   if (test.scoring.strategy === 'weighted-ranking') return rankingDimensions(test, record, rankingRounds);
   if (test.scoring.strategy === 'profile') {
-    if ((record.testVersion || '1') !== (test.testVersion || '1')) return [];
-    try { return require('../../utils/profile-scoring.js').profileDimensions(test, record.scores); }
+    const profileScoring = require('../../utils/profile-scoring.js');
+    const retained = profileScoring.resolveProfileVersion(test, record.testVersion);
+    if (!retained) return [];
+    try { return profileScoring.profileDimensions(retained, record.scores); }
     catch (error) { return []; } // A malformed old summary must not hide a valid current report.
   }
   return [];

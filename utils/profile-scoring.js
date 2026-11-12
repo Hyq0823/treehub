@@ -93,8 +93,19 @@ function scoreProfile(test, questions, answers) {
   return { scores, resultType: matchProfile(test, scores).type };
 }
 
+function resolveProfileVersion(test, version) {
+  const requested = version || '1';
+  if (!test || !test.scoring || test.scoring.strategy !== 'profile' || typeof requested !== 'string') return null;
+  if ((test.testVersion || '1') === requested) return test;
+  const versions = test.retainedVersions;
+  if (!versions || !Object.prototype.hasOwnProperty.call(versions, requested)) return null;
+  const retained = versions[requested];
+  return retained && retained.id === test.id && retained.testVersion === requested &&
+    retained.scoring && retained.scoring.strategy === 'profile' ? retained : null;
+}
+
 function createProfileTest(config) {
-  const { dimensionMeta, profiles, ...metadata } = config;
+  const { dimensionMeta, profiles, retainedVersions, ...metadata } = config;
   const result = Object.assign({}, metadata, {
     testVersion: String(config.testVersion || '1'),
     questionsCount: config.questions.length,
@@ -107,6 +118,17 @@ function createProfileTest(config) {
     },
     reports: profiles.map(({ vector, ...report }) => report)
   });
+  if (retainedVersions !== undefined) {
+    if (!retainedVersions || typeof retainedVersions !== 'object' || Array.isArray(retainedVersions)) fail();
+    const versions = Object.create(null);
+    Object.keys(retainedVersions).forEach(version => {
+      const retained = retainedVersions[version];
+      if (version === result.testVersion || !retained || retained.id !== result.id ||
+          retained.testVersion !== version || !retained.scoring || retained.scoring.strategy !== 'profile') fail();
+      versions[version] = retained;
+    });
+    result.retainedVersions = versions;
+  }
   result.scoring.resultRule = scores => matchProfile(result, scores).type;
   rangesFor(result);
   // Validate every prototype and label once when the questionnaire is loaded.
@@ -115,4 +137,4 @@ function createProfileTest(config) {
   return result;
 }
 
-module.exports = { createProfileTest, scoreProfile, matchProfile, profileDimensions };
+module.exports = { createProfileTest, scoreProfile, matchProfile, profileDimensions, resolveProfileVersion };

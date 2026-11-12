@@ -70,6 +70,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `data/trees.js`：树种寓意、解读文案和成长阶段；`utils/personality-tree.js`：匹配规则及可追溯依据。
 - `components/ranking-board/`：通用情境排序组件，支持任意卡片数量、多轮返回、撤回、重排与保存失败重试。新增排序测试只需配置题目、维度、权重和报告文案，不需要复制答题页面。
 - `utils/profile-scoring.js`：配置式轻测试引擎，按每维题目实际取值归一化，再与结果意象向量匹配；校验可达分数，明确并列，不将结果解释为准确率、能力值或命运。新增同类测试配置题目、维度与结果文案即可。接入步骤见 [新测试接入与云素材](docs/新测试接入与云素材.md)。
+- 古人人格测试现有十二种人物意象，人物场景使用报告分包内的原生图形组件绘制，无新增媒体资源。当前题库版本 `2` 保留版本 `1` 的原六种匹配规则；旧结果、历史快照与已解锁权益继续可用。
 - `data/exploration.js`：大厅分类、卡片标题、探索引导。新增测试仍需在 `data/tests/index.js` 注册，并检查评分、版本和报告适配；自动测试会同时校验轻目录、大厅顺序与云端探索计数白名单，避免漏登记。
 - 既有 `assets/trees/` 与报告分包中的旧结果图片保留历史兼容；新九主题美术完全从云开发空间加载。
 - `components/personality-tree/`：树形展示；`assets/trees/species.webp` 为成熟树透明素材，3列×2行依次银杏、榕树、松树、枫树、柳树、橄榄树；`assets/trees/growth.webp` 为前四个成长阶段的 2列×2行透明素材。两张精灵图已压缩为 WebP；新增树种或阶段时同步增加匹配规则、素材位置和组件配置。

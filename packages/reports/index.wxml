@@ -45,6 +45,7 @@
     <view class="result-header">
       <view class="result-header-glow"></view>
       <image wx:if="{{result.image}}" class="result-image" src="{{result.image}}" mode="aspectFit" lazy-load="{{true}}" />
+      <historical-portrait wx:elif="{{result.portrait}}" character="{{result.portrait}}" />
       <view wx:else class="result-visual result-visual-{{test.id}}">
         <view class="visual-orbit visual-orbit-one"></view><view class="visual-orbit visual-orbit-two"></view>
         <view class="visual-symbol">{{resultVisual.symbol}}</view>
@@ -59,8 +60,8 @@
     </view>
     <view wx:if="{{profileMode}}" class="profile-capture-card profile-capture-{{test.id}}">
       <view class="profile-capture-kicker"><text>MY EXPLORATION · 本次探索卡</text><text>适合截图保存</text></view>
-      <view class="profile-capture-title">{{result.title}}</view>
-      <view class="profile-capture-quote">{{result.tagline || result.summary}}</view>
+      <view class="profile-identity-row"><view class="profile-identity-copy"><view class="profile-capture-title">{{result.title}}</view><view class="profile-capture-quote">{{result.tagline || result.summary}}</view></view><historical-portrait wx:if="{{result.portrait}}" class="profile-mini-portrait" character="{{result.portrait}}" compact="{{true}}" /></view>
+      <view wx:if="{{result.portrait}}" class="profile-character-tags"><text wx:for="{{result.portrait.keywords}}" wx:key="*this">{{item}}</text></view>
       <view wx:if="{{result.profileNotice}}" class="profile-capture-note">{{result.profileNotice}}</view>
       <view class="profile-chart-caption"><text>我的多维偏好</text><text>越靠外，越接近该维度右侧</text></view>
       <profile-radar dimensions="{{profileDimensions}}" mode="priority" />
