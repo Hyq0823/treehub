@@ -5,8 +5,11 @@ import shadow from './shadow.js';
 import ie from './ie.js';
 import sbti from './sbti.js';
 import firstreaction from './first-reaction.js';
+import relationshiprhythm from './relationship-rhythm.js';
+import gentleboundaries from './gentle-boundaries.js';
+import emotionalrecharge from './emotional-recharge.js';
 import historicalecho from './historical-echo.js';
 import lifepath from './life-path.js';
 import hiddentalent from './hidden-talent.js';
 
-export default [ firstreaction, historicalecho, lifepath, hiddentalent, sbti, mbti, enneagram, bigfive, shadow, ie ];
+export default [ firstreaction, relationshiprhythm, gentleboundaries, emotionalrecharge, historicalecho, lifepath, hiddentalent, sbti, mbti, enneagram, bigfive, shadow, ie ];

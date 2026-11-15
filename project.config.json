@@ -48,6 +48,10 @@
         "type": "folder"
       },
       {
+        "value": "data/tests/index.js",
+        "type": "file"
+      },
+      {
         "value": "scripts",
         "type": "folder"
       },

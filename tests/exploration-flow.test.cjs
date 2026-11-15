@@ -107,16 +107,16 @@ test('first-reaction card starts its one-minute ranking flow without an extra de
   hall.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
   assert.equal(navigation.at(-1), '/pages/test-answer/index?id=firstreaction&context=ordinary');
 });
-test('each new quiz can be the first exploration and reveals a free matching starter', () => {
+test('each light quiz can be the first exploration and reveals a free matching starter', () => {
   const themes = require('../utils/themes.js');
-  for (const id of ['historicalecho', 'lifepath', 'hiddentalent']) {
+  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge']) {
     memory.clear();
     const record = complete(id);
     const state = themes.getState();
     const report = page('packages/reports');
     report.onLoad({ id, recordId: record.id });
     assert.equal(report.data.profileMode, true);
-    assert.equal(report.data.profileDimensions.length, id === 'hiddentalent' ? 5 : 4);
+    assert.equal(report.data.profileDimensions.length, ['hiddentalent', 'emotionalrecharge'].includes(id) ? 5 : 4);
     assert.equal(report.data.premiumUnlocked, false);
     assert.equal(report.data.starterReveal, true);
     assert.equal(report.data.starterThemeId, state.recommendation);

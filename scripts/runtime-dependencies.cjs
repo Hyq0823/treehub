@@ -96,4 +96,4 @@ function validateRuntimeDependencies(directory) {
   return issues;
 }
 
-module.exports = { validateRuntimeDependencies };
+module.exports = { dependencies, validateRuntimeDependencies };

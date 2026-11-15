@@ -8,6 +8,21 @@ const catalog = [
     time: '约1分钟', questionsCount: 1
   },
   {
+    id: 'relationshiprhythm', name: '亲密相处节奏', icon: '♡',
+    description: '想被靠近，也想保留自己。用十二个日常场景，看看此刻的你需要怎样的联络、表达、空间与沟通节奏。',
+    time: '约3分钟', questionsCount: 12
+  },
+  {
+    id: 'gentleboundaries', name: '温柔边界测试', icon: '◇',
+    description: '照顾别人时，也给自己留个位置。从觉察、表达、余量和持续四个角度，看看你最近怎样安排自己的边界。',
+    time: '约3分钟', questionsCount: 12
+  },
+  {
+    id: 'emotionalrecharge', name: '情绪充电地图', icon: '◌',
+    description: '忙了一阵后，什么小事更像你的充电入口？用十个生活场景，看看独处、倾诉、活动、感官与整理五种近期偏好。',
+    time: '约2分钟', questionsCount: 10
+  },
+  {
     id: 'historicalecho', name: '你像哪位古人', icon: '✒',
     description: '如果把此刻的你写进一页古书，会遇见谁的生活意象？从表达、求知、行动与共情四个角度，找到一份跨时空的共鸣。',
     time: '约3分钟', questionsCount: 12
@@ -56,6 +71,9 @@ const catalog = [
 
 const resultTitles = {
   firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
+  relationshiprhythm: { warm: '温柔连接者', parallel: '自在并肩者', direct: '清晰回应者', slow: '慢热靠近者' },
+  gentleboundaries: { guardian: '温柔守界人', negotiator: '体贴协商家', practicing: '边界练习生', clear: '清晰自持者' },
+  emotionalrecharge: { quiet: '静谧充电者', connection: '温暖连接者', movement: '轻盈行动派', sensory: '感官收藏家', structure: '秩序整理师' },
   historicalecho: { liqingzhao: '李清照式·细腻收藏家', sushi: '苏轼式·旷达生活家', wangyangming: '王阳明式·笃行思考家', libai: '李白式·自由表达家', xuxiake: '徐霞客式·远方探索家', taoyuanming: '陶渊明式·自洽栖居者', wuzetian: '武则天式·自主开路者', banzhao: '班昭式·沉静求知者', xiedaoyun: '谢道韫式·灵动对话家', wangwei: '王维式·山水留白家', shenkuo: '沈括式·好奇观察家', xinqiji: '辛弃疾式·热忱行动家' },
   lifepath: { track: '轨道筑梦者', wild: '旷野漫游者', dual: '双栖探索家', builder: '自由建造师' },
   hiddentalent: { insight: '洞察捕光者', expression: '故事翻译官', creation: '灵感造梦师', coordination: '关系连接者', execution: '行动搭建师' },
@@ -86,6 +104,18 @@ const resultTitles = {
 // Keep these small so a newly completed light test can grow a tree without
 // making listing pages evaluate the full questionnaires.
 const treeAssociations = {
+  relationshiprhythm: {
+    dimensions: ['contact', 'expression', 'space', 'repair'], minimum: 3, maximum: 12,
+    results: { warm: 'banyan', parallel: 'olive', direct: 'pine', slow: 'willow' }
+  },
+  gentleboundaries: {
+    dimensions: ['awareness', 'expression', 'recovery', 'consistency'], minimum: 3, maximum: 12,
+    results: { guardian: 'willow', negotiator: 'olive', practicing: 'ginkgo', clear: 'pine' }
+  },
+  emotionalrecharge: {
+    dimensions: ['quiet', 'connection', 'movement', 'sensory', 'structure'], minimum: 2, maximum: 8,
+    results: { quiet: 'ginkgo', connection: 'banyan', movement: 'maple', sensory: 'willow', structure: 'pine' }
+  },
   historicalecho: {
     dimensions: ['expression', 'curiosity', 'resolve', 'empathy'], minimum: 3, maximum: 12,
     results: { liqingzhao: 'willow', sushi: 'olive', wangyangming: 'pine', libai: 'maple', xuxiake: 'maple', taoyuanming: 'ginkgo', wuzetian: 'pine', banzhao: 'ginkgo', xiedaoyun: 'banyan', wangwei: 'willow', shenkuo: 'maple', xinqiji: 'pine' }

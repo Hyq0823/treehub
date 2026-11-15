@@ -616,6 +616,22 @@ button::after {
 .profile-capture-historicalecho { background: linear-gradient(155deg, #fffdf7, #f7faff 60%, #edf1ff); }
 .profile-capture-lifepath { background: linear-gradient(155deg, #fff, #f1f9fb 60%, #e9f4f3); }
 .profile-capture-hiddentalent { background: linear-gradient(155deg, #fff, #f7f3ff 60%, #edf5ff); }
+.profile-capture-relationshiprhythm { background: linear-gradient(155deg, #fff8f9, #f3f8ff 65%, #edf1ff); }
+.profile-capture-gentleboundaries { background: linear-gradient(155deg, #fff, #f1f9f5 65%, #eaf4f6); }
+.profile-capture-emotionalrecharge { background: linear-gradient(155deg, #fffdf4, #f5f9ff 65%, #edf3ff); }
+.result-visual-relationshiprhythm { background: radial-gradient(circle at 75% 30%, #f6dfe9, transparent 45%), linear-gradient(145deg, #fdf6f8, #eaf3ff); }
+.result-visual-gentleboundaries { background: radial-gradient(ellipse at 80% 30%, #d5ebe3, transparent 60%), linear-gradient(145deg, #fafdfa, #eaf5f3); }
+.result-visual-emotionalrecharge { background: radial-gradient(circle at 80% 25%, #fff0bd, transparent 42%), linear-gradient(145deg, #fffdf4, #eaf2ff); }
+.related-explorations { margin: 28rpx 0; padding: 28rpx 24rpx; border-radius: 30rpx; border: 1rpx solid #dce9fa; background: #f7fbff; }
+.related-title { color: #355e90; font-size: 28rpx; font-weight: 700; }
+.related-copy { margin: 10rpx 0 20rpx; color: #7f95af; font-size: 22rpx; line-height: 1.6; }
+.related-test { display: flex; align-items: center; gap: 18rpx; min-height: 108rpx; padding: 20rpx; margin-top: 14rpx; border-radius: 22rpx; border: 1rpx solid #e0ebf9; background: #fff; text-align: left; line-height: 1.5; }
+.related-test::after { border: 0; }
+.related-symbol { flex: 0 0 50rpx; width: 50rpx; color: #7b9ccd; font-size: 35rpx; text-align: center; }
+.related-test-body { flex: 1; min-width: 0; }
+.related-test-title { color: #426897; font-size: 25rpx; font-weight: 650; }
+.related-test-meta { margin-top: 6rpx; color: #8ba0b9; font-size: 20rpx; }
+.related-arrow { flex: none; color: #7b9fcf; font-size: 29rpx; }
 .profile-capture-kicker { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; color: #8a9bb4; font-size: 17rpx; line-height: 1.5; }
 .profile-capture-title { margin-top: 24rpx; color: #244b7b; font-size: 39rpx; line-height: 1.4; font-weight: 750; }
 .profile-identity-row { display: flex; align-items: center; gap: 12rpx; }

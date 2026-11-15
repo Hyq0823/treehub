@@ -54,8 +54,7 @@ Page({
   },
   loadTestData(testId) {
     try {
-      const imported = require('../../data/tests/index.js');
-      const test = (imported.default || imported).find(item => item.id === testId);
+      const test = require('../../data/test-loader.js').getTest(testId);
       if (!test) throw new Error('没有找到这项测试，请返回大厅重新选择');
       this._test = test;
       const clonedQuestions = test.questions.map(question => Object.assign({}, question, {

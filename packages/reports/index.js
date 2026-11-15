@@ -14,6 +14,9 @@ const RESULT_VISUALS = {
   ie: { symbol: '◐', title: '社交能量光谱', note: '连接世界，也照顾自己的充电节奏' },
   sbti: { symbol: '◈', title: '趣味人格徽章', note: '把有趣的这一面，收藏进今天' },
   shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' },
+  relationshiprhythm: { symbol: '♡', title: '彼此靠近的节奏', note: '连接 · 表达 · 空间 · 认真回应' },
+  gentleboundaries: { symbol: '❧', title: '温柔也有自己的轮廓', note: '看见需要，慢慢练习说清楚' },
+  emotionalrecharge: { symbol: '☼', title: '你的小小充电站', note: '找到此刻愿意试试的恢复入口' },
   historicalecho: { symbol: '卷', title: '与古人的隔空回信', note: '穿越时间，找到一种生活共鸣' },
   lifepath: { symbol: '⌁', title: '你的生活路线图', note: '轨道与旷野，都可以由你定义' },
   hiddentalent: { symbol: '✧', title: '给天赋的一封邀请函', note: '从愿意做的小事，发现新的可能' },
@@ -63,7 +66,7 @@ Page({
   data: {
     test: {}, result: {}, record: null, savedAt: '', state: 'loading',
     stateTitle: '', stateMessage: '', legacy: false, playful: false, resultIcon: '✦', resultVisual: RESULT_VISUALS.mbti,
-    basicDimensions: [], profileMode: false, profileDimensions: [], deepReport: null, premiumAvailable: false, rankingProfile: [],
+    basicDimensions: [], profileMode: false, profileDimensions: [], relatedTests: [], deepReport: null, premiumAvailable: false, rankingProfile: [],
     rankingGridWidth: 0, rankingLeadText: '', rankingTailText: '',
     premiumUnlocked: false, premiumUnlockedAt: '', adReady: false,
     adLoading: false, adWatching: false, adError: '',
@@ -77,8 +80,7 @@ Page({
     this._themeRequest = 0;
     this._starterShareCache = Object.create(null);
     try {
-      const imported = require('../../data/tests/index.js');
-      const test = (imported.default || imported).find(item => item.id === options.id);
+      const test = require('../../data/test-loader.js').getTest(options.id);
       if (!test) {
         this.showState('missing', '没有找到这项测试', '回到探索大厅，选择一项感兴趣的测试。');
         return;
@@ -103,7 +105,9 @@ Page({
         return;
       }
       const deepReport = decorateDeepReport(buildDeepReport(test, record, result));
-      const history = archive.getRecords(test.id);
+      const allRecords = archive.getRecords();
+      const history = allRecords.filter(item => item.testId === test.id);
+      const relatedTests = require('../../utils/test-recommendations.js').recommendTests(test.id, allRecords);
       const currentIndex = history.findIndex(item => item.id === record.id);
       const previous = currentIndex >= 0 ? history.slice(currentIndex + 1).find(item =>
         item.scoringVersion === record.scoringVersion && item.testVersion === record.testVersion) : null;
@@ -118,7 +122,7 @@ Page({
         basicDimensions: test.scoring.strategy === 'profile' ? [] : basicDimensions(result),
         profileMode: test.scoring.strategy === 'profile',
         profileDimensions: test.scoring.strategy === 'profile' && deepReport ? deepReport.dimensions : [],
-        deepReport, comparison,
+        deepReport, comparison, relatedTests,
         rankingProfile,
         rankingGridWidth: rankingProfile.length * 108,
         rankingLeadText: rankingProfile.length ? result.rankingMode === 'aggregate'
@@ -134,8 +138,8 @@ Page({
         state: 'ready'
       });
       this.loadResultAssets(result, rankingProfile);
-      this.prepareStarterReveal();
-      this.loadReportTheme();
+      this.prepareStarterReveal(allRecords);
+      this.loadReportTheme(allRecords);
       if (deepReport && !record.premiumUnlockedAt && !pendingGrant) this.setupRewardedVideoAd();
       report(EVENTS.RESULT_VIEW, { testId: test.id, resultType: record.resultType });
     } catch (error) {
@@ -161,10 +165,10 @@ Page({
       this.setData({ result: nextResult, rankingProfile: nextProfile });
     } catch (error) { /* The report keeps its lightweight icon placeholder. */ }
   },
-  prepareStarterReveal() {
+  prepareStarterReveal(records) {
     try {
       const themes = require('../../utils/themes.js');
-      const state = themes.getState();
+      const state = themes.getState(records);
       if (state.starterClaimed || state.uniqueCount < 1) return;
       const starterThemes = state.catalog.filter(item => item.starter && item.id === state.recommendation).map(item => ({
         id: item.id, name: item.name, quote: item.quote, description: item.description,
@@ -253,11 +257,11 @@ Page({
   },
   closeStarterReveal() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); },
   openStarterTree() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); wx.switchTab({ url: '/pages/my-tree/index' }); },
-  async loadReportTheme() {
+  async loadReportTheme(records) {
     const request = ++this._themeRequest;
     try {
       const themes = require('../../utils/themes.js');
-      const state = themes.getState();
+      const state = themes.getState(records);
       const current = state.catalog.find(item => item.id === state.selectedId);
       if (!current || current.hidden && !current.discovered) return;
       this.setData({ themeId: current.id, themeName: current.name, themeQuote: current.quote,
@@ -360,6 +364,20 @@ Page({
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   goToArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
   goToTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
+  openRelatedTest(event) {
+    if (this._disposed || this._openingRelated || this.data.adWatching) return;
+    const id = event.currentTarget.dataset.id;
+    if (!(this.data.relatedTests || []).some(item => item.id === id)) return;
+    // Replace this report instead of stacking another detail/answer pair.
+    this._openingRelated = true;
+    wx.redirectTo({
+      url: `/pages/test-answer/index?id=${encodeURIComponent(id)}&context=ordinary`,
+      fail: () => {
+        this._openingRelated = false;
+        if (!this._disposed) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
+      }
+    });
+  },
   instrumentShare() {
     report(EVENTS.SHARE_TAP, { testId: this.data.test.id || '', resultType: this.data.result.type || '' });
   },
@@ -374,6 +392,9 @@ Page({
       };
     }
     const profileTitles = {
+      relationshiprhythm: `我的相处节奏是「${this.data.result.title}」，你呢？`,
+      gentleboundaries: `温柔也有边界｜我的结果是「${this.data.result.title}」`,
+      emotionalrecharge: `我是「${this.data.result.title}」，你的充电入口是什么？`,
       historicalecho: `我与「${this.data.result.title}」有点像，你会遇见哪位古人？`,
       lifepath: `我的生活路线是「${this.data.result.title}」，你更靠近轨道还是旷野？`,
       hiddentalent: `我的隐藏偏好是「${this.data.result.title}」，你愿意试试哪种可能？`

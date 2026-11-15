@@ -348,6 +348,9 @@ function buildRanking(test, record, base, dimensions) {
 
 function buildProfile(test, base, dimensions) {
   const headings = {
+    relationshiprhythm: ['你的靠近方式', '让连接更舒服', '分歧时的小提醒', '把需要说给重要的人'],
+    gentleboundaries: ['你怎样照顾边界', '温柔与坚定同时存在', '哪些时刻容易消耗自己', '把边界变成具体沟通'],
+    emotionalrecharge: ['本次充电入口', '把恢复放进日常', '不必强迫自己立刻振作', '怎样向别人说明需要'],
     historicalecho: ['你与这位古人的共鸣', '可以借用的生活智慧', '和古人走不一样的路', '你与身边人的相处'],
     lifepath: ['此刻适合你的生活节奏', '让这种节奏运转起来', '做选择前的现实检查', '和重要的人商量边界'],
     hiddentalent: ['你愿意投入的方向', '把偏好变成一次小实践', '兴趣还需要现实验证', '在合作中找到自己的位置']

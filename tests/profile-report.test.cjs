@@ -7,7 +7,7 @@ const { createRequire } = require('node:module');
 const { scoreTest, resolveReport } = require('../utils/scoring.js');
 const { buildDeepReport, buildComparison } = require('../packages/reports/deep-report.js');
 const catalog = require('../data/tests/index.js').default;
-const ids = ['historicalecho', 'lifepath', 'hiddentalent'];
+const ids = ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge'];
 
 function scored(questionnaire, high = false) {
   const answers = questionnaire.questions.map(question => {
@@ -64,7 +64,7 @@ test('profile sharing invites a new test without exposing private record, score 
       rankingProfile: [], record: { id: 'private-id', lifeContext: 'breakup' } };
     const shared = page.onShareAppMessage();
     assert.equal(shared.path, `/pages/test-detail/index?id=${id}`);
-    assert.match(shared.title, /古人|轨道|可能/);
+    assert.match(shared.title, /古人|轨道|可能|相处|边界|充电/);
     assert.doesNotMatch(shared.path, /private-id|breakup|scores|resultType/);
   }
 });

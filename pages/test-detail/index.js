@@ -16,9 +16,7 @@ Page({
   },
   loadTestData(testId) {
     try {
-      const tests = require('../../data/tests/index.js');
-      const testList = tests.default || tests;
-      const test = testList.find(t => t.id === testId);
+      const test = require('../../data/test-loader.js').getTest(testId);
       if (!test) throw new Error('没有找到这项测试，请返回探索页重新选择。');
       const displayName = display.tests[testId] && display.tests[testId].title || test.name;
       // Questions, reports and scoring rules stay in the service layer. Sending

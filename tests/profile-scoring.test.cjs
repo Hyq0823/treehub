@@ -69,7 +69,7 @@ function answersNearVector(quiz, vector) {
 
 test('every new quiz profile is reachable and restores with complete free dimensions', () => {
   const quizzes = require('../data/tests/index.js').default.filter(item => item.scoring.strategy === 'profile');
-  assert.equal(quizzes.length, 3);
+  assert.equal(quizzes.length, 6);
   for (const quiz of quizzes) {
     assert.ok(quiz.questions.length >= 10 && quiz.questions.length <= 12);
     for (const profile of quiz.scoring.profiles) {
@@ -101,5 +101,16 @@ test('a flat talent self-rating describes multiple interests rather than a sole 
     const report = resolveReport(quiz, { ...result, testId: quiz.id, scoringVersion: '2', testVersion: '1' });
     assert.match(report.summary, /暂时没有特别突出的单一方向/);
     assert.match(report.profileNotice, /不代表你的唯一优势/);
+  }
+});
+
+test('equal recharge frequencies do not claim a single effective recovery method', () => {
+  const quiz = require('../data/test-loader.js').getTest('emotionalrecharge');
+  for (const value of [1, 2, 3, 4]) {
+    const answers = quiz.questions.map(question => question.options.findIndex(option => option.value === value));
+    const result = scoreTest(quiz, quiz.questions, answers);
+    const report = resolveReport(quiz, { ...result, testId: quiz.id, scoringVersion: '2', testVersion: '1' });
+    assert.match(report.profileNotice, /本次没有突出入口/);
+    assert.match(report.profileNotice, /不代表恢复效果/);
   }
 });

@@ -263,9 +263,16 @@ async function fixtures() {
   await Promise.resolve();
   Object.assign(report.data, { themeHeroUrl: localArt('adventurer'), themeId: 'adventurer', themeName: '柔软的冒险家', themeQuote: themeList[0].quote, companionNames: '云朵小狗与地图精灵' });
   for (const section of ['portrait', 'insights', 'actions']) { report.data.premiumPage = section; add('packages/reports/index', 'report-' + section, report.data); }
-  for (const id of ['historicalecho', 'lifepath', 'hiddentalent']) {
+  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge']) {
     const intro = page('pages/test-detail/index'); intro.onLoad({ id });
     add('pages/test-detail/index', 'detail-' + id, intro.data);
+    if (['relationshiprhythm', 'gentleboundaries', 'emotionalrecharge'].includes(id)) {
+      const answering = page('pages/test-answer/index'); answering.onLoad({ id });
+      answering.data.currentQuestionIndex = answering._questions.reduce((longest, question, index, questions) =>
+        question.text.length > questions[longest].text.length ? index : longest, 0);
+      answering.updateQuestion({ animate: false });
+      add('pages/test-answer/index', 'answer-' + id, answering.data);
+    }
     const firstRecord = complete(id, 'ordinary', 0);
     const free = page('packages/reports/index'); free.onLoad({ id, recordId: firstRecord.id });
     add('packages/reports/index', 'report-' + id, free.data);
@@ -311,7 +318,7 @@ async function screenshot(scenarios) {
         'answer-2', 'answer-3', 'answer-4', 'answer-5', 'answer-ranking', 'starter-reveal',
         'detail-ranking', 'report-ranking', 'report-ranking-vip'
       ];
-      const isProfileScreen = /^(?:detail|report)-(?:historicalecho|lifepath|hiddentalent)(?:-|$)/.test(scenario.name);
+      const isProfileScreen = /^(?:detail|report|answer)-(?:historicalecho|lifepath|hiddentalent|relationshiprhythm|gentleboundaries|emotionalrecharge)(?:-|$)/.test(scenario.name);
       const scenarioWidths = responsiveScreens.includes(scenario.name) || isProfileScreen ? widths : [390];
       for (const width of scenarioWidths) {
         const browserPage = await browser.newPage({ viewport: { width, height: width === 430 ? 932 : width === 360 ? 800 : 844 }, deviceScaleFactor: 1 });

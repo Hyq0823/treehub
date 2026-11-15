@@ -110,8 +110,7 @@ function saveResult(input) {
     throw storageError('测评结果不完整，无法保存到档案。');
   }
   if (input.answers !== undefined) {
-    const testsModule = require('../data/tests/index.js');
-    const test = (testsModule.default || testsModule).find(item => item.id === input.testId);
+    const test = require('../data/test-loader.js').getTest(input.testId);
     if (!test) throw storageError('测评结果不完整，无法保存到档案。');
     validateAnswers(input, test);
   }

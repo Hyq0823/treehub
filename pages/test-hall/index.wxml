@@ -16,7 +16,7 @@
 
     <view class="progress-panel">
       <view class="progress-heading"><text>我的探索进度</text><view>{{tree.uniqueCount}}<text> / {{cards.length}}</text></view></view>
-      <view class="progress-nodes"><view class="progress-node" wx:for="{{leaves}}" wx:key="id"><view class="node-circle {{item.collected ? 'node-lit' : ''}}">{{item.collected ? '' : index + 1}}</view><view wx:if="{{index < leaves.length - 1}}" class="node-line {{item.collected ? 'node-line-lit' : ''}}"></view></view></view>
+      <view class="progress-nodes"><view class="progress-node" wx:for="{{leaves}}" wx:key="id"><view class="node-circle {{item.collected ? 'node-lit' : ''}}">{{item.collected ? '' : index + 1}}</view><view wx:if="{{index < leaves.length - 1}}" class="node-line {{item.collected ? 'node-line-lit' : ''}}"></view></view><view wx:if="{{moreLeafCount}}" class="more-leaves">+{{moreLeafCount}}</view></view>
       <view class="reward-row" bindtap="exploreNext" hover-class="card-pressed" role="button"><view class="reward-copy"><view class="reward-title">{{rewardTitle}}</view></view><view class="reward-gift"><view class="gift-bow bow-left"></view><view class="gift-bow bow-right"></view><view class="gift-lid"></view><view class="gift-box"></view><view class="gift-ribbon"></view></view></view>
     </view>
 
@@ -29,7 +29,7 @@
       </view>
     </view>
     <view wx:if="{{!filteredCards.length}}" class="empty-category">新的探索正在生长，先看看其他分类吧。</view>
-    <view class="keyword-note"><view>第一反应 · 古人人格 · 轨道与旷野 · 隐藏天赋</view><view>MBTI · 大五人格 · 九型人格 · 每一面都值得探索</view></view>
+    <view class="keyword-note"><view>相处节奏 · 温柔边界 · 情绪充电 · 第一反应</view><view>古人人格 · MBTI · 大五人格 · 每一面都值得探索</view></view>
     <view class="privacy-entry" bindtap="openPrivacy">本地测评 · 云备份由你选择 <text>隐私与数据管理 →</text></view>
     <view class="hall-footnote">测评用于自我探索，不作心理诊断。</view>
   </block>

@@ -212,6 +212,13 @@
       </view>
       <view class="premium-note">{{deepReport.note}}</view>
     </view>
+    <view wx:if="{{relatedTests.length}}" class="related-explorations">
+      <view class="related-title">接着看看，另一面的自己</view>
+      <view class="related-copy">两三分钟，让这次发现多一个视角。</view>
+      <button wx:for="{{relatedTests}}" wx:key="id" class="related-test" data-id="{{item.id}}" bindtap="openRelatedTest">
+        <text class="related-symbol">{{item.symbol}}</text><view class="related-test-body"><view class="related-test-title">{{item.title}}</view><view class="related-test-meta">{{item.questionsCount}} 题 · {{item.time}} · {{item.repeat ? '再观察一次' : '新的探索'}}</view></view><text class="related-arrow">→</text>
+      </button>
+    </view>
     <view class="archive-link" bindtap="goToArchive" hover-class="pressed">
       <view><view class="archive-title">你的人格树，留下了新记录</view><view class="archive-subtitle">查看成长档案与历次测评</view></view>
       <text class="archive-arrow">→</text>

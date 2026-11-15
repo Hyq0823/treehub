@@ -185,6 +185,12 @@ function resolveReport(test, record) {
         report.tagline = '多向偏好，也可以慢慢试出自己的喜欢。';
         report.profileNotice = '本次未呈现突出方向，卡片意象不代表你的唯一优势。';
       }
+      if (test.id === 'emotionalrecharge' && Math.max(...matched.dimensions.map(item => item.percent)) -
+          Math.min(...matched.dimensions.map(item => item.percent)) < 17) {
+        report.summary = '这次五种充电安排的频率比较接近，暂时没有突出的一种。可以先从这张卡挑一个小尝试，不必把自己固定为某一种类型。';
+        report.tagline = '不只一种方式，可以慢慢找到舒服的安排。';
+        report.profileNotice = '本次没有突出入口，图表表示安排频率，不代表恢复效果。';
+      }
       if (matched.ties.length > 1) {
         report.note += ' 本次有多个意象同样接近，按展示顺序呈现一个，可结合各维度理解。';
       }

@@ -77,9 +77,10 @@ test('archive and listing pages do not load the full questionnaires', () => {
   assert.ok(page && typeof page.loadHistory === 'function');
 });
 
-test('archive loads the full questionnaire only when validating submitted answers', () => {
+test('archive loads only the submitted questionnaire when validating answers', () => {
   const source = fs.readFileSync(path.join(root, 'utils/archive.js'), 'utf8');
   const topLevel = source.slice(0, source.indexOf('function saveResult'));
-  assert.equal(topLevel.includes("require('../data/tests/index.js')"), false);
-  assert.match(source.slice(source.indexOf('function saveResult')), /require\('\.\.\/data\/tests\/index\.js'\)/);
+  assert.equal(source.includes("require('../data/tests/index.js')"), false);
+  assert.equal(topLevel.includes("require('../data/test-loader.js')"), false);
+  assert.match(source.slice(source.indexOf('function saveResult')), /require\('\.\.\/data\/test-loader\.js'\)\.getTest\(input\.testId\)/);
 });

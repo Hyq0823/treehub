@@ -7,8 +7,8 @@ const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
-const CARD_THEMES = { firstreaction: 'adventurer', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
-const DISPLAY_ORDER = ['firstreaction', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
+const CARD_THEMES = { firstreaction: 'adventurer', relationshiprhythm: 'romantic', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['firstreaction', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();
@@ -19,7 +19,7 @@ function buildGreeting(uniqueCount) {
     ['新的一天，', '先听听此刻真实的自己', '每次回答，都会留下新的年轮。']
   ] : hour < 18 ? [
     ['下午好，', '给自己两分钟慢下来', '看看今天的你，和上次有什么不同。'],
-    ['见到你啦，', '来收集今天这一面的自己', '新的探索，也许会长出新的伙伴。']
+    ['见到你啦，', '来收集今天的自己', '新的探索，也许会长出新的伙伴。']
   ] : [
     ['晚上好，', '把今天的感受留给自己', '慢慢回答，也是在认真照顾自己。'],
     ['欢迎回来，', '看看此刻的你变了吗？', '今晚的答案，会成为新的年轮。']

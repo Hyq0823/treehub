@@ -26,7 +26,7 @@ function loadPage() {
       OPTIONS: [{ id: 'ordinary' }],
       getContext(id) { return id === 'ordinary' ? { id } : null; }
     },
-    '../../data/tests/index.js': { default: [fullTest] }
+    '../../data/test-loader.js': { getTest(id) { return id === fullTest.id ? fullTest : null; } }
   };
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     Page(value) { page = value; },
