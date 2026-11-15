@@ -10,9 +10,10 @@ const completed = id => ({ testId: id, scoringVersion: '2' });
 
 test('recommendations connect relation and recovery quizzes and prioritize unexplored tests', () => {
   const initial = recommendTests('relationshiprhythm', []);
-  assert.deepEqual(initial.map(item => item.id), ['gentleboundaries', 'emotionalrecharge']);
+  assert.deepEqual(initial.map(item => item.id), ['friendshipstyle', 'gentleboundaries']);
   const next = recommendTests('relationshiprhythm', [completed('gentleboundaries')]);
-  assert.equal(next[0].id, 'emotionalrecharge');
+  assert.equal(next[0].id, 'friendshipstyle', 'friendship is an explicit path from intimate relationships');
+  assert.equal(next[1].id, 'emotionalrecharge');
   assert.ok(next.every(item => !item.repeat && item.id !== 'relationshiprhythm'));
   const all = catalog.map(item => completed(item.id));
   assert.ok(recommendTests('relationshiprhythm', all).every(item => item.repeat));
@@ -24,6 +25,16 @@ test('recommendations connect relation and recovery quizzes and prioritize unexp
     assert.ok(suggested.every(item => item.title && item.time && item.questionsCount));
     assert.equal(suggested.some(item => 'scores' in item || 'recordId' in item || 'answers' in item), false);
   }
+});
+
+test('friendship recommendations invite boundaries and recovery without exposing a friend identity or private answers', () => {
+  const initial = recommendTests('friendshipstyle', []);
+  assert.deepEqual(initial.map(item => item.id), ['gentleboundaries', 'emotionalrecharge']);
+  const next = recommendTests('friendshipstyle', [completed('gentleboundaries')]);
+  assert.equal(next[0].id, 'emotionalrecharge');
+  assert.ok(next.every(item => !item.repeat && item.id !== 'friendshipstyle'));
+  assert.ok(initial.every(item => Object.keys(item).every(key =>
+    ['id', 'title', 'prompt', 'symbol', 'time', 'questionsCount', 'repeat'].includes(key))));
 });
 
 test('invalid recommendation inputs do not expose routes or mark legacy assessments as completed', () => {

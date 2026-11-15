@@ -28,7 +28,7 @@
       <view class="guide-title"><text>把这段时间，留给自己</text><text>温柔的小提示</text></view>
       <view class="guide-item"><text>01</text><view><view>找到相对安静的环境</view><view>给直觉一点完整空间</view></view></view>
       <view class="guide-item"><text>02</text><view><view>依据最近真实状态回答</view><view>不需要选择“更好”的答案</view></view></view>
-      <view class="guide-item"><text>03</text><view><view>完成后生成专属画像</view><view>本次记录会成为人格树的新年轮</view></view></view>
+      <view class="guide-item"><text>03</text><view><view>完成后生成专属画像</view><view>报告与当时的树形，会一起留下</view></view></view>
     </view>
     <view class="start-button {{draft ? 'start-button-restart' : ''}}" bindtap="startTest" hover-class="start-button-pressed" role="button" aria-disabled="{{starting}}"><view class="start-signal">✦</view><view><text>{{draft ? '放下上次，重新开始' : hasHistory ? '开始这次复测' : '开始本次探索'}}</text><text>{{draft ? '清除上次未完成的作答进度' : hasHistory ? '看看这段时间留下了什么' : '给人格树添一片新叶'}}</text></view><text class="start-arrow">→</text></view>
     <view class="safety-line"><text></text> 原始选项仅存本机 · 测评不作心理诊断</view>

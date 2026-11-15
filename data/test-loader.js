@@ -7,6 +7,7 @@ const loaders = {
   lifepath: () => require('./tests/life-path.js'),
   hiddentalent: () => require('./tests/hidden-talent.js'),
   relationshiprhythm: () => require('./tests/relationship-rhythm.js'),
+  friendshipstyle: () => require('./tests/friendship-style.js'),
   gentleboundaries: () => require('./tests/gentle-boundaries.js'),
   emotionalrecharge: () => require('./tests/emotional-recharge.js'),
   sbti: () => require('./tests/sbti.js'),

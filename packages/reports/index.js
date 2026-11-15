@@ -15,6 +15,7 @@ const RESULT_VISUALS = {
   sbti: { symbol: '◈', title: '趣味人格徽章', note: '把有趣的这一面，收藏进今天' },
   shadow: { symbol: '☾', title: '月影反应镜', note: '看看压力时更常出现的保护方式' },
   relationshiprhythm: { symbol: '♡', title: '彼此靠近的节奏', note: '连接 · 表达 · 空间 · 认真回应' },
+  friendshipstyle: { symbol: '✿', title: '你的友情配方', note: '相聚 · 体验 · 陪伴 · 小约定' },
   gentleboundaries: { symbol: '❧', title: '温柔也有自己的轮廓', note: '看见需要，慢慢练习说清楚' },
   emotionalrecharge: { symbol: '☼', title: '你的小小充电站', note: '找到此刻愿意试试的恢复入口' },
   cityvibe: { symbol: '⌂', title: '城市生活气质图', note: '节奏 · 连接 · 环境 · 探索 · 预算' },

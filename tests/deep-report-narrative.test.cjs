@@ -78,3 +78,35 @@ test('emotional-sensitivity direction changes strengths and cautions without a q
     assert.match(section(report, '画像主线'), /没有高低优劣/);
   }
 });
+
+test('each friendship identity gets its own friendship interpretation and actionable suggestions', () => {
+  const friendship = catalog.find(item => item.id === 'friendshipstyle');
+  assert.ok(friendship);
+  const actions = new Set();
+  const caution = new Set();
+  for (const prototype of friendship.scoring.profiles) {
+    const scores = Object.fromEntries(friendship.scoring.dimensions.map(id =>
+      [id, 3 + Math.round(prototype.vector[id] / 100 * 9)]));
+    const record = { testId: friendship.id, testVersion: friendship.testVersion,
+      scoringVersion: '2', resultType: prototype.type, scores };
+    const base = resolveReport(friendship, record);
+    const report = buildDeepReport(friendship, record, base);
+    assert.equal(report.mode, 'profile');
+    assert.equal(report.dimensions.length, 4);
+    assert.deepEqual(report.sections.map(item => item.title), [
+      '你喜欢的友情配方', '把在乎放进日常相聚', '给自己也留一张椅子', '和朋友商量舒服的相处'
+    ]);
+    assert.equal(report.sections[0].content, base.description);
+    assert.equal(report.sections[1].content, base.strengths);
+    assert.equal(report.sections[2].content, base.watchout);
+    assert.equal(report.sections[3].content, base.relationship);
+    assert.equal(report.actions.length, 3);
+    assert.ok(report.actions.every(item => typeof item === 'string' && item.length > 10));
+    assert.match(report.note, /原创趣味自评/);
+    assert.doesNotMatch(JSON.stringify(report), /恋爱|依恋|命运|受欢迎排名|真朋友鉴定|百分位/);
+    actions.add(report.actions.join('|'));
+    caution.add(report.sections[2].content);
+  }
+  assert.equal(actions.size, 5);
+  assert.equal(caution.size, 5);
+});

@@ -606,6 +606,7 @@ button::after {
 .result-page .premium-tab,
 .result-page .primary-button,
 .result-page .secondary-button,
+.result-page .comparison-share,
 .result-page .text-button { min-height: 44px; }
 
 /* These portraits are CSS only; business artwork stays in cloud storage. */

@@ -50,6 +50,7 @@ function recommendedTheme(records) {
   // whose unlock condition belongs to another assessment.
   const starters = {
     relationshiprhythm: { warm: 'romantic', parallel: 'observer', direct: 'adventurer', slow: 'romantic' },
+    friendshipstyle: { livingroom: 'observer', roaming: 'adventurer', sidebyside: 'romantic', gathering: 'adventurer', evergreen: 'observer' },
     gentleboundaries: { guardian: 'romantic', negotiator: 'romantic', practicing: 'observer', clear: 'adventurer' },
     emotionalrecharge: { quiet: 'observer', connection: 'romantic', movement: 'adventurer', sensory: 'romantic', structure: 'observer' },
     cityvibe: { metropolitan: 'adventurer', coastal: 'romantic', cultural: 'adventurer', nature: 'observer' },

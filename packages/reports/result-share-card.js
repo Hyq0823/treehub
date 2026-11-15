@@ -55,20 +55,23 @@ function fitText(ctx, value, width) {
 
 function lines(ctx, value, x, y, width, step, maximum) {
   const text = Array.from(String(value || ''));
-  let current = '', row = 0;
-  for (let index = 0; index < text.length; index++) {
-    if (ctx.measureText(current + text[index]).width > width && current) {
-      ctx.fillText(current, x, y + row * step);
-      current = '';
-      row++;
-      if (row === maximum - 1) {
-        ctx.fillText(fitText(ctx, text.slice(index).join(''), width), x, y + row * step);
-        return;
-      }
+  const closing = /^[，。！？；：、,.!?;:%）】》〉」』’”]$/;
+  const opening = /^[（【《〈「『‘“]$/;
+  let index = 0, row = 0;
+  while (index < text.length && row < maximum) {
+    if (row === maximum - 1) {
+      ctx.fillText(fitText(ctx, text.slice(index).join(''), width), x, y + row * step);
+      return;
     }
-    current += text[index];
+    let end = index + 1;
+    while (end < text.length && ctx.measureText(text.slice(index, end + 1).join('')).width <= width) end++;
+    // Avoid an orphaned final punctuation mark or a one-character second row.
+    if (end < text.length && row === maximum - 2 && text.length - end < 4) end = Math.max(index + 1, text.length - 4);
+    while (end > index + 1 && (closing.test(text[end] || '') || opening.test(text[end - 1]))) end--;
+    ctx.fillText(text.slice(index, end).join(''), x, y + row * step);
+    index = end;
+    row++;
   }
-  if (current) ctx.fillText(current, x, y + row * step);
 }
 
 function fallbackTree(ctx, color, center = 404, baseline = 337, scale = 1) {

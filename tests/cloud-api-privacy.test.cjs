@@ -224,6 +224,34 @@ test('the first-reaction test counts toward cloud exploration-grown themes', asy
   assert.equal((await f.call('exportMyData')).themeState.selectedId, 'aurora');
 });
 
+test('friendship counts once toward cloud growth and never expands the result-summary privacy boundary', async () => {
+  const f = fixture(); await f.authorize();
+  const quiz = require('../data/test-loader.js').getTest('friendshipstyle');
+  const scored = require('../utils/scoring.js').scoreTest(quiz, quiz.questions, quiz.questions.map(() => 0));
+  const friendship = Object.assign(record('friendship-original', quiz.id), scored, {
+    answers: quiz.questions.map(question => ({ questionId: question.id, optionIndex: 0 })),
+    answerSessionId: 'draft-private-session', lifeContext: 'work'
+  });
+  const aurora = { version: 1, selectedId: 'aurora', starterClaimed: false,
+    unlocked: [{ themeId: 'aurora', source: 'exploration', unlockedAt: f.time() }] };
+  const records = ['ie', 'mbti', 'enneagram'].map((id, index) => record(`friendship-companion-${index}`, id))
+    .concat(friendship, Object.assign({}, friendship, { id: 'friendship-repeat' }));
+  const early = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records, themeState: aurora });
+  assert.equal(early.ok, false, 'two friendship records still represent one exploration kind');
+  assert.equal(f.rows('treehub_assessments').length, 0, 'a rejected early grant cannot partly persist its results');
+  const accepted = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456',
+    records: records.concat(record('friendship-fifth-kind', 'bigfive')), themeState: aurora });
+  assert.equal(accepted.ok, true, accepted.message);
+  const exported = await f.call('exportMyData');
+  assert.equal(exported.themeState.selectedId, 'aurora');
+  const saved = exported.records.find(item => item.id === friendship.id);
+  assert.equal(saved.testId, 'friendshipstyle');
+  assert.deepEqual(saved.scores, scored.scores);
+  for (const field of ['answers', 'answerSessionId', 'lifeContext', 'treeSnapshot', 'privateNote']) {
+    assert.equal(Object.prototype.hasOwnProperty.call(saved, field), false, `${field} must remain local`);
+  }
+});
+
 test('the server accepts exploration-grown themes only after their matching test', async () => {
   const f = fixture(); await f.authorize();
   const moon = { version: 1, selectedId: 'moon', starterClaimed: false, unlocked: [{ themeId: 'moon', source: 'exploration', unlockedAt: f.time() }] };

@@ -18,6 +18,11 @@ const catalog = [
     time: '约3分钟', questionsCount: 12
   },
   {
+    id: 'friendshipstyle', name: '友情里的你', icon: '✿',
+    description: '聊到深夜、一起出走，或隔一阵也能自然续上。用十二个朋友间的小场景，收藏你此刻喜欢的友情配方。',
+    time: '约3分钟', questionsCount: 12
+  },
+  {
     id: 'gentleboundaries', name: '温柔边界测试', icon: '◇',
     description: '照顾别人时，也给自己留个位置。从觉察、表达、余量和持续四个角度，看看你最近怎样安排自己的边界。',
     time: '约3分钟', questionsCount: 12
@@ -78,6 +83,7 @@ const resultTitles = {
   firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
   cityvibe: { metropolitan: '都市漫游者', coastal: '海风慢生活者', cultural: '街巷收藏家', nature: '山野栖居者' },
   relationshiprhythm: { warm: '温柔连接者', parallel: '自在并肩者', direct: '清晰回应者', slow: '慢热靠近者' },
+  friendshipstyle: { livingroom: '友情小客厅', roaming: '出走搭子', sidebyside: '并肩行动派', gathering: '相聚发起人', evergreen: '自在老友' },
   gentleboundaries: { guardian: '温柔守界人', negotiator: '体贴协商家', practicing: '边界练习生', clear: '清晰自持者' },
   emotionalrecharge: { quiet: '静谧充电者', connection: '温暖连接者', movement: '轻盈行动派', sensory: '感官收藏家', structure: '秩序整理师' },
   historicalecho: { liqingzhao: '李清照式·细腻收藏家', sushi: '苏轼式·旷达生活家', wangyangming: '王阳明式·笃行思考家', libai: '李白式·自由表达家', xuxiake: '徐霞客式·远方探索家', taoyuanming: '陶渊明式·自洽栖居者', wuzetian: '武则天式·自主开路者', banzhao: '班昭式·沉静求知者', xiedaoyun: '谢道韫式·灵动对话家', wangwei: '王维式·山水留白家', shenkuo: '沈括式·好奇观察家', xinqiji: '辛弃疾式·热忱行动家' },
@@ -117,6 +123,10 @@ const treeAssociations = {
   relationshiprhythm: {
     dimensions: ['contact', 'expression', 'space', 'repair'], minimum: 3, maximum: 12,
     results: { warm: 'banyan', parallel: 'olive', direct: 'pine', slow: 'willow' }
+  },
+  friendshipstyle: {
+    dimensions: ['scene', 'novelty', 'support', 'ritual'], minimum: 3, maximum: 12,
+    results: { livingroom: 'willow', roaming: 'maple', sidebyside: 'pine', gathering: 'banyan', evergreen: 'olive' }
   },
   gentleboundaries: {
     dimensions: ['awareness', 'expression', 'recovery', 'consistency'], minimum: 3, maximum: 12,

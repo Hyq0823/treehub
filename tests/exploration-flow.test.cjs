@@ -110,7 +110,7 @@ test('first-reaction card starts its one-minute ranking flow without an extra de
 });
 test('each light quiz can be the first exploration and reveals a free matching starter', () => {
   const themes = require('../utils/themes.js');
-  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'cityvibe']) {
+  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'friendshipstyle', 'gentleboundaries', 'emotionalrecharge', 'cityvibe']) {
     memory.clear();
     const record = complete(id);
     const state = themes.getState();

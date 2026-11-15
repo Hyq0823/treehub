@@ -8,8 +8,8 @@ const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
 const { getRecentExploration } = require('../../utils/recent-exploration.js');
-const CARD_THEMES = { firstreaction: 'adventurer', cityvibe: 'wanderer', relationshiprhythm: 'romantic', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
-const DISPLAY_ORDER = ['firstreaction', 'cityvibe', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
+const CARD_THEMES = { firstreaction: 'adventurer', cityvibe: 'wanderer', relationshiprhythm: 'romantic', friendshipstyle: 'listener', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['firstreaction', 'cityvibe', 'relationshiprhythm', 'friendshipstyle', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();

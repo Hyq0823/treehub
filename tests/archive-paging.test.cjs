@@ -64,7 +64,7 @@ test('thousands of records initially send one lightweight latest summary per kno
   assert.equal(env.page.data.totalCount, 4000);
   assert.equal(env.page.data.groups.length, catalog.length);
   assert.ok(env.page.data.groups.every(group => group.history.length === 0 && group.visibleCount === 0));
-  assert.ok(env.page.data.groups.every(group => group.count > 280));
+  assert.ok(env.page.data.groups.every(group => group.count >= Math.floor(rows.length / catalog.length)));
   const payload = JSON.stringify(env.payloads[0]);
   assert.ok(Buffer.byteLength(payload) < 18000, `initial payload was ${Buffer.byteLength(payload)} bytes`);
   for (const secret of ['"answers"', '"scores"', '"treeSnapshot"', 'privateDetail']) assert.equal(payload.includes(secret), false);

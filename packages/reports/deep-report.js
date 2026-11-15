@@ -349,6 +349,7 @@ function buildRanking(test, record, base, dimensions) {
 function buildProfile(test, base, dimensions) {
   const headings = {
     cityvibe: ['你向往的生活氛围', '把城市意象放进日常', '为喜欢保留现实空间', '和重要的人商量生活节奏'],
+    friendshipstyle: ['你喜欢的友情配方', '把在乎放进日常相聚', '给自己也留一张椅子', '和朋友商量舒服的相处'],
     relationshiprhythm: ['你的靠近方式', '让连接更舒服', '分歧时的小提醒', '把需要说给重要的人'],
     gentleboundaries: ['你怎样照顾边界', '温柔与坚定同时存在', '哪些时刻容易消耗自己', '把边界变成具体沟通'],
     emotionalrecharge: ['本次充电入口', '把恢复放进日常', '不必强迫自己立刻振作', '怎样向别人说明需要'],

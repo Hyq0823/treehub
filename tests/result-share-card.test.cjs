@@ -87,6 +87,18 @@ test('no remote art still yields a personal card and artwork errors use a lightw
   assert.equal(failed.timers.size, 0);
 });
 
+test('Chinese card text keeps final punctuation with text instead of a tiny orphaned row', async () => {
+  const env = canvasFixture();
+  const tagline = '一'.repeat(21) + '。';
+  await env.builder({}, { ...options, tagline });
+  const rendered = env.texts.filter(item => item.y === 151 || item.y === 174).map(item => item.text);
+  assert.equal(rendered.length, 2);
+  assert.equal(rendered.join(''), tagline);
+  assert.ok(Array.from(rendered[1]).length >= 4);
+  assert.ok(!/^[，。！？；：、）】》]/.test(rendered[1]));
+  assert.ok(rendered.every(line => Array.from(line).length * 13 <= 281));
+});
+
 test('stalled remote art times out and exports a usable fallback instead of leaving loading active', async () => {
   const env = canvasFixture('pending');
   const pending = env.builder({}, { ...options, heroUrl: 'https://cloud.example/stalled.webp' });

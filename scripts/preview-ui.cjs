@@ -285,10 +285,10 @@ async function fixtures() {
   await Promise.resolve();
   Object.assign(report.data, { themeHeroUrl: localArt('adventurer'), themeId: 'adventurer', themeName: '柔软的冒险家', themeQuote: themeList[0].quote, companionNames: '云朵小狗与地图精灵' });
   for (const section of ['portrait', 'insights', 'actions']) { report.data.premiumPage = section; add('packages/reports/index', 'report-' + section, report.data); }
-  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'cityvibe']) {
+  for (const id of ['historicalecho', 'lifepath', 'hiddentalent', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'cityvibe', 'friendshipstyle']) {
     const intro = page('pages/test-detail/index'); intro.onLoad({ id });
     add('pages/test-detail/index', 'detail-' + id, intro.data);
-    if (['relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'cityvibe'].includes(id)) {
+    if (['relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'cityvibe', 'friendshipstyle'].includes(id)) {
       const answering = page('pages/test-answer/index'); answering.onLoad({ id });
       answering.data.currentQuestionIndex = answering._questions.reduce((longest, question, index, questions) =>
         question.text.length > questions[longest].text.length ? index : longest, 0);
@@ -362,7 +362,7 @@ async function screenshot(scenarios) {
         'detail-ranking', 'report-ranking', 'report-ranking-vip', 'archive', 'archive-expanded',
         'detail-resume', 'detail-resume-ranking', 'answer-resumed', 'answer-resumed-ranking'
       ];
-      const isProfileScreen = /^(?:detail|report|answer)-(?:historicalecho|lifepath|hiddentalent|relationshiprhythm|gentleboundaries|emotionalrecharge|cityvibe)(?:-|$)/.test(scenario.name);
+      const isProfileScreen = /^(?:detail|report|answer)-(?:historicalecho|lifepath|hiddentalent|relationshiprhythm|gentleboundaries|emotionalrecharge|cityvibe|friendshipstyle)(?:-|$)/.test(scenario.name);
       const scenarioWidths = responsiveScreens.includes(scenario.name) || isProfileScreen ? widths : [390];
       for (const width of scenarioWidths) {
         const browserPage = await browser.newPage({ viewport: { width, height: width === 430 ? 932 : width === 360 ? 800 : 844 }, deviceScaleFactor: 1 });
