@@ -139,7 +139,9 @@ function html(node, data) {
     return html(render('components/ranking-board/index.wxml')({
       items: Array.isArray(attrs.items) ? attrs.items : data.rankingItems || [],
       selectedItems: Array.isArray(attrs.selectedItems) ? attrs.selectedItems : data.rankingSelected || [],
-      completed: !!attrs.completed, disabled: !!attrs.disabled, helper: attrs.helper || ''
+      completed: !!attrs.completed, disabled: !!attrs.disabled, helper: attrs.helper || '',
+      readyToSubmit: !!attrs.readyToSubmit, error: attrs.error || '',
+      canGoBack: !!attrs.canGoBack, canGoForward: !!attrs.canGoForward
     }), data);
   }
   if (node.tag === 'virtual' || node.tag === 'wx-page') return (node.children || []).map(value => html(value, data)).join('');
@@ -249,6 +251,26 @@ async function fixtures() {
   rankingAnswer.changeRanking({ detail: { index: 2 } });
   add('pages/test-answer/index', 'answer-ranking', rankingAnswer.data);
   const detail = page('pages/test-detail/index'); detail.onLoad({ id: 'mbti' }); add('pages/test-detail/index', 'detail', detail.data);
+  const drafts = require(path.join(root, 'utils/answer-drafts.js'));
+  const mbti = catalog.find(item => item.id === 'mbti');
+  drafts.saveDraft(mbti, {
+    sessionId: drafts.createSessionId(), questionOrder: mbti.questions.map(question => String(question.id)),
+    answers: mbti.questions.map((question, index) => index < 7 ? index % question.options.length : -1),
+    currentQuestionIndex: 7, lifeContext: 'work'
+  });
+  const resumable = page('pages/test-detail/index'); resumable.onLoad({ id: 'mbti' });
+  add('pages/test-detail/index', 'detail-resume', resumable.data);
+  const resumed = page('pages/test-answer/index'); resumed.onLoad({ id: 'mbti', resume: '1' });
+  add('pages/test-answer/index', 'answer-resumed', resumed.data);
+  const rankingTest = catalog.find(item => item.id === 'firstreaction');
+  drafts.saveDraft(rankingTest, {
+    sessionId: drafts.createSessionId(), questionOrder: rankingTest.questions.map(question => String(question.id)),
+    answers: rankingTest.questions.map(() => [1, 3]), currentQuestionIndex: 0, lifeContext: 'ordinary'
+  });
+  const resumableRanking = page('pages/test-detail/index'); resumableRanking.onLoad({ id: 'firstreaction' });
+  add('pages/test-detail/index', 'detail-resume-ranking', resumableRanking.data);
+  const resumedRanking = page('pages/test-answer/index'); resumedRanking.onLoad({ id: 'firstreaction', resume: '1' });
+  add('pages/test-answer/index', 'answer-resumed-ranking', resumedRanking.data);
   const rankingDetail = page('pages/test-detail/index'); rankingDetail.onLoad({ id: 'firstreaction' }); add('pages/test-detail/index', 'detail-ranking', rankingDetail.data);
   const rankingResult = complete('firstreaction', 'ordinary', 0);
   const rankingReport = page('packages/reports/index'); rankingReport.onLoad({ id: 'firstreaction', recordId: rankingResult.id });
@@ -280,7 +302,15 @@ async function fixtures() {
       const personalCard = path.join(out, 'result-card-city.jpg');
       if (fs.existsSync(personalCard)) {
         add('packages/reports/index', 'report-cityvibe-share-ready', Object.assign({}, free.data, {
-          resultShareImage: personalCard, themeId: 'wanderer', themeHeroUrl: localArt('wanderer'),
+          resultShareImage: personalCard, resultShareChatReady: true, themeId: 'wanderer', themeHeroUrl: localArt('wanderer'),
+          themeName: '自由的漫游者', companionNames: '风卷小狐与云栖燕子'
+        }));
+      }
+      const portraitCard = path.join(out, 'result-card-portrait-city.jpg');
+      if (fs.existsSync(portraitCard)) {
+        add('packages/reports/index', 'report-cityvibe-portrait-ready', Object.assign({}, free.data, {
+          resultShareFormat: 'portrait', resultShareImage: portraitCard,
+          themeId: 'wanderer', themeHeroUrl: localArt('wanderer'),
           themeName: '自由的漫游者', companionNames: '风卷小狐与云栖燕子'
         }));
       }
@@ -310,6 +340,10 @@ async function fixtures() {
     characterReport.onLoad({ id: historical.id, recordId: saved.id });
     add('packages/reports/index', 'report-historicalecho-' + profile.type, characterReport.data);
   }
+  for (let index = 0; index < 6; index++) complete('mbti', index % 2 ? 'work' : 'ordinary', index % 3);
+  const expandedArchive = page('pages/user-center/index'); expandedArchive.onShow();
+  expandedArchive.toggleHistory({ currentTarget: { dataset: { id: 'mbti' } } });
+  add('pages/user-center/index', 'archive-expanded', expandedArchive.data);
   const journal = page('pages/tree-history/index'); journal.onShow();
   add('pages/tree-history/index', 'year-rings', journal.data);
   const policy = page('pages/privacy/index'); policy.onLoad(); add('pages/privacy/index', 'privacy', policy.data);
@@ -325,7 +359,8 @@ async function screenshot(scenarios) {
       const responsiveScreens = [
         'hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden',
         'answer-2', 'answer-3', 'answer-4', 'answer-5', 'answer-ranking', 'starter-reveal',
-        'detail-ranking', 'report-ranking', 'report-ranking-vip'
+        'detail-ranking', 'report-ranking', 'report-ranking-vip', 'archive', 'archive-expanded',
+        'detail-resume', 'detail-resume-ranking', 'answer-resumed', 'answer-resumed-ranking'
       ];
       const isProfileScreen = /^(?:detail|report|answer)-(?:historicalecho|lifepath|hiddentalent|relationshiprhythm|gentleboundaries|emotionalrecharge|cityvibe)(?:-|$)/.test(scenario.name);
       const scenarioWidths = responsiveScreens.includes(scenario.name) || isProfileScreen ? widths : [390];

@@ -14,6 +14,7 @@
         <view class="progress-caption"><text>探索进度</text><text>{{interactionType === 'ranking' ? '已排 ' : '已记录 '}}{{answeredCount}} 个选择</text></view>
       </view>
     </view>
+    <view wx:if="{{draftHint || draftWarning}}" class="draft-answer-hint {{draftWarning ? 'draft-answer-warning' : ''}}">{{draftWarning || draftHint}}</view>
 
     <view class="question-card motion-{{motionKey}}">
       <view class="question-topline"><view class="question-number">QUESTION {{currentQuestionIndex + 1}}</view><view class="signal"><view></view><view></view><view></view></view></view>
@@ -28,6 +29,7 @@
         canGoBack="{{currentQuestionIndex > 0}}"
         canGoForward="{{rankingComplete && currentQuestionIndex < test.questionsCount - 1}}"
         error="{{rankingSaveError}}"
+        readyToSubmit="{{rankingReadyToSubmit}}"
         helper="{{rankingHelper}}"
         bindchange="changeRanking"
         bindundo="undoRanking"

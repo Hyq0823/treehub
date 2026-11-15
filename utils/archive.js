@@ -117,7 +117,21 @@ function saveResult(input) {
   if (input.lifeContext !== undefined && !getContext(input.lifeContext)) {
     throw storageError('本次状态无效，请返回重新选择。');
   }
+  if (input.answerSessionId !== undefined && (typeof input.answerSessionId !== 'string' ||
+      !/^draft-[a-z0-9]+-[a-z0-9]+$/.test(input.answerSessionId) || input.answerSessionId.length > 96)) {
+    throw storageError('本次作答标记无效，请重新进入测试。');
+  }
   const archive = getArchive();
+  if (input.answerSessionId) {
+    const existing = archive.records.find(record => record.answerSessionId === input.answerSessionId);
+    if (existing) {
+      if (existing.testId !== input.testId || existing.testVersion !== (input.testVersion || '1') ||
+          existing.scoringVersion !== (input.scoringVersion || '2')) {
+        throw storageError('本次作答标记与已保存记录不一致，请重新进入测试。');
+      }
+      return clone(existing);
+    }
+  }
   const completedAt = new Date().toISOString();
   const record = {
     id: `assessment-${archive.seed}-${Date.now().toString(36)}-${archive.records.length.toString(36)}`,
@@ -132,6 +146,9 @@ function saveResult(input) {
     record.answers = clone(input.answers);
   }
   if (input.lifeContext) record.lifeContext = input.lifeContext;
+  // Local-only receipt makes retrying a resumed session idempotent. Cloud
+  // summaries whitelist their fields and never include this device identifier.
+  if (input.answerSessionId) record.answerSessionId = input.answerSessionId;
   archive.records.unshift(record);
   record.treeSnapshot = getTree(archive, catalog);
   write(archive);
@@ -162,7 +179,7 @@ function unlockPremium(recordId) {
 function clearLocalArchive() {
   // The caller must stop cloud backup first, so remote data cannot refill it.
   try {
-    for (const key of [STORAGE_KEY, 'testResult', 'trackLog']) wx.removeStorageSync(key);
+    for (const key of [STORAGE_KEY, 'testResult', 'trackLog', require('./answer-drafts.js').STORAGE_KEY]) wx.removeStorageSync(key);
     // Buffered diagnostic events must not restore a log the user just deleted.
     require('./track.js').resetLocalBuffer();
   } catch (error) {

@@ -163,7 +163,7 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
     }
   };
   const wx = Object.assign({
-    redirectTo: value => calls.redirect.push(value), navigateTo: value => calls.navigate.push(value), switchTab: value => calls.switch.push(value),
+    redirectTo: value => calls.redirect.push(value), navigateTo: value => { calls.navigate.push(value); if (value.complete) value.complete(); }, switchTab: value => calls.switch.push(value),
     showToast: value => calls.toast.push(value), showModal: value => calls.modal.push(value)
   }, wxOverrides);
   // Run the shared ad manager with this page's mocked WeChat runtime, as it

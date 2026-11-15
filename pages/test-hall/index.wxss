@@ -42,3 +42,6 @@ button { margin: 0; }button::after { border: 0; }
 @media (prefers-reduced-motion: reduce) { .welcome-art image { animation: none; } }
 .share-canvas { position:fixed; left:-3000px; top:0; width:500px; height:400px; pointer-events:none; }
 .async-image-hidden { opacity:0; pointer-events:none; }.async-image-ready { opacity:1; }.async-placeholder-hidden { visibility:hidden; opacity:0; pointer-events:none; }
+.card-media-retry { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin: 16rpx 4rpx 0; color: #8199b7; font-size: 21rpx; line-height: 1.6; }
+.card-media-retry text { flex: 1; min-width: 0; }
+.card-media-retry button { flex: 0 0 150rpx; width: 150rpx; min-width: 0; min-height: 92rpx; display: flex; align-items: center; justify-content: center; background: transparent; color: #5685c4; font-size: 23rpx; }

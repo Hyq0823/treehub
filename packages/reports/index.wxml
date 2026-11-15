@@ -60,14 +60,18 @@
     </view>
     <view class="result-share-panel">
       <view class="result-share-heading">把这次发现，收藏成自己的卡片</view>
-      <view class="result-share-copy">身份、共鸣短句和我的树，一张卡就能分享。</view>
-      <button class="result-share-create" bindtap="prepareResultShareCard" data-force="{{!!resultShareImage}}" loading="{{resultShareBusy}}" disabled="{{resultShareBusy || adWatching}}">{{resultShareBusy ? '正在整理这次发现…' : resultShareImage ? '重新制作结果卡' : '制作我的结果卡'}}</button>
+      <view class="result-share-copy">横版发给朋友，竖版留下此刻的自己。</view>
+      <view class="result-share-formats">
+        <button class="result-share-format {{resultShareFormat === 'chat' ? 'selected' : ''}}" data-format="chat" bindtap="selectResultShareFormat" disabled="{{resultShareBusy}}" aria-label="聊天卡，5比4横版"><view>聊天卡</view><text>5:4 · 发给朋友</text></button>
+        <button class="result-share-format {{resultShareFormat === 'portrait' ? 'selected' : ''}}" data-format="portrait" bindtap="selectResultShareFormat" disabled="{{resultShareBusy}}" aria-label="收藏长图，3比4竖版"><view>收藏长图</view><text>3:4 · 适合收藏</text></button>
+      </view>
+      <button class="result-share-create" bindtap="prepareResultShareCard" data-force="{{!!resultShareImage}}" loading="{{resultShareBusy}}" disabled="{{resultShareBusy || adWatching}}">{{resultShareBusy ? '正在整理这次发现…' : resultShareImage ? '重新制作这张卡' : resultShareFormat === 'portrait' ? '制作我的收藏长图' : '制作我的聊天卡'}}</button>
       <view wx:if="{{resultShareError}}" class="result-share-error">{{resultShareError}}</view>
       <view wx:if="{{resultShareNote}}" class="result-share-note">{{resultShareNote}}</view>
       <block wx:if="{{resultShareImage}}">
-        <image class="result-share-image" src="{{resultShareImage}}" mode="widthFix" bindtap="previewResultShareCard" aria-label="本次探索的专属结果卡，点击预览" />
-        <view class="result-share-actions"><button bindtap="previewResultShareCard" disabled="{{resultShareBusy}}">预览与保存</button><button open-type="share" data-kind="result" disabled="{{resultShareBusy}}">分享到聊天 ↗</button></view>
-        <view class="result-share-note">点击预览后，可用微信图片菜单保存。仅在你主动分享时展示这张卡。</view>
+        <image class="result-share-image {{resultShareFormat === 'portrait' ? 'result-share-image-portrait' : ''}}" src="{{resultShareImage}}" mode="widthFix" bindtap="previewResultShareCard" aria-label="本次探索的专属结果卡，点击预览" />
+        <view class="result-share-actions"><button bindtap="previewResultShareCard" disabled="{{resultShareBusy}}">预览与保存</button><button wx:if="{{resultShareChatReady}}" open-type="share" data-kind="result" disabled="{{resultShareBusy}}">分享到聊天 ↗</button><button wx:else data-format="chat" bindtap="prepareResultShareCard" disabled="{{resultShareBusy}}">制作聊天卡 →</button></view>
+        <view class="result-share-note">点击预览后，可用微信图片菜单保存。{{resultShareFormat === 'portrait' ? '聊天分享使用横版卡，完整展示画面。' : '仅在你主动分享时展示这张卡。'}}</view>
       </block>
     </view>
     <view wx:if="{{profileMode}}" class="profile-capture-card profile-capture-{{test.id}}">

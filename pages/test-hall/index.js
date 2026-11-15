@@ -31,7 +31,7 @@ function buildGreeting(uniqueCount) {
 
 Page({
   data: {
-    categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false,
+    categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false, cardImagesFailed: false,
     tree: null, leaves: [], recommendation: null, recentExploration: null, error: '',
     themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
     themeColor: '#318aff', themePale: '#e9f5ff',
@@ -42,6 +42,10 @@ Page({
   onShow() {
     this._hidden = false;
     this._recentOpening = false;
+    this._cardAttempts = new Map();
+    this._failedCardIds = this._hiddenCardFailures || new Set();
+    this._hiddenCardFailures = new Set();
+    if (this.data.cardImagesFailed !== !!this._failedCardIds.size) this.setData({ cardImagesFailed: !!this._failedCardIds.size });
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/test-hall/index');
     this.loadTests();
     const observe = () => { if (!this._hidden) this.setupCardObserver(); };
@@ -172,8 +176,10 @@ Page({
     });
   },
   loadCardImage(testId) {
+    if (this._hidden) return;
     const card = this.data.cards.find(item => item.id === testId);
     if (!card || card.image && !card.assetPath) return;
+    if (this._cardAttempts && (this._cardAttempts.get(testId) || 0) >= 2) return;
     this._cardImages = this._cardImages || {};
     this._cardPending = this._cardPending || new Set();
     this._cardQueue = this._cardQueue || new Set();
@@ -197,10 +203,11 @@ Page({
   },
   async flushCardImages(testIds, generation) {
     const pending = this._cardPending = this._cardPending || new Set();
+    const attempts = this._cardAttempts = this._cardAttempts || new Map();
     const cards = testIds.map(id => this.data.cards.find(item => item.id === id)).filter(card =>
-      card && (card.assetPath || !card.image) && !this._cardImages[card.id] && !pending.has(card.id));
+      card && (card.assetPath || !card.image) && !this._cardImages[card.id] && !pending.has(card.id) && (attempts.get(card.id) || 0) < 2);
     if (!cards.length) return;
-    cards.forEach(card => pending.add(card.id));
+    cards.forEach(card => { pending.add(card.id); attempts.set(card.id, (attempts.get(card.id) || 0) + 1); });
     try {
       const publicAssets = require('../../utils/public-assets.js');
       const themeIds = Array.from(new Set(cards.filter(card => !card.assetPath).map(card => card.artThemeId)));
@@ -213,7 +220,7 @@ Page({
       let changed = false;
       cards.forEach(card => {
         const url = card.assetPath ? publicUrls[card.assetPath] : themeUrls[card.artThemeId];
-        if (!url) return;
+        if (!url) { this.markCardImageFailed(card.id); return; }
         this._cardImages[card.id] = url;
         changed = true;
       });
@@ -222,7 +229,7 @@ Page({
         ? Object.assign({}, item, { image: this._cardImages[item.id] }) : item);
       this.setData({ cards: next, filteredCards: this.data.category === 'all' ? next : next.filter(item => item.category === this.data.category) });
     } catch (error) {
-      // A card can retry when it becomes visible again; the hall itself remains usable.
+      if (!this._hidden && generation === (this._cardGeneration || 0)) cards.forEach(card => this.markCardImageFailed(card.id));
     } finally {
       cards.forEach(card => pending.delete(card.id));
     }
@@ -242,14 +249,55 @@ Page({
     }
   },
   cardImageFailed(event) {
-    const id = event.currentTarget.dataset.id;
+    if (this._disposed) return;
+    const { id, source } = event.currentTarget.dataset;
     const card = this.data.cards.find(item => item.id === id);
-    if (card && card.assetPath) require('../../utils/public-assets.js').invalidatePublicAsset(card.assetPath);
-    else if (card) themeAssets.invalidateThemeAsset(card.artThemeId);
+    // A late native binderror from an old URL must not invalidate its replacement.
+    if (!card || !card.image || source !== card.image) return;
+    this._cardAttempts = this._cardAttempts || new Map();
+    if (!this._cardAttempts.has(id)) this._cardAttempts.set(id, 1);
+    if (card.assetPath) require('../../utils/public-assets.js').invalidatePublicAsset(card.assetPath);
+    else themeAssets.invalidateThemeAsset(card.artThemeId);
     if (this._cardImages) delete this._cardImages[id];
-    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: card.localImage || '' }) : card);
+    if (this._hidden) {
+      // Native images may finish after switching tabs. Forget the broken URL
+      // without updating a hidden view, then resolve it again on the next show.
+      this._hiddenCardFailures = this._hiddenCardFailures || new Set();
+      this._hiddenCardFailures.add(id);
+      return;
+    }
+    const cards = this.data.cards.map(card => card.id === id ? Object.assign({}, card, { image: '' }) : card);
     this.setData({ cards, filteredCards: this.data.category === 'all' ? cards : cards.filter(card => card.category === this.data.category) });
-    if (wx.nextTick) wx.nextTick(() => this.loadCardImage(id)); else this.loadCardImage(id);
+    this.markCardImageFailed(id);
+    const generation = this._cardGeneration || 0;
+    Promise.resolve().then(() => {
+      if (!this._hidden && generation === (this._cardGeneration || 0)) this.loadCardImage(id);
+    });
+  },
+  markCardImageFailed(id) {
+    this._failedCardIds = this._failedCardIds || new Set();
+    this._failedCardIds.add(id);
+    if (!this.data.cardImagesFailed) this.setData({ cardImagesFailed: true });
+  },
+  cardImageLoaded(event) {
+    if (this._hidden) return;
+    const { id, source } = event.currentTarget.dataset;
+    const card = this.data.cards.find(item => item.id === id);
+    if (!card || !card.image || source !== card.image || !this._failedCardIds) return;
+    this._failedCardIds.delete(id);
+    if (!this._failedCardIds.size && this.data.cardImagesFailed) this.setData({ cardImagesFailed: false });
+  },
+  retryCardImages() {
+    if (this._hidden) return;
+    const ids = Array.from(this._failedCardIds || []);
+    this._cardAttempts = this._cardAttempts || new Map();
+    ids.forEach(id => {
+      const card = this.data.cards.find(item => item.id === id);
+      if (!card || card.image) return;
+      if (this._cardPending && this._cardPending.has(id) || this._cardQueue && this._cardQueue.has(id)) return;
+      this._cardAttempts.delete(id);
+      this.loadCardImage(id);
+    });
   },
   onHide() {
     this._hidden = true;
@@ -268,7 +316,7 @@ Page({
     if (this._cardObserver) this._cardObserver.disconnect();
     this._cardObserver = null;
   },
-  onUnload() { this.onHide(); },
+  onUnload() { this._disposed = true; this.onHide(); },
   selectCategory(event) {
     const category = event.currentTarget.dataset.id;
     this.setData({
@@ -277,18 +325,21 @@ Page({
     });
   },
   toggleFilters() { this.setData({ filterOpen: !this.data.filterOpen }); },
+  testEntryUrl(card) {
+    const id = encodeURIComponent(card.id);
+    const pending = card.quickStart && require('../../utils/answer-drafts.js').hasPendingDraft(card.id);
+    return card.quickStart && !pending ? `/pages/test-answer/index?id=${id}&context=ordinary` : `/pages/test-detail/index?id=${id}`;
+  },
   openTest(event) {
     const card = this.data.cards.find(c => c.id === event.currentTarget.dataset.id);
     if (!card) return;
     const url = card.collected ?
       `/packages/reports/index?id=${card.id}&recordId=${encodeURIComponent(card.recordId)}` :
-      card.quickStart ? `/pages/test-answer/index?id=${card.id}&context=ordinary` : `/pages/test-detail/index?id=${card.id}`;
+      this.testEntryUrl(card);
     wx.navigateTo({ url });
   },
   exploreNext() {
-    if (this.data.recommendation) wx.navigateTo({ url: this.data.recommendation.quickStart
-      ? `/pages/test-answer/index?id=${this.data.recommendation.id}&context=ordinary`
-      : `/pages/test-detail/index?id=${this.data.recommendation.id}` });
+    if (this.data.recommendation) wx.navigateTo({ url: this.testEntryUrl(this.data.recommendation) });
     else this.openArchive();
   },
   exploreReward() {
@@ -298,8 +349,7 @@ Page({
     }
     const card = this.data.cards.find(item => item.id === this.data.rewardTargetTestId && !item.collected);
     if (!card) { this.exploreNext(); return; }
-    wx.navigateTo({ url: card.quickStart ? `/pages/test-answer/index?id=${encodeURIComponent(card.id)}&context=ordinary`
-      : `/pages/test-detail/index?id=${encodeURIComponent(card.id)}` });
+    wx.navigateTo({ url: this.testEntryUrl(card) });
   },
   retakeRecent() {
     const recent = this.data.recentExploration;

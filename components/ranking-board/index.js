@@ -6,6 +6,7 @@ Component({
     disabled: { type: Boolean, value: false },
     canGoBack: { type: Boolean, value: false },
     canGoForward: { type: Boolean, value: false },
+    readyToSubmit: { type: Boolean, value: false },
     error: { type: String, value: '' },
     helper: { type: String, value: '按第一反应依次点选，排出你的处理顺序' }
   },
@@ -33,7 +34,7 @@ Component({
       this.triggerEvent('forward');
     },
     retry() {
-      if (this.data.disabled || !this.data.error) return;
+      if (this.data.disabled || (!this.data.error && !this.data.readyToSubmit)) return;
       this.triggerEvent('retry');
     }
   }

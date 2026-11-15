@@ -36,5 +36,6 @@
 .rank-board-complete .rank-card { pointer-events: none; }
 .rank-retry { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin-top: 16rpx; padding: 18rpx 20rpx; border: 1rpx solid #f2d8ae; border-radius: 22rpx; color: #956f38; background: #fff8e9; font-size: 20rpx; line-height: 1.5; }
 .rank-retry-button { flex: 0 0 auto; min-height: 104rpx; padding: 0 22rpx; border-radius: 999rpx; color: #fff; background: linear-gradient(110deg, #69adff, #477fed); font-size: 21rpx; font-weight: 700; line-height: 104rpx; }
+.rank-ready { border-color: #d5e5fb; color: #6787af; background: #edf5ff; }
 @keyframes rankBadgeIn { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
 @keyframes rankChipIn { from { opacity: 0; transform: translateX(10rpx); } to { opacity: 1; transform: translateX(0); } }

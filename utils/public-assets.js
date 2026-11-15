@@ -35,9 +35,11 @@ function resolvePublicAssets(input) {
     group.forEach(assetPath => {
       const request = batch.then(urls => {
         const url = typeof urls[assetPath] === 'string' && /^https:\/\//.test(urls[assetPath]) ? urls[assetPath] : '';
-        if (url) cache.set(assetPath, { url, expiresAt: Date.now() + CACHE_MS });
+        // A retry may have invalidated this URL while an earlier cloud request
+        // was still running. Only the current request may replace its cache.
+        if (url && pending.get(assetPath) === request) cache.set(assetPath, { url, expiresAt: Date.now() + CACHE_MS });
         return url;
-      }).finally(() => pending.delete(assetPath));
+      }).finally(() => { if (pending.get(assetPath) === request) pending.delete(assetPath); });
       pending.set(assetPath, request);
       waiters.push(request.then(url => { output[assetPath] = url; }));
     });

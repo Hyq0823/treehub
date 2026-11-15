@@ -75,7 +75,8 @@ Page({
     premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: '',
     starterReveal: false, starterClaimedNow: false, starterBusy: false, starterError: '',
     starterThemeId: '', starterThemes: [], starterCurrent: null, starterImages: {}, starterImage: '', starterShareImage: DEFAULT_SHARE_IMAGE,
-    resultShareBusy: false, resultShareImage: '', resultShareError: '', resultShareNote: ''
+    resultShareBusy: false, resultShareImage: '', resultShareError: '', resultShareNote: '',
+    resultShareFormat: 'chat', resultShareChatReady: false
   },
   onLoad(options) {
     this._disposed = false;
@@ -129,6 +130,7 @@ Page({
         profileDimensions: test.scoring.strategy === 'profile' && deepReport ? deepReport.dimensions : [],
         deepReport, comparison, relatedTests,
         resultShareBusy: false, resultShareImage: '', resultShareError: '', resultShareNote: '',
+        resultShareFormat: 'chat', resultShareChatReady: false,
         rankingProfile,
         rankingGridWidth: rankingProfile.length * 108,
         rankingLeadText: rankingProfile.length ? result.rankingMode === 'aggregate'
@@ -279,9 +281,21 @@ Page({
       keywords: portrait && portrait.keywords || [this.data.result.title || '本次探索', '允许自己慢慢改变']
     };
   },
-  resultShareKey(snapshot = this.resultShareSnapshot()) {
+  resultShareKey(snapshot = this.resultShareSnapshot(), format = 'chat') {
     return JSON.stringify([snapshot.recordId, snapshot.testId, snapshot.title, snapshot.tagline,
-      snapshot.themeId, snapshot.heroUrl, snapshot.mode, snapshot.dimensions]);
+      snapshot.themeId, snapshot.heroUrl, snapshot.themeName, snapshot.color, snapshot.pale,
+      snapshot.date, snapshot.mode, snapshot.dimensions, snapshot.keywords, format]);
+  },
+  resultShareNote(image) {
+    return image && image.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。' : '';
+  },
+  selectResultShareFormat(event) {
+    if (this._disposed || this.data.resultShareBusy) return;
+    const format = event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.format;
+    if (!['chat', 'portrait'].includes(format) || format === this.data.resultShareFormat) return;
+    const image = this._resultShareCache && this._resultShareCache[this.resultShareKey(this.resultShareSnapshot(), format)];
+    this.setData({ resultShareFormat: format, resultShareImage: image && image.path || '',
+      resultShareError: '', resultShareNote: this.resultShareNote(image) });
   },
   refreshResultShareContext() {
     const key = this.resultShareKey();
@@ -289,38 +303,43 @@ Page({
     const updated = !!this._resultShareContextKey && !!(this.data.resultShareBusy || this.data.resultShareImage);
     this._resultShareContextKey = key;
     this._resultShareRequest = (this._resultShareRequest || 0) + 1;
-    const cached = this._resultShareCache && this._resultShareCache[key];
+    const cache = this._resultShareCache || {};
+    const cached = cache[this.resultShareKey(this.resultShareSnapshot(), this.data.resultShareFormat)];
     this.setData({ resultShareBusy: false, resultShareImage: cached && cached.path || '',
-      resultShareError: '', resultShareNote: cached && cached.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。'
-        : updated && !cached ? '主题画面已更新，可以重新制作结果卡。' : '' });
+      resultShareChatReady: !!cache[key], resultShareError: '', resultShareNote: this.resultShareNote(cached) ||
+        (updated && !cached ? '主题画面已更新，可以重新制作结果卡。' : '') });
   },
   async prepareResultShareCard(event = {}) {
     if (this._disposed || this.data.state !== 'ready' || this.data.adWatching || this.data.resultShareBusy) return;
     const snapshot = this.resultShareSnapshot();
     if (!snapshot.recordId || !snapshot.testId) return;
-    const key = this.resultShareKey(snapshot);
-    const force = !!(event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.force);
+    const dataset = event.currentTarget && event.currentTarget.dataset || {};
+    const selectedFormat = dataset.format || this.data.resultShareFormat;
+    const format = ['chat', 'portrait'].includes(selectedFormat) ? selectedFormat : 'chat';
+    const key = this.resultShareKey(snapshot, format);
+    const force = !!dataset.force;
     this._resultShareCache = this._resultShareCache || Object.create(null);
     const cached = this._resultShareCache[key];
     if (cached && !force) {
-      this.setData({ resultShareImage: cached.path, resultShareError: '',
-        resultShareNote: cached.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。' : '' });
+      this.setData({ resultShareFormat: format, resultShareImage: cached.path, resultShareError: '',
+        resultShareNote: this.resultShareNote(cached) });
       return;
     }
     const request = this._resultShareRequest = (this._resultShareRequest || 0) + 1;
-    const isCancelled = () => this._disposed || request !== this._resultShareRequest || key !== this.resultShareKey();
-    this.setData({ resultShareBusy: true, resultShareError: '', resultShareNote: '' });
+    const isCancelled = () => this._disposed || request !== this._resultShareRequest ||
+      key !== this.resultShareKey(this.resultShareSnapshot(), format);
+    this.setData({ resultShareFormat: format, resultShareBusy: true, resultShareImage: '', resultShareError: '', resultShareNote: '' });
     try {
-      // Load Canvas helpers only after the user requests a personal card. The
-      // card always uses free summary dimensions, independently of VIP status.
+      // Both formats use only free summary dimensions. Drawing is loaded after
+      // a tap; portrait exports never replace the 5:4 card used by WeChat chat.
       const image = await require('./result-share-card.js').buildResultShareCard(this,
-        Object.assign({}, snapshot, { selector: '#resultShareCanvas', isCancelled }));
+        Object.assign({}, snapshot, { format, selector: '#resultShareCanvas', isCancelled }));
       if (isCancelled()) return;
       this._resultShareCache[key] = image;
       const keys = Object.keys(this._resultShareCache);
-      if (keys.length > 3) delete this._resultShareCache[keys[0]];
-      this.setData({ resultShareImage: image.path,
-        resultShareNote: image.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。' : '' });
+      if (keys.length > 4) delete this._resultShareCache[keys[0]];
+      this.setData({ resultShareImage: image.path, resultShareChatReady: !!this._resultShareCache[this.resultShareKey()],
+        resultShareNote: this.resultShareNote(image) });
     } catch (error) {
       if (!isCancelled()) this.setData({ resultShareError: error.message || '结果卡暂时未能生成，请稍后重试。' });
     } finally {
@@ -329,7 +348,7 @@ Page({
   },
   previewResultShareCard() {
     if (this._disposed || this.data.resultShareBusy) return;
-    const cached = this._resultShareCache && this._resultShareCache[this.resultShareKey()];
+    const cached = this._resultShareCache && this._resultShareCache[this.resultShareKey(this.resultShareSnapshot(), this.data.resultShareFormat)];
     if (cached && cached.path) wx.previewImage({ current: cached.path, urls: [cached.path] });
   },
   async loadReportTheme(records) {
@@ -452,10 +471,15 @@ Page({
     if (this._disposed || this._openingRelated || this.data.adWatching) return;
     const id = event.currentTarget.dataset.id;
     if (!(this.data.relatedTests || []).some(item => item.id === id)) return;
+    // Drafts are read only after a tap. Let the detail page offer an explicit
+    // resume/restart choice; a fresh exploration keeps the short ordinary flow.
+    const hasDraft = require('../../utils/answer-drafts.js').hasPendingDraft(id);
+    const url = hasDraft ? `/pages/test-detail/index?id=${encodeURIComponent(id)}`
+      : `/pages/test-answer/index?id=${encodeURIComponent(id)}&context=ordinary`;
     // Replace this report instead of stacking another detail/answer pair.
     this._openingRelated = true;
     wx.redirectTo({
-      url: `/pages/test-answer/index?id=${encodeURIComponent(id)}&context=ordinary`,
+      url,
       fail: () => {
         this._openingRelated = false;
         if (!this._disposed) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });

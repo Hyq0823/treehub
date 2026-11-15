@@ -20,6 +20,7 @@ function loadPage(ready) {
     '../../utils/cloud-sync.js': {},
     '../../utils/privacy.js': {},
     '../../utils/personality-tree.js': { getTree() {} },
+    '../../utils/archive-view.js': { buildArchiveView() {}, HISTORY_PAGE_SIZE: 5 },
     '../../data/trees.js': { STAGES: [] },
     '../../data/test-catalog.js': { catalog: [], resolveResultTitle() { return ''; } },
     '../../utils/tab-bar.js': { syncTabBar() {} }
@@ -78,6 +79,7 @@ test('自动进入复用五分钟内状态，手动重试仍强制请求云端',
     },
     '../../utils/privacy.js': { isCloudBackupEnabled: () => true },
     '../../utils/personality-tree.js': { getTree() {} },
+    '../../utils/archive-view.js': { buildArchiveView() {}, HISTORY_PAGE_SIZE: 5 },
     '../../data/trees.js': { STAGES: [] },
     '../../data/test-catalog.js': { catalog: [], resolveResultTitle() { return ''; } }
   };

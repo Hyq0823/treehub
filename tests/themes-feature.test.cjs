@@ -359,7 +359,7 @@ function myTreePage(records = [], assetResolver = async () => '') {
   const file = path.join(root, 'pages/my-tree/index.js');
   const nativeRequire = createRequire(file);
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
-    Page: value => { page = value; }, wx: global.wx, console,
+    Page: value => { page = value; }, wx: global.wx, console, setTimeout, clearTimeout,
     require: name => name.endsWith('/archive.js') ? { getRecords: () => records } : name.endsWith('/theme-assets.js') ? {
       resolveThemeAsset: assetResolver,
       resolveThemeAssets: async ids => Object.fromEntries(await Promise.all(ids.map(async id => [id, await assetResolver(id)]))),

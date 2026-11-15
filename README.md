@@ -18,6 +18,8 @@
 node --test tests/*.test.cjs
 ```
 
+档案首屏数据量与逻辑耗时可用 `node scripts/benchmark-archive.cjs` 重现，默认模拟 100／1,000／4,000 条本机复测。该结果不代表微信真机渲染耗时。
+
 若开发者工具仍提示图片或音频超过 200KB，在仓库根目录执行 `node scripts/check-media.cjs`。它也会检查本地未提交文件和已排除目录，列出超限路径、大小及是否随包，便于定位本机残留的原图；不会压缩、删除或上传任何文件。
 
 可选的 WXML/WXSS 编译检查使用官方编译器封装，安装在 checkout 之外，不改应用依赖：
@@ -27,7 +29,7 @@ npm install --prefix /tmp/treehub-compiler --no-audit --no-fund miniprogram-comp
 node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compiler'); c.wxmlToJs(process.cwd()); c.wxssToJs(process.cwd()); console.log('WXML/WXSS passed')"
 ```
 
-手机 UI 辅助预览与三档宽度验收见 [docs/UI还原与验收.md](docs/UI还原与验收.md)。关系与情绪测试、性能对照见 [关系与情绪轻测试](docs/关系与情绪轻测试.md)；本轮专属结果卡、最近年轮、城市测试与兼容发布步骤见 [分享与年轮迭代](docs/分享与年轮迭代.md)。
+手机 UI 辅助预览与三档宽度验收见 [docs/UI还原与验收.md](docs/UI还原与验收.md)。关系与情绪测试、性能对照见 [关系与情绪轻测试](docs/关系与情绪轻测试.md)；专属结果卡、最近年轮、城市测试与兼容发布步骤见 [分享与年轮迭代](docs/分享与年轮迭代.md)。本机作答进度、竖版收藏卡和档案分页见 [持续探索与收藏迭代](docs/持续探索与收藏迭代.md)。
 
 编译检查与 Node 页面控制器测试不替代微信真机测试。验证流程：首次进入 → 选卡 → 完成十四套测试中的一项 → 已保存报告 → 我的档案 → 再测一次 → 对照两次历史报告 → 查看树的成长记录。还应确认退出重开后数据保留，以及清理存储后的首次进入状态。
 
@@ -36,6 +38,7 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - 整体采用清透浅蓝、奶油白和精致 3D 伙伴主题，大厅、答题、报告与个人树保持一致。
 - 「我的树」独立展示九主题图鉴、两位互动伙伴、成长记录与海报。极光水镜未发现时只展示剪影，不提前请求完整美术。
 - 答题页展示实时进度、已记录数量和选择确认反馈；题目切换、选项选中、能量扫描和加载状态均带有轻量动效。
+- 中途离开可在详情页主动继续本机进度，支持随机题序和排序题；草稿不上传云端，新测仍默认普通记录。
 - 深度报告使用蓝色图表、三屏解读和行动卡，便于截图；主题海报由用户主动生成，临时预览不主动申请相册写入权限。
 - 动效只使用微信小程序 WXSS 动画，不依赖第三方组件；最终节奏、长文本换行和低端机表现以开发者工具和真机预览为准。
 
@@ -66,7 +69,9 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `utils/scoring.js`：评分版本 `2`，统一处理数字题号与 `qN`、九型单票计分、IE 外向计数、大五反向题及五维结果；`weighted-ranking` 策略按配置权重汇总完整排序，并校验每轮题目和维度集合。
 - `packages/reports/deep-report.js`：按十四套测试生成不同的深度维度与解读；同目录的 `ads.js` 保存报告激励视频广告位 ID。
 - VIP 报告拆为“画像图表、深度解读、行动卡”三屏；画像页使用倾向清晰度雷达图或单维光谱，并组合本次人格树，方便手机截图保存。
-- `packages/reports/result-share-card.js`：用户主动制作时才加载的专属结果卡绘图模块；免费维度、共鸣短句和已解析远端树图绘成 5:4 卡片，图片失败仍可成卡；记录、主题、资源地址共同决定缓存，未获取相册写入权限。
+- `packages/reports/result-share-card.js`：用户主动制作时才加载的专属结果卡绘图模块；免费维度、共鸣短句和已解析远端树图绘成 5:4 聊天卡或 3:4 收藏长图，两种格式独立缓存，聊天始终使用横版。图片失败仍可成卡；记录、主题、资源地址共同决定缓存，未获取相册写入权限。
+- `utils/answer-drafts.js`：独立本机草稿，500 ms 合并写入，离页补存，版本校验后才恢复；报告成功保存后清理，本机会话凭据阻止重复保存，原始选项与凭据不加入云备份。
+- `utils/archive-view.js`：一次建立记录索引，首屏只传最新摘要；历史每次展开五条，避免复测越多首屏视图数据越大。
 - `utils/recent-exploration.js`：利用已读取历史作 O(n) 扫描，首页显示最近有效记录与同版本年轮；原始答案和树形快照不传入最近卡，也不为此加载题库或请求云端。
 - `packages/reports/premium-access.js`：记录已完成广告的待保存凭据，按测评记录补存权益；页面退出后停止广告加载与显示重试。
 - `data/trees.js`：树种寓意、解读文案和成长阶段；`utils/personality-tree.js`：匹配规则及可追溯依据。

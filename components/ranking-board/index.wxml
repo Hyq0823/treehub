@@ -41,7 +41,8 @@
       </view>
     </view>
     <view wx:else class="rank-order-empty"><block wx:for="{{items}}" wx:key="id"><text class="rank-order-slot">{{index + 1}}</text><view wx:if="{{index < items.length - 1}}" class="rank-order-link"></view></block></view>
-    <view class="rank-complete-copy {{completed ? 'rank-complete-copy-visible' : ''}}">{{error ? '报告尚未生成，请直接重试' : canGoForward ? '顺序已收集，可继续下一情境' : '顺序已收集，正在读取你的第一反应…'}}</view>
+    <view class="rank-complete-copy {{completed ? 'rank-complete-copy-visible' : ''}}">{{error ? '报告尚未生成，请直接重试' : readyToSubmit ? '顺序已恢复，可以检查后生成报告' : canGoForward ? '顺序已收集，可继续下一情境' : '顺序已收集，正在读取你的第一反应…'}}</view>
   </view>
   <view wx:if="{{error}}" class="rank-retry"><text>{{error}}</text><view class="rank-retry-button" bindtap="retry" role="button" aria-label="重试生成报告">重试生成报告</view></view>
+  <view wx:elif="{{readyToSubmit}}" class="rank-retry rank-ready"><text>继续上次的答案，不会自动新增记录。</text><view class="rank-retry-button" bindtap="retry" role="button" aria-label="生成报告">生成我的报告</view></view>
 </view>

@@ -21,3 +21,14 @@ page { color: #23426f; background: #f2f7ff; }
 
 .privacy-external { position: relative; display: block; width: 15rpx; height: 15rpx; border-top: 2rpx solid #81a2d0; border-right: 2rpx solid #81a2d0; }.privacy-external::after { content: ""; position: absolute; left: -6rpx; top: 6rpx; width: 22rpx; height: 2rpx; background: #81a2d0; transform: rotate(-45deg); }
 .cloud-retry-hidden { visibility:hidden; opacity:0; pointer-events:none; }
+.group-actions .text-action { flex: 1; width: auto; min-width: 0; text-align: left; }
+.group-actions .muted-action { text-align: right; }
+.single-record-note { color: #8399b6; font-size: 22rpx; line-height: 1.6; }
+.record-meta { display: flex; flex-wrap: wrap; gap: 8rpx 12rpx; margin-top: 10rpx; }
+.record-meta text { padding: 3rpx 11rpx; border-radius: 10rpx; background: #edf4ff; color: #728eb5; font-size: 20rpx; line-height: 1.6; }
+.history-info { flex: 1; min-width: 0; }
+.history-title { overflow-wrap: break-word; }
+.history-row > .record-arrow { flex: 0 0 auto; }
+.history-pagination { padding: 20rpx 0 16rpx; text-align: center; color: #8299b9; font-size: 22rpx; line-height: 1.6; }
+.history-load-more { width: 100%; min-width: 0; min-height: 88rpx; margin-top: 10rpx; padding: 0 18rpx; border-radius: 21rpx; background: #eef4ff; color: #5f86be; font-size: 24rpx; line-height: 88rpx; }
+.history-end { display: block; margin: 10rpx 0; color: #98abc5; font-size: 21rpx; }

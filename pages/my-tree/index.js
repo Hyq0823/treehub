@@ -4,6 +4,29 @@ const { getTheme } = require('../../data/themes.js');
 const assets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { getContextLabel } = require('../../utils/life-context.js');
+const POSTER_IMAGE_TIMEOUT_MS = 8000;
+
+function loadPosterImage(page, canvas, source) {
+  return new Promise((resolve, reject) => {
+    const image = canvas.createImage();
+    let settled = false, timer;
+    const finish = error => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      image.onload = null; image.onerror = null;
+      if (page._posterImageCancel === cancel) page._posterImageCancel = null;
+      if (error) reject(error); else resolve(image);
+    };
+    const cancel = () => finish(new Error('海报制作已取消'));
+    page._posterImageCancel = cancel;
+    image.onload = () => finish(Number.isFinite(image.width) && image.width > 0 &&
+      Number.isFinite(image.height) && image.height > 0 ? null : new Error('主题画面暂时不可用'));
+    image.onerror = () => finish(new Error('主题画面暂时不可用'));
+    timer = setTimeout(() => finish(new Error('主题画面加载超时')), POSTER_IMAGE_TIMEOUT_MS);
+    try { image.src = source; } catch (error) { finish(error); }
+  });
+}
 
 function dateLabel(value) {
   const date = new Date(value);
@@ -283,6 +306,7 @@ Page({
     this._assetRequest++;
     this._galleryRequest++;
     this._posterRequest++;
+    if (this._posterImageCancel) this._posterImageCancel();
     this._shareRequest++;
     if (this._shareTimer) clearTimeout(this._shareTimer);
     this._shareTimer = null;
@@ -304,7 +328,7 @@ Page({
     return { title: `${theme.name} · ${theme.quote}`, query: `theme=${encodeURIComponent(theme.id)}` };
   },
   async createPoster() {
-    if (this.data.posterBusy || !this.data.current) return;
+    if (this._disposed || this._hidden || this.data.posterBusy || !this.data.current) return;
     const theme = this.data.current;
     if (!theme.unlocked || !theme.discovered) {
       wx.showModal({
@@ -332,14 +356,14 @@ Page({
       let loadedImage = false;
       if (heroUrl) {
         try {
-          const image = canvas.createImage();
-          await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = heroUrl; });
+          const image = await loadPosterImage(this, canvas, heroUrl);
           if (!isCurrent()) return;
           const scale = Math.min(660 / image.width, 660 / image.height);
           ctx.drawImage(image, (750 - image.width * scale) / 2, 100 + (660 - image.height * scale) / 2, image.width * scale, image.height * scale);
           loadedImage = true;
         } catch (error) { /* A useful poster is still available while offline. */ }
       }
+      if (!isCurrent()) return;
       if (!loadedImage) {
         const gradient = ctx.createRadialGradient(375, 390, 20, 375, 390, 300);
         gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(1, theme.pale);

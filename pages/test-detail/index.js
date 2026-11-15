@@ -3,10 +3,12 @@ const display = require('../../data/exploration.js');
 const { DEFAULT_SHARE_IMAGE } = require('../../utils/share-card.js');
 const archive = require('../../utils/archive.js');
 const { OPTIONS: CONTEXT_OPTIONS, getContext } = require('../../utils/life-context.js');
+const drafts = require('../../utils/answer-drafts.js');
 
 Page({
   data: {
-    test: {}, error: '', contextOptions: CONTEXT_OPTIONS, selectedContext: 'ordinary', hasHistory: false
+    test: {}, error: '', contextOptions: CONTEXT_OPTIONS, selectedContext: 'ordinary', hasHistory: false,
+    draft: null, draftMessage: '', starting: false
   },
   onLoad(options) {
     this._disposed = false;
@@ -14,10 +16,15 @@ Page({
     report(EVENTS.DETAIL_VIEW, { testId: testId });
     this.loadTestData(testId);
   },
+  onShow() {
+    this._starting = false;
+    if (!this._disposed && this._test) this.refreshDraft();
+  },
   loadTestData(testId) {
     try {
       const test = require('../../data/test-loader.js').getTest(testId);
       if (!test) throw new Error('没有找到这项测试，请返回探索页重新选择。');
+      this._test = test;
       const displayName = display.tests[testId] && display.tests[testId].title || test.name;
       // Questions, reports and scoring rules stay in the service layer. Sending
       // the complete test through setData makes the view layer serialize tens of
@@ -39,14 +46,38 @@ Page({
         dimensionLabels: test.scoring.strategy === 'profile' ? test.scoring.dimensionMeta.map(item => item.label) : [],
         note: test.note || ''
       };
+      const records = archive.getRecords(testId);
       this.setData({
         test: summary, error: '',
-        hasHistory: archive.getRecords(testId).some(record => record.scoringVersion !== 'legacy')
+        hasHistory: records.some(record => record.scoringVersion !== 'legacy')
       });
+      this.refreshDraft(records);
       this.loadCoverAsset(summary);
       if (wx.setNavigationBarTitle) wx.setNavigationBarTitle({ title: displayName });
     } catch (error) {
       this.setData({ error: error.message || '测试暂时未能打开，请返回探索页重试。' });
+    }
+  },
+  refreshDraft(records) {
+    if (!this._test || this._disposed) return;
+    try {
+      const draft = drafts.getDraft(this._test, records || archive.getRecords(this._test.id));
+      this._draft = draft;
+      // Only a small progress summary crosses into the view. Original answers
+      // and their shuffled order stay in the service layer on this device.
+      this.setData({
+        draft: draft ? {
+          answeredCount: draft.answeredCount, totalCount: this._test.questions.length,
+          selectedCount: draft.selectedCount, allAnswered: draft.allAnswered,
+          ranking: this._test.interaction && this._test.interaction.type === 'ranking',
+          contextLabel: getContext(draft.lifeContext).label,
+          progressPercent: Math.round(draft.answeredCount / this._test.questions.length * 100)
+        } : null,
+        draftMessage: '', starting: false
+      });
+    } catch (error) {
+      this._draft = null;
+      this.setData({ draft: null, draftMessage: '上次进度暂未读出，仍可开始新的测试。', starting: false });
     }
   },
   async loadCoverAsset(test) {
@@ -69,8 +100,23 @@ Page({
       wx.showToast({ title: '先选择这次的状态', icon: 'none' });
       return;
     }
+    this.openAnswer(`/pages/test-answer/index?id=${encodeURIComponent(testId)}&context=${encodeURIComponent(this.data.selectedContext)}${this._draft ? '&restart=1' : ''}`);
+  },
+  resumeTest() {
+    if (!this._test || !this._draft) return;
+    this.openAnswer(`/pages/test-answer/index?id=${encodeURIComponent(this._test.id)}&resume=1`);
+  },
+  openAnswer(url) {
+    if (this._disposed || this._starting) return;
+    this._starting = true;
+    this.setData({ starting: true });
     wx.navigateTo({
-      url: `/pages/test-answer/index?id=${encodeURIComponent(testId)}&context=${encodeURIComponent(this.data.selectedContext)}`
+      url,
+      complete: () => {
+        this._starting = false;
+        if (!this._disposed) this.setData({ starting: false });
+      },
+      fail: () => wx.showToast({ title: '页面暂未打开，请再试一次', icon: 'none' })
     });
   },
   goToHome() { wx.switchTab({ url: '/pages/test-hall/index' }); },

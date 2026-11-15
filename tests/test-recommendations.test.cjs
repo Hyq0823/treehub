@@ -35,20 +35,31 @@ test('invalid recommendation inputs do not expose routes or mark legacy assessme
   assert.deepEqual(recommendTests('relationshiprhythm', [], 0), []);
 });
 
-test('continuing from a report replaces its page and carries only a public test ID and ordinary context', () => {
+function reportNavigationFixture(hasDraft = false) {
   const file = path.resolve(__dirname, '../packages/reports/index.js');
   const nativeRequire = createRequire(file);
-  const redirects = [];
+  const redirects = [], requests = [], draftReads = [], toasts = [];
   let page;
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
-    Page(value) { page = value; }, require: nativeRequire,
-    wx: { redirectTo(value) { redirects.push(value.url); } }, console
+    Page(value) { page = value; }, require(id) {
+      requests.push(id);
+      if (id === '../../utils/answer-drafts.js') return { hasPendingDraft(testId) { draftReads.push(testId); return hasDraft; } };
+      return nativeRequire(id);
+    },
+    wx: { redirectTo(value) { redirects.push(value); }, showToast(value) { toasts.push(value); } }, console
   }, { filename: file });
   page.data.relatedTests = recommendTests('relationshiprhythm', []);
   page._disposed = false;
+  return { page, redirects, requests, draftReads, toasts };
+}
+
+test('continuing from a report replaces its page and carries only a public test ID and ordinary context', () => {
+  const { page, redirects, requests, draftReads } = reportNavigationFixture();
+  assert.equal(requests.includes('../../utils/answer-drafts.js'), false, 'report module does not read drafts before an explicit tap');
   page.openRelatedTest({ currentTarget: { dataset: { id: 'gentleboundaries' } } });
-  assert.equal(redirects[0], '/pages/test-answer/index?id=gentleboundaries&context=ordinary');
-  assert.doesNotMatch(redirects[0], /recordId|scores|answers/);
+  assert.equal(redirects[0].url, '/pages/test-answer/index?id=gentleboundaries&context=ordinary');
+  assert.deepEqual(draftReads, ['gentleboundaries']);
+  assert.doesNotMatch(redirects[0].url, /recordId|scores|answers/);
   page.openRelatedTest({ currentTarget: { dataset: { id: 'emotionalrecharge' } } });
   assert.equal(redirects.length, 1, 'rapid taps cannot stack multiple replacements');
   page._openingRelated = false;
@@ -59,4 +70,39 @@ test('continuing from a report replaces its page and carries only a public test 
   page._disposed = true;
   page.openRelatedTest({ currentTarget: { dataset: { id: 'emotionalrecharge' } } });
   assert.equal(redirects.length, 1);
+});
+
+
+test('a pending related-test draft routes to its detail page for an explicit resume choice', () => {
+  const { page, redirects, draftReads } = reportNavigationFixture(true);
+  page.openRelatedTest({ currentTarget: { dataset: { id: 'gentleboundaries' } } });
+  assert.equal(redirects[0].url, '/pages/test-detail/index?id=gentleboundaries');
+  assert.doesNotMatch(redirects[0].url, /context|resume|recordId|scores|answers/);
+  assert.deepEqual(draftReads, ['gentleboundaries']);
+  page.openRelatedTest({ currentTarget: { dataset: { id: 'emotionalrecharge' } } });
+  assert.equal(redirects.length, 1);
+  assert.equal(draftReads.length, 1);
+});
+
+test('related navigation errors release the guard so draft choices remain retryable', () => {
+  const { page, redirects, toasts } = reportNavigationFixture(true);
+  const event = { currentTarget: { dataset: { id: 'gentleboundaries' } } };
+  page.openRelatedTest(event);
+  redirects[0].fail();
+  assert.equal(page._openingRelated, false);
+  assert.equal(toasts.length, 1);
+  page.openRelatedTest(event);
+  assert.equal(redirects.length, 2);
+  page._disposed = true;
+  redirects[1].fail();
+  assert.equal(toasts.length, 1, 'leaving the report must not display late feedback');
+});
+
+test('unavailable local draft storage safely behaves like a fresh exploration', () => {
+  const prior = global.wx;
+  try {
+    global.wx = { getStorageSync() { throw new Error('storage unavailable'); } };
+    const { hasPendingDraft } = require('../utils/answer-drafts.js');
+    assert.equal(hasPendingDraft('gentleboundaries'), false);
+  } finally { if (prior === undefined) delete global.wx; else global.wx = prior; }
 });

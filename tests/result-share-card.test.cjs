@@ -148,6 +148,7 @@ test('report first paint does not load personal Canvas drawing code or create a 
   assert.equal(env.page.data.state, 'ready');
   assert.equal(env.captures.length, 0);
   assert.equal(env.requested.includes('./result-share-card.js'), false);
+  assert.equal(env.requested.includes('../../utils/answer-drafts.js'), false);
   env.page.onUnload();
 });
 
@@ -215,4 +216,99 @@ test('late theme artwork refresh explains why a captured card must be remade', a
   finish({ path: '/tmp/outdated-tree-card.jpg', artFallback: false });
   await pending;
   assert.equal(env.page.data.resultShareImage, '');
+});
+
+test('portrait JPEG is 3:4 with all free dimensions and fully contained remote theme artwork', async () => {
+  const env = canvasFixture();
+  const dimensions = Array.from({ length: 5 }, (_, index) => ({ id: String(index), label: `自由维度${index + 1}`, percent: index * 25 }));
+  await env.builder({}, { ...options, format: 'portrait', heroUrl: 'https://cloud.example/theme.webp', dimensions });
+  const output = env.exports[0];
+  assert.equal(output.destWidth, 750);
+  assert.equal(output.destHeight, 1000);
+  assert.equal(output.width / output.height, 3 / 4);
+  const [image, x, y, width, height] = env.draws[0];
+  assert.equal(width / height, image.width / image.height);
+  assert.ok(x >= 70 && x + width <= 680);
+  assert.ok(y >= 315 && y + height <= 565);
+  for (const dimension of dimensions) assert.ok(env.texts.some(item => item.text === dimension.label));
+  assert.ok(env.texts.some(item => item.text === '本次自评 · 不代表能力或人群排名'));
+  assert.ok(env.texts.every(item => item.y >= 0 && item.y <= 980));
+});
+
+test('portrait artwork failure and keyword-only reports remain exportable without new network sources', async () => {
+  const env = canvasFixture('error');
+  const result = await env.builder({}, { ...options, format: 'portrait', dimensions: [], keywords: ['慢慢靠近', '认真倾听'], heroUrl: 'https://cloud.example/theme.webp' });
+  assert.equal(result.artFallback, true);
+  assert.equal(env.requests.length, 1);
+  assert.ok(env.texts.some(item => item.text === '慢慢靠近'));
+  assert.equal(env.exports[0].destHeight, 1000);
+});
+
+function formatEvent(format, force = false) { return { currentTarget: { dataset: { format, force } } }; }
+
+test('format selection does no drawing and portrait cache never becomes the chat share image', async () => {
+  const env = pageFixture(snapshot => Promise.resolve({ path: `/tmp/${snapshot.format}.jpg`, artFallback: false })); env.ready();
+  env.page.selectResultShareFormat(formatEvent('portrait'));
+  assert.equal(env.captures.length, 0);
+  assert.equal(env.page.data.resultShareFormat, 'portrait');
+  await env.page.prepareResultShareCard();
+  assert.equal(env.captures.length, 1);
+  assert.equal(env.captures[0].format, 'portrait');
+  assert.equal(env.page.data.resultShareImage, '/tmp/portrait.jpg');
+  assert.equal(env.page.data.resultShareChatReady, false);
+  assert.notEqual(env.page.onShareAppMessage().imageUrl, '/tmp/portrait.jpg');
+  env.page.previewResultShareCard();
+  assert.equal(env.previews[0].current, '/tmp/portrait.jpg');
+  await env.page.prepareResultShareCard(formatEvent('chat'));
+  assert.equal(env.page.data.resultShareFormat, 'chat');
+  assert.equal(env.page.data.resultShareChatReady, true);
+  assert.equal(env.page.onShareAppMessage().imageUrl, '/tmp/chat.jpg');
+  env.page.selectResultShareFormat(formatEvent('portrait'));
+  assert.equal(env.page.data.resultShareImage, '/tmp/portrait.jpg');
+  await env.page.prepareResultShareCard();
+  assert.equal(env.captures.length, 2, 'switching back reuses the format-specific card');
+  assert.equal(env.page.onShareAppMessage().imageUrl, '/tmp/chat.jpg', 'even while portrait preview is selected, chat remains 5:4');
+});
+
+test('portrait failures are retryable and stale portrait exports never enter the format cache', async () => {
+  let fail = true;
+  const env = pageFixture(snapshot => fail ? Promise.reject(new Error('导出失败，请重试'))
+    : Promise.resolve({ path: `/tmp/${snapshot.format}.jpg`, artFallback: false })); env.ready();
+  env.page.selectResultShareFormat(formatEvent('portrait'));
+  await env.page.prepareResultShareCard();
+  assert.equal(env.page.data.resultShareBusy, false);
+  assert.match(env.page.data.resultShareError, /请重试/);
+  fail = false;
+  await env.page.prepareResultShareCard();
+  assert.equal(env.page.data.resultShareImage, '/tmp/portrait.jpg');
+  let finish;
+  const stale = pageFixture(() => new Promise(resolve => { finish = resolve; })); stale.ready();
+  stale.page.selectResultShareFormat(formatEvent('portrait'));
+  const pending = stale.page.prepareResultShareCard();
+  stale.page.selectResultShareFormat(formatEvent('chat'));
+  assert.equal(stale.page.data.resultShareFormat, 'portrait', 'busy native Canvas cannot be assigned two simultaneous formats');
+  stale.page.data.themeHeroUrl = 'https://cloud.example/updated.webp';
+  stale.page.refreshResultShareContext();
+  finish({ path: '/tmp/outdated-portrait.jpg', artFallback: false });
+  await pending;
+  stale.page.previewResultShareCard();
+  assert.equal(stale.previews.length, 0);
+  assert.equal(stale.page.data.resultShareImage, '');
+  assert.equal(stale.page.data.resultShareChatReady, false);
+});
+
+test('format caches stay bounded across changed themes without retaining shareable stale contexts', async () => {
+  const env = pageFixture(snapshot => Promise.resolve({ path: `/tmp/${snapshot.themeId}-${snapshot.format}.jpg`, artFallback: false })); env.ready();
+  for (let index = 0; index < 5; index++) {
+    env.page.data.themeId = `theme-${index}`;
+    env.page.refreshResultShareContext();
+    await env.page.prepareResultShareCard(formatEvent(index % 2 ? 'portrait' : 'chat'));
+    assert.ok(Object.keys(env.page._resultShareCache).length <= 4);
+    if (index % 2) assert.notEqual(env.page.onShareAppMessage().imageUrl, `/tmp/theme-${index}-portrait.jpg`);
+  }
+  env.page.data.themeId = 'uncaptured-theme';
+  env.page.refreshResultShareContext();
+  assert.equal(env.page.data.resultShareImage, '');
+  assert.equal(env.page.data.resultShareChatReady, false);
+  assert.doesNotMatch(env.page.onShareAppMessage().imageUrl, /theme-\d/);
 });

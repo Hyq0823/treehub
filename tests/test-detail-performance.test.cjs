@@ -22,6 +22,7 @@ function loadPage() {
     '../../data/exploration.js': { tests: { 'large-test': { title: '展示名称' } } },
     '../../utils/share-card.js': { DEFAULT_SHARE_IMAGE: '/assets/share-cover.webp' },
     '../../utils/archive.js': { getRecords() { return []; } },
+    '../../utils/answer-drafts.js': { getDraft() { return null; } },
     '../../utils/life-context.js': {
       OPTIONS: [{ id: 'ordinary' }],
       getContext(id) { return id === 'ordinary' ? { id } : null; }

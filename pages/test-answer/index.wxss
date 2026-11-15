@@ -50,6 +50,8 @@ page { background: #f2f7ff; color: #244777; }
 .answer-dock .nav-btn { box-sizing: border-box; height: 96rpx; min-height: 96rpx; padding: 0 20rpx; white-space: nowrap; line-height: 1.4; }
 .answer-dock .next-btn { min-width: 0; }
 .answer-dock .privacy-line { min-height: 31rpx; margin-top: 12rpx; line-height: 31rpx; }
+.draft-answer-hint { margin: 0 8rpx 18rpx; padding: 13rpx 20rpx; border: 1rpx solid #dce9fb; border-radius: 18rpx; color: #6889b4; background: #ffffffb8; font-size: 21rpx; line-height: 1.7; }
+.draft-answer-warning { border-color: #f1dfbb; color: #9c8059; background: #fff8e9; }
 .choice-feedback, .choice-feedback-visible { box-sizing: border-box; height: 52rpx; padding-top: 12rpx; line-height: 30rpx; transition: opacity .2s ease; }
 
 /* Ranking tests scroll naturally and own a stable order tray instead of the fixed answer dock. */

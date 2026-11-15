@@ -46,3 +46,12 @@ test('ranking interaction never invokes device vibration', () => {
   const source = fs.readFileSync(require.resolve('../components/ranking-board/index.js'), 'utf8');
   assert.doesNotMatch(source, /vibrate/i);
 });
+
+test('restored complete ranking exposes an explicit generate action without requiring an error', () => {
+  const ready = instance({ completed: true, readyToSubmit: true });
+  ready.value.retry();
+  assert.deepEqual(ready.events.map(item => item.name), ['retry']);
+  const hidden = instance({ completed: true });
+  hidden.value.retry();
+  assert.equal(hidden.events.length, 0);
+});

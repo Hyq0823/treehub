@@ -57,11 +57,16 @@ function resolveThemeAssets(ids) {
           } catch (error) {}
         }
       }
-      resolved.forEach((url, fileId) => cache.set(fileId, { url, expiresAt: Date.now() + CACHE_MS }));
       return resolved;
     }).catch(() => new Map());
     for (const item of fresh) {
-      const request = batch.then(resolved => resolved.get(item.fileId) || '').finally(() => pending.delete(item.fileId));
+      const request = batch.then(resolved => {
+        const url = resolved.get(item.fileId) || '';
+        // Invalidated requests may still finish for their original callers,
+        // but cannot overwrite a newer retry's cache or its pending marker.
+        if (url && pending.get(item.fileId) === request) cache.set(item.fileId, { url, expiresAt: Date.now() + CACHE_MS });
+        return url;
+      }).finally(() => { if (pending.get(item.fileId) === request) pending.delete(item.fileId); });
       pending.set(item.fileId, request);
       waiters.push(request.then(url => { output[item.id] = url; }));
     }

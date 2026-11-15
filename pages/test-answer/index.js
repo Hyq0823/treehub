@@ -2,6 +2,7 @@ const { report, EVENTS } = require('../../utils/track.js');
 const { scoreTest, SCORING_VERSION, TEST_VERSION } = require('../../utils/scoring.js');
 const archive = require('../../utils/archive.js');
 const { getContext } = require('../../utils/life-context.js');
+const drafts = require('../../utils/answer-drafts.js');
 
 Page({
   data: {
@@ -9,15 +10,30 @@ Page({
     submitted: false, submitting: false, revealingResult: false, error: '',
     progressPercent: 0, answeredCount: 0, motionKey: 0, autoAdvancing: false,
     themeHeroUrl: '', interactionType: 'single', rankingItems: [], rankingSelected: [],
-    rankingComplete: false, rankingHelper: '', rankingSaveError: '',
+    rankingComplete: false, rankingReadyToSubmit: false, rankingHelper: '', rankingSaveError: '', draftWarning: '', draftHint: '',
     revealTitle: '正在收集你的答案', revealCopy: '让这些选择，慢慢长成属于你的画像'
   },
-  onLoad(options) {
+  onLoad(options = {}) {
     this._unloaded = false;
+    this._hidden = false;
     this._lifeContext = getContext(options && options.context) ? options.context : '';
     report(EVENTS.TEST_START, { testId: options.id });
-    this.loadTestData(options.id);
+    this.loadTestData(options.id, options);
     this.loadThemeWorld();
+  },
+  onShow() {
+    this._hidden = false;
+    if (this.data.submitted && this._pendingReport) this.scheduleReveal();
+  },
+  onHide() {
+    this._hidden = true;
+    this.clearAdvance();
+    this.clearReveal();
+    this.flushDraft();
+    if (!this._unloaded && this.data.autoAdvancing) this.setData({ autoAdvancing: false });
+    if (!this.data.submitted && this.data.rankingComplete && this.data.currentQuestionIndex === this._questions.length - 1) {
+      this.setData({ rankingReadyToSubmit: true });
+    }
   },
   async loadThemeWorld() {
     try {
@@ -34,6 +50,7 @@ Page({
   },
   onUnload() {
     this._unloaded = true;
+    this.flushDraft();
     this._assetRequest = (this._assetRequest || 0) + 1;
     this.clearAdvance();
     this.clearReveal();
@@ -44,6 +61,38 @@ Page({
       });
     }
   },
+  clearDraftTimer() {
+    if (this._draftTimer) clearTimeout(this._draftTimer);
+    this._draftTimer = null;
+  },
+  queueDraftSave() {
+    if (this._unloaded || this.data.submitted || !this._test ||
+        typeof wx.getStorageSync !== 'function' || typeof wx.setStorageSync !== 'function') return;
+    this._draftDirty = true;
+    this.clearDraftTimer();
+    this._draftTimer = setTimeout(() => {
+      this._draftTimer = null;
+      if (!this._unloaded && !this.data.submitted) this.flushDraft();
+    }, 500);
+  },
+  flushDraft() {
+    this.clearDraftTimer();
+    if (!this._draftDirty || !this._test || this.data.submitted) return;
+    try {
+      drafts.saveDraft(this._test, {
+        sessionId: this._answerSessionId, questionOrder: this._questions.map(question => String(question.id)),
+        answers: this._answers, currentQuestionIndex: this.data.currentQuestionIndex,
+        lifeContext: this._lifeContext || 'ordinary'
+      });
+      this._draftDirty = false;
+      if (!this._unloaded && this.data.draftWarning) this.setData({ draftWarning: '' });
+    } catch (error) {
+      if (!this._unloaded && !this.data.draftWarning) {
+        this.setData({ draftWarning: '进度暂未保存，退出前请完成本次测试。' });
+        if (!this._hidden) wx.showToast({ title: '进度暂未保存，请检查存储空间', icon: 'none' });
+      }
+    }
+  },
   clearAdvance() {
     if (this._advanceTimer) clearTimeout(this._advanceTimer);
     this._advanceTimer = null;
@@ -51,8 +100,42 @@ Page({
   clearReveal() {
     if (this._revealTimer) clearTimeout(this._revealTimer);
     this._revealTimer = null;
+    this._revealRequest = (this._revealRequest || 0) + 1;
   },
-  loadTestData(testId) {
+  scheduleReveal() {
+    this.clearReveal();
+    const pending = this._pendingReport;
+    if (!pending || this._hidden || this._unloaded || this._openingReport) return;
+    const request = this._revealRequest;
+    this._revealTimer = setTimeout(() => {
+      this._revealTimer = null;
+      if (request !== this._revealRequest || this._unloaded || this._hidden || this._pendingReport !== pending) return;
+      this._pendingReport = null;
+      this._openingReport = true;
+      const navigation = this._reportNavigation = (this._reportNavigation || 0) + 1;
+      wx.redirectTo({
+        url: `/packages/reports/index?id=${encodeURIComponent(pending.testId)}&recordId=${encodeURIComponent(pending.id)}`,
+        fail: () => {
+          if (this._unloaded || navigation !== this._reportNavigation) return;
+          this._openingReport = false;
+          if (this._hidden) {
+            this._pendingReport = pending;
+            return;
+          }
+          wx.showModal({
+            title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
+            showCancel: false,
+            success: () => {
+              if (this._unloaded || navigation !== this._reportNavigation) return;
+              if (this._hidden) { this._pendingReport = pending; return; }
+              wx.switchTab({ url: '/pages/user-center/index' });
+            }
+          });
+        }
+      });
+    }, Math.max(0, (this._revealReadyAt || 0) - Date.now()));
+  },
+  loadTestData(testId, options = {}) {
     try {
       const test = require('../../data/test-loader.js').getTest(testId);
       if (!test) throw new Error('没有找到这项测试，请返回大厅重新选择');
@@ -60,12 +143,31 @@ Page({
       const clonedQuestions = test.questions.map(question => Object.assign({}, question, {
         options: question.options.map(option => Object.assign({}, option))
       }));
-      const questions = testId === 'sbti' ? this.shuffleArray(clonedQuestions) : clonedQuestions;
+      let questions = testId === 'sbti' ? this.shuffleArray(clonedQuestions) : clonedQuestions;
+      let restored = null;
+      this._answerSessionId = drafts.createSessionId();
+      if (options.resume === '1') {
+        try { restored = drafts.getDraft(test, archive.getRecords(testId)); }
+        catch (error) { this.setData({ draftWarning: '上次进度暂未读出，可以从当前页面重新作答。' }); }
+        if (restored) {
+          const byId = new Map(clonedQuestions.map(question => [String(question.id), question]));
+          questions = restored.questionOrder.map(id => byId.get(id));
+          this._answerSessionId = restored.sessionId;
+          this._lifeContext = restored.lifeContext;
+        }
+      } else if (options.restart === '1') {
+        try { drafts.removeDraft(testId); }
+        catch (error) { this.setData({ draftWarning: '上次进度暂未清除，完成本次测试后会更新。' }); }
+      }
       this._questions = questions;
-      this._answers = questions.map(question => question.type === 'ranking' ? [] : -1);
+      this._answers = restored ? restored.answers : questions.map(question => question.type === 'ranking' ? [] : -1);
+      this._draftDirty = false;
       const interaction = test.interaction || {};
       this.setData({
         test: { id: test.id, name: test.name, questionsCount: test.questionsCount }, error: '',
+        currentQuestionIndex: restored ? restored.allAnswered ? questions.length - 1 : restored.currentQuestionIndex : 0,
+        draftHint: restored ? restored.allAnswered ? '答案已恢复，检查后可生成报告' : '已恢复本机进度，按自己的节奏继续' : '',
+        rankingReadyToSubmit: !!(restored && restored.allAnswered && interaction.type === 'ranking'),
         interactionType: interaction.type || 'single', rankingHelper: interaction.helper || '',
         revealTitle: interaction.revealTitle || '正在收集你的答案',
         revealCopy: interaction.revealCopy || '让这些选择，慢慢长成属于你的画像'
@@ -141,10 +243,11 @@ Page({
     answers[current] = index;
     this._answers = answers;
     this.setData({ selectedOption: index, answeredCount: answers.filter(answer => answer !== -1).length, autoAdvancing: true });
+    this.queueDraftSave();
     // Auto-advance only the question on which the tap occurred.
     this._advanceTimer = setTimeout(() => {
       this._advanceTimer = null;
-      if (!this._unloaded && this.data.currentQuestionIndex === current) this.nextQuestion();
+      if (!this._unloaded && !this._hidden && this.data.currentQuestionIndex === current) this.nextQuestion();
     }, 300);
   },
   changeRanking(event) {
@@ -158,12 +261,14 @@ Page({
     const existing = order.indexOf(index);
     if (existing >= 0) order.splice(existing, 1); else order.push(index);
     this._answers[current] = order;
+    if (this.data.rankingReadyToSubmit) this.setData({ rankingReadyToSubmit: false });
     this.updateQuestion({ animate: false });
+    this.queueDraftSave();
     if (order.length === question.options.length) {
       this.setData({ rankingComplete: true, autoAdvancing: true });
       this._advanceTimer = setTimeout(() => {
         this._advanceTimer = null;
-        if (!this._unloaded && this.data.currentQuestionIndex === current) this.nextQuestion();
+        if (!this._unloaded && !this._hidden && this.data.currentQuestionIndex === current) this.nextQuestion();
       }, 650);
     }
   },
@@ -174,15 +279,19 @@ Page({
     const order = Array.isArray(this._answers[current]) ? this._answers[current].slice() : [];
     order.pop();
     this._answers[current] = order;
+    if (this.data.rankingReadyToSubmit) this.setData({ rankingReadyToSubmit: false });
     if (this.data.rankingSaveError) this.setData({ rankingSaveError: '' });
     this.updateQuestion({ animate: false });
+    this.queueDraftSave();
   },
   resetRanking() {
     if (this.data.submitting || this.data.submitted) return;
     this.clearAdvance();
     this._answers[this.data.currentQuestionIndex] = [];
+    if (this.data.rankingReadyToSubmit) this.setData({ rankingReadyToSubmit: false });
     if (this.data.rankingSaveError) this.setData({ rankingSaveError: '' });
     this.updateQuestion({ animate: false });
+    this.queueDraftSave();
   },
   prevQuestion() {
     this.clearAdvance();
@@ -190,6 +299,7 @@ Page({
     if (this.data.currentQuestionIndex > 0) {
       this.setData({ currentQuestionIndex: this.data.currentQuestionIndex - 1 });
       this.updateQuestion();
+      this.queueDraftSave();
     }
   },
   nextQuestion() {
@@ -207,6 +317,7 @@ Page({
     if (this.data.currentQuestionIndex < (this._questions || []).length - 1) {
       this.setData({ currentQuestionIndex: this.data.currentQuestionIndex + 1 });
       this.updateQuestion();
+      this.queueDraftSave();
     } else {
       this.submitTest();
     }
@@ -226,11 +337,16 @@ Page({
       return;
     }
     this.setData({ submitting: true, revealingResult: true, rankingSaveError: '' });
+    // Preserve even a fully answered session before saving its report. A failed
+    // archive write can then be retried after leaving and returning to the page.
+    this.queueDraftSave();
+    this.flushDraft();
     try {
       const result = scoreTest(this._test, questions, answers);
       const saved = archive.saveResult(Object.assign({
         testId: this.data.test.id, testVersion: this._test.testVersion || TEST_VERSION, scoringVersion: SCORING_VERSION,
         lifeContext: this._lifeContext || undefined,
+        answerSessionId: this._answerSessionId,
         // Store canonical question IDs because SBTI question order is shuffled.
         answers: questions.map((question, index) => question.type === 'ranking'
           ? {
@@ -240,18 +356,14 @@ Page({
           : { questionId: question.id, optionIndex: answers[index] })
       }, result));
       this.setData({ submitted: true });
+      this._draftDirty = false;
+      this.clearDraftTimer();
+      try { drafts.removeDraft(this.data.test.id); }
+      catch (error) { /* The saved local session receipt suppresses a stale draft. */ }
       report(EVENTS.TEST_SUBMIT, { testId: saved.testId, resultType: saved.resultType, unanswered: 0 });
-      this._revealTimer = setTimeout(() => {
-        this._revealTimer = null;
-        if (this._unloaded) return;
-        wx.redirectTo({
-          url: `/packages/reports/index?id=${encodeURIComponent(saved.testId)}&recordId=${encodeURIComponent(saved.id)}`,
-          fail: () => wx.showModal({
-            title: '报告已保存', content: '页面暂时未能打开，可以在“我的档案”查看这次记录。',
-            showCancel: false, success: () => wx.switchTab({ url: '/pages/user-center/index' })
-          })
-        });
-      }, 1100);
+      this._pendingReport = { testId: saved.testId, id: saved.id };
+      this._revealReadyAt = Date.now() + 1100;
+      this.scheduleReveal();
     } catch (error) {
       const message = error.message || '请检查设备存储空间后重试，本次答案仍保留在页面中。';
       const rankingSaveError = this.data.interactionType === 'ranking' ? '报告还没有保存，顺序已为你保留。' : '';
@@ -261,7 +373,7 @@ Page({
     }
   },
   retryRanking() {
-    if (!this.data.rankingSaveError || this.data.submitting || this.data.submitted) return;
+    if ((!this.data.rankingSaveError && !this.data.rankingReadyToSubmit) || this.data.submitting || this.data.submitted) return;
     this.submitTest();
   },
   calculateScores() {

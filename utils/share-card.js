@@ -1,4 +1,5 @@
 const DEFAULT_SHARE_IMAGE = '/assets/share-cover.webp';
+const IMAGE_TIMEOUT_MS = 8000;
 
 function canvasNode(page, selector) {
   return new Promise((resolve, reject) => {
@@ -15,9 +16,19 @@ function canvasNode(page, selector) {
 function loadImage(canvas, source) {
   return new Promise((resolve, reject) => {
     const image = canvas.createImage();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = source;
+    let settled = false;
+    const finish = error => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      image.onload = null;
+      image.onerror = null;
+      if (error) reject(error); else resolve(image);
+    };
+    const timer = setTimeout(() => finish(new Error('分享图片加载超时')), IMAGE_TIMEOUT_MS);
+    image.onload = () => finish(image.width > 0 && image.height > 0 ? null : new Error('分享图片尺寸无效'));
+    image.onerror = () => finish(new Error('分享图片暂时无法加载'));
+    try { image.src = source; } catch (error) { finish(error); }
   });
 }
 
@@ -65,4 +76,4 @@ async function buildShareCard(page, options) {
   }, page));
 }
 
-module.exports = { DEFAULT_SHARE_IMAGE, buildShareCard };
+module.exports = { DEFAULT_SHARE_IMAGE, buildShareCard, IMAGE_TIMEOUT_MS };
