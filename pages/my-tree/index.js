@@ -20,7 +20,9 @@ function decorateTheme(theme, selectedId, starterClaimed, thumbnailUrl) {
   let statusLabel = '继续探索长出';
   if (unlocked) statusLabel = theme.id === selectedId ? '档案当前主题' : '已由探索解锁';
   else if (hidden) statusLabel = '探索五类后发现';
-  else if (theme.starter && !starterClaimed) statusLabel = '首测自动生成';
+  else if (theme.starter && !starterClaimed && theme.recommended) statusLabel = '首测自动生成';
+  else if (theme.unlockProgress) statusLabel = theme.unlockProgress.targetTestId
+    ? '完成对应测试后长出' : `${theme.unlockProgress.completedCount} / ${theme.unlockProgress.requiredCount} 类探索`;
   return Object.assign({}, theme, {
     thumbnailUrl: theme.discovered ? thumbnailUrl || '' : '',
     displayName: hidden ? '隐藏的极光' : theme.name,
@@ -95,10 +97,8 @@ Page({
         shareImagePath: cachedShare ? cachedShare.path : sameTheme ? this.data.shareImagePath : DEFAULT_SHARE_IMAGE,
         pendingSave: !!themes.getPendingGrant(current.id),
         leaves: Array.from({ length: Math.min(state.catalogCount, 12) }, (_, index) => ({ index, collected: index < count })),
-        nextReward: count === 0 ? '完成首测，免费领取一套基础主题与伙伴' :
-          count < 3 ? '新的测试，会让树长出新主题与伙伴' :
-          count < 5 ? `再探索 ${5 - count} 类不同测试，与隐藏的极光相遇` :
-            '极光水镜已发现，去主题图鉴看看吧'
+        nextReward: state.nextUnlock ? `下一份相遇 · ${state.nextUnlock.name}：${state.nextUnlock.hint}` :
+          '九套主题已收藏，新的探索继续长出叶片，复测留下年轮'
       });
       if (wx.setNavigationBarColor) {
         const night = current.id === 'moon';
@@ -243,6 +243,14 @@ Page({
     const current = this.data.current;
     if (!current || this.data.busy || this.data.saving) return;
     if (themes.getPendingGrant(current.id)) return this.retryThemeSave();
+    if (this.data.state && !this.data.state.starterClaimed && !current.unlocked && current.starter && current.recommended && this.data.state.uniqueCount > 0) {
+      const { resolveResultTitle } = require('../../data/test-catalog.js');
+      const recent = archive.getRecords().find(record => typeof record.id === 'string' && record.id && record.scoringVersion === '2' && !record.migrated && resolveResultTitle(record.testId, record));
+      if (recent) {
+        wx.navigateTo({ url: `/packages/reports/index?id=${encodeURIComponent(recent.testId)}&recordId=${encodeURIComponent(recent.id)}` });
+        return;
+      }
+    }
     return this.explore();
   },
   useOrUnlockTheme() {

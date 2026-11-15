@@ -2,6 +2,7 @@
 // deferring its evaluation until that particular test is opened.
 const loaders = {
   firstreaction: () => require('./tests/first-reaction.js'),
+  cityvibe: () => require('./tests/city-vibe.js'),
   historicalecho: () => require('./tests/historical-echo.js'),
   lifepath: () => require('./tests/life-path.js'),
   hiddentalent: () => require('./tests/hidden-talent.js'),

@@ -13,11 +13,13 @@ const THEME_ASSET_IDS = THEME_IDS.concat('companions');
 const THEME_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/themes/v2/';
 const PUBLIC_ASSET_PREFIX = 'cloud://cloud1-d2ghbskq3663254ce.636c-cloud1-d2ghbskq3663254ce-1421033293/public/v2/';
 const PUBLIC_ASSET_PATH = /^(?:tests|shared)\/[a-z0-9][a-z0-9-]{0,63}\/[a-z0-9][a-z0-9._-]{0,95}\.(?:webp|png|jpe?g)$/;
-const TEST_IDS = ['firstreaction', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
+const TEST_IDS = ['firstreaction', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'cityvibe', 'sbti', 'mbti', 'enneagram', 'bigfive', 'shadow', 'ie'];
 const EXPLORATION_THEME_RULES = {
   moon: { testId: 'shadow' }, dreamer: { testId: 'sbti' }, collector: { testId: 'bigfive' },
-  wanderer: { count: 3 }, listener: { count: 4 }, aurora: { count: 5 }
+  wanderer: { count: 3 }, listener: { count: 4 }, aurora: { count: 5 },
+  adventurer: { count: 6 }, romantic: { count: 7 }, observer: { count: 8 }
 };
+const MAX_THEME_EXPLORATIONS = Math.max(...Object.values(EXPLORATION_THEME_RULES).map(rule => rule.count || 0));
 const SUMMARY_FIELDS = ['id', 'testId', 'testVersion', 'scoringVersion', 'scores', 'resultType', 'completedAt', 'premiumUnlockedAt', 'migrated'];
 const plainObject = value => value && typeof value === 'object' && !Array.isArray(value);
 const validDate = value => typeof value === 'string' && value.length <= 40 && Number.isFinite(Date.parse(value));
@@ -103,10 +105,16 @@ function mergeThemeState(existing, incoming, explorationIds) {
   };
 }
 
-async function countExplorations(openid, incoming) {
+async function countExplorations(openid, incoming, themeState) {
   const ids = new Set(incoming.filter(record => TEST_IDS.includes(record.testId) && record.scoringVersion === '2' && !record.migrated).map(record => record.testId));
+  const grants = themeState && themeState.unlocked || [];
+  const requiredCount = Math.min(MAX_THEME_EXPLORATIONS, Math.max(0, ...grants.map(grant =>
+    grant.themeId === 'aurora' ? 5 : grant.source === 'starter' ? 1 :
+      grant.source === 'exploration' ? EXPLORATION_THEME_RULES[grant.themeId].count || 0 : 0)));
+  const requiredTests = new Set(grants.filter(grant => grant.source === 'exploration')
+    .map(grant => EXPLORATION_THEME_RULES[grant.themeId] && EXPLORATION_THEME_RULES[grant.themeId].testId).filter(Boolean));
   let offset = 0;
-  while (ids.size < 5) {
+  while (ids.size < requiredCount || Array.from(requiredTests).some(id => !ids.has(id))) {
     const page = await db.collection('treehub_assessments').where({ owner: openid })
       .orderBy('completedAt', 'desc').skip(offset).limit(MAX_PAGE_SIZE).get();
     page.data.forEach(record => {
@@ -174,7 +182,7 @@ async function syncArchive(openid, event) {
     if (!Array.isArray(event.records) || event.records.length > MAX_BATCH_SIZE) return fail('单次同步记录格式无效');
     const batch = event.records.map(cleanRecord);
     const themeState = event.themeState === undefined ? null : cleanThemeState(event.themeState);
-    const explorationIds = themeState ? await countExplorations(openid, batch) : new Set();
+    const explorationIds = themeState ? await countExplorations(openid, batch, themeState) : new Set();
     const result = await db.runTransaction(async transaction => {
       const userRef = transaction.collection('treehub_users').doc(userId(openid));
       const user = await getDocument(userRef);
@@ -320,17 +328,32 @@ async function getPublicAssetUrls(_openid, event) {
 
 const extensionHandlers = { getThemeAssetUrls, getPublicAssetUrls };
 
+function responseForClient(result, event) {
+  if (!result || !result.themeState || Number.isInteger(event.themeRulesVersion) && event.themeRulesVersion >= 2) return result;
+  // The published client accepts exploration grants only for non-starter themes.
+  // Project an equivalent legacy receipt on reads; never change the canonical
+  // stored acquisition source or relax the new six/seven/eight-test checks.
+  const themeState = Object.assign({}, result.themeState, {
+    unlocked: result.themeState.unlocked.map(grant => grant.source === 'exploration' &&
+      ['adventurer', 'romantic', 'observer'].includes(grant.themeId)
+      ? Object.assign({}, grant, { source: 'starter' }) : Object.assign({}, grant))
+  });
+  return Object.assign({}, result, { themeState });
+}
+
 exports.main = async event => {
   try {
     const context = cloud.getWXContext();
     if (!context.OPENID) return fail('无法识别当前微信用户');
     if (!event || event.clientSchemaVersion !== 1) return fail('客户端同步版本不受支持');
-    if (event.action === 'authorizeBackup') return await authorizeBackup(context.OPENID, event);
-    if (event.action === 'syncArchive') return await syncArchive(context.OPENID, event);
-    if (event.action === 'exportMyData') return await exportMyData(context.OPENID, event);
-    if (event.action === 'deleteMyData') return await deleteMyData(context.OPENID);
-    if (extensionHandlers[event.action]) return await extensionHandlers[event.action](context.OPENID, event);
-    return fail('未知的云端操作');
+    let result;
+    if (event.action === 'authorizeBackup') result = await authorizeBackup(context.OPENID, event);
+    else if (event.action === 'syncArchive') result = await syncArchive(context.OPENID, event);
+    else if (event.action === 'exportMyData') result = await exportMyData(context.OPENID, event);
+    else if (event.action === 'deleteMyData') result = await deleteMyData(context.OPENID);
+    else if (extensionHandlers[event.action]) result = await extensionHandlers[event.action](context.OPENID, event);
+    else result = fail('未知的云端操作');
+    return responseForClient(result, event);
   } catch (error) {
     // Avoid logging submitted records, answers or identifiers in provider logs.
     console.error('treehub-api request failed', error && error.code || 'REQUEST_FAILED');

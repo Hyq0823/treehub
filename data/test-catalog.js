@@ -8,6 +8,11 @@ const catalog = [
     time: '约1分钟', questionsCount: 1
   },
   {
+    id: 'cityvibe', name: '你的城市生活气质', icon: '⌂',
+    description: '如果把最近喜欢的日常画成一座城，会是什么模样？用十个生活选择，看看节奏、连接、自然、探索与预算五种偏好。',
+    time: '约2分钟', questionsCount: 10
+  },
+  {
     id: 'relationshiprhythm', name: '亲密相处节奏', icon: '♡',
     description: '想被靠近，也想保留自己。用十二个日常场景，看看此刻的你需要怎样的联络、表达、空间与沟通节奏。',
     time: '约3分钟', questionsCount: 12
@@ -71,6 +76,7 @@ const catalog = [
 
 const resultTitles = {
   firstreaction: { order: '秩序复原师', connection: '情绪接住者', risk: '风向守门人', joy: '快乐导航员', security: '信息校准者' },
+  cityvibe: { metropolitan: '都市漫游者', coastal: '海风慢生活者', cultural: '街巷收藏家', nature: '山野栖居者' },
   relationshiprhythm: { warm: '温柔连接者', parallel: '自在并肩者', direct: '清晰回应者', slow: '慢热靠近者' },
   gentleboundaries: { guardian: '温柔守界人', negotiator: '体贴协商家', practicing: '边界练习生', clear: '清晰自持者' },
   emotionalrecharge: { quiet: '静谧充电者', connection: '温暖连接者', movement: '轻盈行动派', sensory: '感官收藏家', structure: '秩序整理师' },
@@ -104,6 +110,10 @@ const resultTitles = {
 // Keep these small so a newly completed light test can grow a tree without
 // making listing pages evaluate the full questionnaires.
 const treeAssociations = {
+  cityvibe: {
+    dimensions: ['pace', 'connection', 'nature', 'exploration', 'budget'], minimum: 2, maximum: 8,
+    results: { metropolitan: 'banyan', coastal: 'olive', cultural: 'maple', nature: 'ginkgo' }
+  },
   relationshiprhythm: {
     dimensions: ['contact', 'expression', 'space', 'repair'], minimum: 3, maximum: 12,
     results: { warm: 'banyan', parallel: 'olive', direct: 'pine', slow: 'willow' }

@@ -69,7 +69,7 @@ function answersNearVector(quiz, vector) {
 
 test('every new quiz profile is reachable and restores with complete free dimensions', () => {
   const quizzes = require('../data/tests/index.js').default.filter(item => item.scoring.strategy === 'profile');
-  assert.equal(quizzes.length, 6);
+  assert.equal(quizzes.length, 7);
   for (const quiz of quizzes) {
     assert.ok(quiz.questions.length >= 10 && quiz.questions.length <= 12);
     for (const profile of quiz.scoring.profiles) {

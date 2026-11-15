@@ -67,6 +67,58 @@ test('the newest exploration-grown theme becomes active without a manual theme c
   assert.equal(next.selectedId, 'dreamer');
 });
 
+test('unclaimed basic themes grow at six, seven and eight different explorations without replacing the first gift', () => {
+  const ids = ['mbti', 'ie', 'enneagram', 'bigfive', 'shadow', 'sbti', 'firstreaction', 'historicalecho'];
+  for (const [themeId, threshold, firstChoice] of [
+    ['adventurer', 6, 'observer'], ['romantic', 7, 'adventurer'], ['observer', 8, 'adventurer']
+  ]) {
+    memory.clear();
+    const initial = themes.claimStarter(firstChoice, completed(ids.slice(0, 1)));
+    const firstGift = initial.unlocked.find(grant => grant.themeId === firstChoice);
+    assert.equal(themes.getState(completed(ids.slice(0, threshold - 1))).catalog.find(theme => theme.id === themeId).unlocked, false);
+    const state = themes.getState(completed(ids.slice(0, threshold)));
+    assert.equal(state.unlocked.find(grant => grant.themeId === themeId).source, 'exploration');
+    assert.deepEqual(state.unlocked.find(grant => grant.themeId === firstChoice), firstGift);
+    assert.equal(state.catalog.find(theme => theme.id === themeId).unlockProgress.progressPercent, 100);
+  }
+});
+
+test('theme goals show remaining unique tests and do not count repeats or migrated results', () => {
+  const ids = ['mbti', 'ie', 'enneagram', 'bigfive', 'shadow', 'sbti'];
+  themes.claimStarter('observer', completed(['mbti']));
+  const five = completed(ids.slice(0, 5));
+  const repeated = five.concat(completed(['mbti', 'mbti']), [{ testId: 'sbti', scoringVersion: '2', migrated: true }]);
+  const state = themes.getState(repeated);
+  const goal = state.catalog.find(theme => theme.id === 'adventurer').unlockProgress;
+  assert.equal(state.uniqueCount, 5);
+  assert.equal(goal.completedCount, 5);
+  assert.equal(goal.requiredCount, 6);
+  assert.equal(goal.remaining, 1);
+  assert.match(goal.hint, /还差 1 类/);
+  assert.equal(state.catalog.find(theme => theme.id === 'adventurer').unlocked, false);
+  const next = themes.getState(completed(ids));
+  assert.equal(next.nextUnlock.id, 'romantic');
+  assert.equal(next.nextUnlock.remaining, 1);
+  assert.equal(next.nextUnlock.requiredCount, 7);
+});
+
+test('finishing the available catalog makes all nine themes obtainable and never revokes old sources', () => {
+  const { catalog } = require('../data/test-catalog.js');
+  const records = completed(catalog.map(test => test.id));
+  themes.claimStarter('adventurer', completed(['mbti']));
+  const oldVideo = { themeId: 'observer', source: 'rewarded-video', unlockedAt: '2026-01-01T00:00:00.000Z' };
+  themes.mergeCloudState({ version: 1, selectedId: 'observer', starterClaimed: true, unlocked: [oldVideo] });
+  const state = themes.getState(records);
+  assert.equal(state.catalog.filter(theme => theme.unlocked).length, 9);
+  assert.equal(state.nextUnlock, null);
+  assert.equal(state.unlocked.find(grant => grant.themeId === 'adventurer').source, 'starter');
+  assert.deepEqual(state.unlocked.find(grant => grant.themeId === 'observer'), oldVideo);
+  const payload = themes.getSyncPayload();
+  assert.equal(payload.unlocked.find(grant => grant.themeId === 'romantic').source, 'exploration');
+  themes.mergeCloudState(payload);
+  assert.equal(themes.getState([]).unlocked.length, 9, 'summary recovery never retracts already owned themes');
+});
+
 test('a completed video is mandatory and scoped to the exact theme', () => {
   const records = completed(['ie']);
   assert.throws(() => themes.persistPendingGrant('moon', records), /完整观看/);
@@ -318,6 +370,25 @@ function myTreePage(records = [], assetResolver = async () => '') {
   page.setData = value => Object.assign(page.data, value);
   return page;
 }
+
+test('skipping the first gift leaves only the recommended starter ready and routes its claim back to a real report', () => {
+  const records = [{ id: 'first-valid-report', testId: 'mbti', scoringVersion: '2', resultType: 'ESTJ', scores: { EI: 7, SN: 7, TF: 7, JP: 7 } }];
+  const state = themes.getState(records);
+  assert.equal(state.nextUnlock.id, 'adventurer');
+  assert.equal(state.nextUnlock.remaining, 0);
+  assert.equal(state.catalog.find(theme => theme.id === 'romantic').unlockProgress.requiredCount, 7);
+  assert.equal(state.catalog.find(theme => theme.id === 'romantic').unlockProgress.remaining, 6);
+  assert.equal(state.catalog.find(theme => theme.id === 'observer').unlockProgress.requiredCount, 8);
+  let navigated = '', switched = '';
+  global.wx.navigateTo = value => { navigated = value.url; };
+  global.wx.switchTab = value => { switched = value.url; };
+  const page = myTreePage(records);
+  page.onLoad({}); page.onShow();
+  page.handleThemeAction();
+  assert.equal(navigated, '/packages/reports/index?id=mbti&recordId=first-valid-report');
+  assert.equal(switched, '');
+  page.onUnload();
+});
 
 test('my-tree initially resolves only the visible atlas batch and current hero', async () => {
   const requested = [];

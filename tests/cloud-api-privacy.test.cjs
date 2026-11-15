@@ -7,7 +7,7 @@ const { policyVersion } = require('../config/privacy.js');
 const clone = value => value === undefined ? value : JSON.parse(JSON.stringify(value));
 
 function fixture() {
-  let database = new Map(), openid = 'owner-a', now = Date.parse('2026-11-06T08:00:00.000Z');
+  let database = new Map(), openid = 'owner-a', now = Date.parse('2026-11-06T08:00:00.000Z'), queryReads = 0;
   const tables = source => name => {
     if (!source().has(name)) source().set(name, new Map());
     return source().get(name);
@@ -29,6 +29,7 @@ function fixture() {
           orderBy(field, direction) { order = { field, direction }; return query; },
           skip(value) { offset = value; return query; }, limit(value) { limit = value; return query; },
           async get() {
+            queryReads++;
             let values = Array.from(table().values()).filter(value => Object.entries(criteria).every(([key, expected]) => value[key] === expected));
             if (order) values.sort((a, b) => String(a[order.field]).localeCompare(String(b[order.field])) * (order.direction === 'desc' ? -1 : 1));
             return { data: clone(values.slice(offset, offset + limit)) };
@@ -62,11 +63,12 @@ function fixture() {
   }, { filename: file });
   return {
     db,
+    get queryReads() { return queryReads; },
     setOwner(value) { openid = value; },
     advance(ms) { now += ms; },
     time: () => new Date(now).toISOString(),
     rows(name) { return clone(Array.from(tables(() => database)(name).values())); },
-    async call(action, data = {}) { return clone(await exports.main(Object.assign({ action, clientSchemaVersion: 1 }, data))); },
+    async call(action, data = {}) { return clone(await exports.main(Object.assign({ action, clientSchemaVersion: 1, themeRulesVersion: 2 }, data))); },
     async authorize(id = 'consent-device-a-123456') {
       return this.call('authorizeBackup', { consent: { id, policyVersion, acceptedAt: this.time() }, seed: 'seed-local' });
     }
@@ -237,6 +239,110 @@ test('the quiet observer is a valid free starter theme', async () => {
   const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [record()], themeState: starter('observer') });
   assert.equal(response.ok, true);
   assert.equal((await f.call('exportMyData')).themeState.selectedId, 'observer');
+});
+
+test('basic themes retain their immediate starter grant and also require six, seven or eight unique explorations when earned later', async () => {
+  const ids = ['ie', 'mbti', 'enneagram', 'bigfive', 'shadow', 'sbti', 'firstreaction', 'historicalecho'];
+  for (const [themeId, count] of [['adventurer', 6], ['romantic', 7], ['observer', 8]]) {
+    const f = fixture(); await f.authorize();
+    const themeState = { version: 1, selectedId: themeId, starterClaimed: true,
+      unlocked: [{ themeId, source: 'exploration', unlockedAt: f.time() }] };
+    const tooFew = ids.slice(0, count - 1).map((id, index) => record(`low-${index}`, id));
+    const rejected = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: tooFew, themeState });
+    assert.equal(rejected.ok, false, `${themeId} cannot be earned early`);
+    assert.equal(f.rows('treehub_assessments').length, 0, 'a rejected grant rolls back results too');
+    const enough = ids.slice(0, count).map((id, index) => record(`valid-${index}`, id));
+    const accepted = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: enough, themeState });
+    assert.equal(accepted.ok, true, accepted.message);
+    assert.equal((await f.call('exportMyData')).themeState.unlocked[0].source, 'exploration');
+  }
+});
+
+test('cloud exploration counting scans beyond a page of repeats to restore eight-type basic theme eligibility', async () => {
+  const f = fixture(); await f.authorize();
+  const olderIds = ['ie', 'mbti', 'enneagram', 'bigfive', 'shadow', 'sbti', 'firstreaction', 'historicalecho'];
+  const all = olderIds.map((id, index) => record(`old-${index}`, id)).concat(
+    Array.from({ length: 100 }, (_, index) => ({ ...record(`repeat-${index}`, 'ie'), completedAt: '2026-11-01T08:00:00.000Z' }))
+  );
+  for (let offset = 0; offset < all.length; offset += 20) {
+    const uploaded = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: all.slice(offset, offset + 20) });
+    assert.equal(uploaded.ok, true, uploaded.message);
+  }
+  const observer = { version: 1, selectedId: 'observer', starterClaimed: true,
+    unlocked: [{ themeId: 'observer', source: 'exploration', unlockedAt: f.time() }] };
+  const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [], themeState: observer });
+  assert.equal(response.ok, true, response.message);
+  assert.equal((await f.call('exportMyData')).themeState.selectedId, 'observer');
+});
+
+test('cloud exploration counting keeps looking for a theme-specific test beyond eight newer types', async () => {
+  const f = fixture(); await f.authorize();
+  const newer = ['ie', 'mbti', 'enneagram', 'bigfive', 'sbti', 'firstreaction', 'historicalecho', 'lifepath'];
+  const records = [record('older-shadow', 'shadow')].concat(Array.from({ length: 100 }, (_, index) => ({
+    ...record(`recent-${index}`, newer[index % newer.length]), completedAt: '2026-11-01T08:00:00.000Z'
+  })));
+  for (let offset = 0; offset < records.length; offset += 20) {
+    const uploaded = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: records.slice(offset, offset + 20) });
+    assert.equal(uploaded.ok, true, uploaded.message);
+  }
+  const moon = { version: 1, selectedId: 'moon', starterClaimed: true,
+    unlocked: [{ themeId: 'moon', source: 'exploration', unlockedAt: f.time() }] };
+  const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456', records: [], themeState: moon });
+  assert.equal(response.ok, true, response.message);
+  assert.equal((await f.call('exportMyData')).themeState.selectedId, 'moon');
+});
+
+test('a free first-theme claim does not scan unrelated repeated history once its one-test condition is met', async () => {
+  const f = fixture(); await f.authorize();
+  for (let batch = 0; batch < 5; batch++) {
+    await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456',
+      records: Array.from({ length: 20 }, (_, index) => record(`history-${batch}-${index}`, 'ie')) });
+  }
+  const before = f.queryReads;
+  const response = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456',
+    records: [record('first-gift-record', 'ie')], themeState: starter('adventurer') });
+  assert.equal(response.ok, true, response.message);
+  assert.equal(f.queryReads, before, 'incoming proof meets the claim without a paginated collection read');
+});
+
+test('new exploration-earned basic themes remain readable by published clients without downgrading canonical receipts', async () => {
+  const f = fixture(); await f.authorize();
+  const ids = ['ie', 'mbti', 'enneagram', 'bigfive', 'shadow', 'sbti', 'firstreaction', 'historicalecho'];
+  const basic = ['adventurer', 'romantic', 'observer'];
+  const themeState = { version: 1, selectedId: 'observer', starterClaimed: true,
+    unlocked: basic.concat('moon').map(themeId => ({ themeId, source: 'exploration', unlockedAt: f.time() })) };
+  const created = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456',
+    records: ids.map((id, index) => record(`coexist-${index}`, id)), themeState });
+  assert.equal(created.ok, true, created.message);
+  const canonical = () => f.rows('treehub_users')[0].themeState;
+  assert.ok(canonical().unlocked.every(grant => grant.source === 'exploration'));
+  const legacyAccepts = grant => basic.includes(grant.themeId)
+    ? ['starter', 'rewarded-video'].includes(grant.source)
+    : ['exploration', 'rewarded-video'].includes(grant.source);
+  for (const themeRulesVersion of [undefined, 1, '2']) {
+    const pulled = await f.call('syncArchive', { operation: 'pull', consentId: 'consent-device-a-123456', themeRulesVersion });
+    assert.equal(pulled.ok, true, pulled.message);
+    assert.ok(pulled.themeState.unlocked.every(legacyAccepts), 'published validGrant can read every projected receipt');
+    assert.equal(pulled.themeState.unlocked.find(grant => grant.themeId === 'moon').source, 'exploration');
+    const exported = await f.call('exportMyData', { themeRulesVersion });
+    assert.deepEqual(exported.themeState, pulled.themeState, 'export and pull apply the same compatibility projection');
+    assert.ok(canonical().unlocked.every(grant => grant.source === 'exploration'), 'read projection never modifies stored sources');
+  }
+  const legacy = await f.call('syncArchive', { operation: 'pull', consentId: 'consent-device-a-123456', themeRulesVersion: undefined });
+  legacy.themeState.unlocked[0].unlockedAt = '2026-11-05T00:00:00.000Z';
+  const reuploaded = await f.call('syncArchive', { operation: 'push', consentId: 'consent-device-a-123456',
+    themeRulesVersion: undefined, records: [], themeState: legacy.themeState });
+  assert.equal(reuploaded.ok, true, reuploaded.message);
+  const modern = await f.call('syncArchive', { operation: 'pull', consentId: 'consent-device-a-123456', themeRulesVersion: 2 });
+  assert.ok(modern.themeState.unlocked.every(grant => grant.source === 'exploration'), 'legacy roundtrip cannot change the canonical acquisition source');
+  assert.equal(modern.themeState.unlocked[0].unlockedAt, '2026-11-05T00:00:00.000Z');
+  const modernExport = await f.call('exportMyData', { themeRulesVersion: 2 });
+  assert.deepEqual(modernExport.themeState, modern.themeState);
+  const legacyAuthorization = await f.call('authorizeBackup', {
+    themeRulesVersion: undefined, consent: { id: 'consent-legacy-device-123456', policyVersion, acceptedAt: f.time() }, seed: 'another-device'
+  });
+  assert.equal(legacyAuthorization.ok, true);
+  assert.ok(canonical().unlocked.every(grant => grant.source === 'exploration'));
 });
 
 test('two legitimate starter choices on separate offline devices merge without blocking report recovery', async () => {

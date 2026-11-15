@@ -10,14 +10,23 @@
         <view class="scene-spark spark-one"></view><view class="scene-spark spark-two"></view><view class="scene-spark spark-three"></view>
       </view>
       <view class="tree-shortcut" bindtap="openTree" hover-class="card-pressed" role="button" aria-label="打开我的树">
-        <view class="shortcut-thumb"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit"/><view wx:else class="shortcut-leaf"></view></view><view class="shortcut-copy"><view class="shortcut-title">我的树<text>{{themeName}}</text></view><view class="shortcut-note">{{tree.uniqueCount ? '再探索 1 项，让树与伙伴带来新风景' : '完成首次探索，领取属于你的小世界'}}</view></view><text class="shortcut-arrow">›</text>
+        <view class="shortcut-thumb"><image wx:if="{{themeImage}}" src="{{themeImage}}" mode="aspectFit"/><view wx:else class="shortcut-leaf"></view></view><view class="shortcut-copy"><view class="shortcut-title">我的树<text>{{themeName}}</text></view><view class="shortcut-note">{{tree.uniqueCount ? '新测试长叶片，复测留下年轮' : '完成首次探索，领取属于你的小世界'}}</view></view><text class="shortcut-arrow">›</text>
       </view>
     </view>
 
     <view class="progress-panel">
       <view class="progress-heading"><text>我的探索进度</text><view>{{tree.uniqueCount}}<text> / {{cards.length}}</text></view></view>
       <view class="progress-nodes"><view class="progress-node" wx:for="{{leaves}}" wx:key="id"><view class="node-circle {{item.collected ? 'node-lit' : ''}}">{{item.collected ? '' : index + 1}}</view><view wx:if="{{index < leaves.length - 1}}" class="node-line {{item.collected ? 'node-line-lit' : ''}}"></view></view><view wx:if="{{moreLeafCount}}" class="more-leaves">+{{moreLeafCount}}</view></view>
-      <view class="reward-row" bindtap="exploreNext" hover-class="card-pressed" role="button"><view class="reward-copy"><view class="reward-title">{{rewardTitle}}</view></view><view class="reward-gift"><view class="gift-bow bow-left"></view><view class="gift-bow bow-right"></view><view class="gift-lid"></view><view class="gift-box"></view><view class="gift-ribbon"></view></view></view>
+      <view class="growth-rule">每项新测试点亮一片叶，复测记录同版本年轮。</view>
+      <view class="reward-row" bindtap="exploreReward" hover-class="card-pressed" role="button"><view class="reward-copy"><view class="reward-title">{{rewardTitle}}</view></view><view class="reward-gift"><view class="gift-bow bow-left"></view><view class="gift-bow bow-right"></view><view class="gift-lid"></view><view class="gift-box"></view><view class="gift-ribbon"></view></view></view>
+    </view>
+
+    <view wx:if="{{recentExploration}}" class="recent-exploration">
+      <view class="recent-topline"><text>上一次，认真回答的你</text><view class="recent-ring-mark">{{recentExploration.growthLabel}}</view></view>
+      <view class="recent-result">{{recentExploration.title}}</view>
+      <view class="recent-meta">{{recentExploration.testName}} · {{recentExploration.dateLabel}}<text wx:if="{{recentExploration.contextLabel}}"> · {{recentExploration.contextLabel}}</text></view>
+      <view wx:if="{{recentExploration.restoredFromSummary && !recentExploration.contextLabel}}" class="recent-summary-note">从云端摘要找回的记录，当时状态未同步。</view>
+      <view class="recent-actions"><button class="recent-retake" bindtap="retakeRecent">最近有点不一样，再记录一次 <text>→</text></button><button class="recent-review" bindtap="openRecentReport">回看这次</button></view>
     </view>
 
     <view class="section-heading"><view><view class="section-title">选择测试，开始探索</view><view class="section-subtitle">收藏不一样的视角，认识完整的自己</view></view><view class="section-caption" bindtap="toggleFilters"><text>{{filterOpen ? '收起筛选' : category === 'all' ? '全部测试' : '已筛选'}}</text><view class="filter-chevron {{filterOpen ? 'filter-open' : ''}}"></view></view></view>

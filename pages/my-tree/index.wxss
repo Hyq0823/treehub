@@ -33,5 +33,10 @@ page { background:#e3f3ff; color:#18365e; }
 .tile-art-pending { opacity:0; }.tile-missing-hidden,.tile-lock-hidden,.tile-selected-hidden { display:none; }
 .tile-lock { position:absolute; z-index:3; right:10rpx; top:10rpx; min-width:34rpx; height:34rpx; padding:0 8rpx; border-radius:18rpx; color:#fff; background:#607086b8; font-size:18rpx; line-height:34rpx; box-sizing:border-box; }
 .theme-preview-banner { background:#eef5ffed; }
+.unlock-progress-card { position:relative; z-index:3; margin:0 0 23rpx; padding:22rpx 25rpx; border-radius:24rpx; border:1rpx solid #dce9fa; background:#ffffffd9; }
+.unlock-progress-top { display:flex; align-items:center; justify-content:space-between; gap:16rpx; color:#476b97; font-size:23rpx; }
+.unlock-progress-track { margin-top:15rpx; height:8rpx; overflow:hidden; border-radius:8rpx; background:#e7f0fc; }
+.unlock-progress-track > view { height:100%; border-radius:inherit; background:linear-gradient(90deg,#9ac9ff,var(--theme-color)); }
+.unlock-progress-hint { margin-top:13rpx; color:#7893b2; font-size:21rpx; line-height:1.6; }
 .async-image-hidden { opacity:0; pointer-events:none; }.async-image-ready { opacity:1; }.async-placeholder-hidden { visibility:hidden; opacity:0; pointer-events:none; }.companion-fallback { position:absolute; inset:0; color:#6e90bd; font-size:85rpx; line-height:210rpx; text-align:center; }
 @media (prefers-reduced-motion:reduce) { .hero-image { animation:none; }.theme-tile { transition:none; } }

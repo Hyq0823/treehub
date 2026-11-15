@@ -7,8 +7,9 @@ const { getTheme } = require('../../data/themes.js');
 const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
-const CARD_THEMES = { firstreaction: 'adventurer', relationshiprhythm: 'romantic', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
-const DISPLAY_ORDER = ['firstreaction', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
+const { getRecentExploration } = require('../../utils/recent-exploration.js');
+const CARD_THEMES = { firstreaction: 'adventurer', cityvibe: 'wanderer', relationshiprhythm: 'romantic', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
+const DISPLAY_ORDER = ['firstreaction', 'cityvibe', 'relationshiprhythm', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();
@@ -31,15 +32,16 @@ function buildGreeting(uniqueCount) {
 Page({
   data: {
     categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false,
-    tree: null, leaves: [], recommendation: null, error: '',
+    tree: null, leaves: [], recommendation: null, recentExploration: null, error: '',
     themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
     themeColor: '#318aff', themePale: '#e9f5ff',
-    artState: 'loading', rewardTitle: '', shareImagePath: DEFAULT_SHARE_IMAGE,
+    artState: 'loading', rewardTitle: '', rewardTargetTestId: '', rewardReady: false, shareImagePath: DEFAULT_SHARE_IMAGE,
     greetingLead: '你好，', greetingTitle: '从一份好奇开始认识自己', greetingNote: '第一片探索叶，正在等你点亮。'
   },
   onLoad() { report(EVENTS.HALL_VIEW); },
   onShow() {
     this._hidden = false;
+    this._recentOpening = false;
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/test-hall/index');
     this.loadTests();
     const observe = () => { if (!this._hidden) this.setupCardObserver(); };
@@ -50,7 +52,8 @@ Page({
       const state = archive.getArchive();
       const tree = getTree(state, catalog);
       let themeId = 'adventurer';
-      try { themeId = themes.getState(state.records).selectedId || themeId; } catch (error) {}
+      let themeState = null;
+      try { themeState = themes.getState(state.records); themeId = themeState.selectedId || themeId; } catch (error) {}
       const theme = getTheme(themeId);
       const displayRank = id => DISPLAY_ORDER.includes(id) ? DISPLAY_ORDER.indexOf(id) : DISPLAY_ORDER.length;
       const orderedCatalog = catalog.slice().sort((first, second) => displayRank(first.id) - displayRank(second.id));
@@ -83,11 +86,17 @@ Page({
       });
       const recommendation = cards.find(t => !t.collected) || null;
       const greeting = buildGreeting(tree.uniqueCount);
+      const nextUnlock = themeState && themeState.nextUnlock;
+      const allThemesOwned = themeState && Array.isArray(themeState.catalog) && themeState.catalog.length && themeState.catalog.every(item => item.unlocked);
+      const rewardTitle = !tree.uniqueCount ? '首测完成，领取树与伙伴' : nextUnlock
+        ? nextUnlock.remaining === 0 ? nextUnlock.hint || `回看报告，领取「${nextUnlock.name}」`
+          : nextUnlock.targetTestId ? nextUnlock.hint : `再探索 ${nextUnlock.remaining} 项，长出「${nextUnlock.name}」`
+        : allThemesOwned ? '主题已收齐，新的探索继续长叶片' : '新探索长叶片，复测留年轮';
       this.setData({
-        tree, cards, recommendation, error: '', themeId,
+        tree, cards, recommendation, recentExploration: getRecentExploration(state.records), error: '', themeId,
         themeName: theme && theme.name || '我的成长小世界',
         themeColor: theme && theme.color || '#318aff', themePale: theme && theme.pale || '#e9f5ff',
-        rewardTitle: !tree.uniqueCount ? '首测完成，领取树与伙伴' : tree.uniqueCount < 5 ? '再探索 1 项，让树长出新枝' : '你的极光，已经可以被发现',
+        rewardTitle, rewardTargetTestId: nextUnlock && nextUnlock.targetTestId || '', rewardReady: !!(nextUnlock && nextUnlock.remaining === 0),
         greetingLead: greeting.lead, greetingTitle: greeting.title, greetingNote: greeting.note,
         leaves: cards.slice(0, 8).map((card, index) => ({ id: card.id, collected: index < tree.uniqueCount })),
         moreLeafCount: Math.max(0, cards.length - 8),
@@ -281,6 +290,36 @@ Page({
       ? `/pages/test-answer/index?id=${this.data.recommendation.id}&context=ordinary`
       : `/pages/test-detail/index?id=${this.data.recommendation.id}` });
     else this.openArchive();
+  },
+  exploreReward() {
+    if (this.data.rewardReady) {
+      if (this.data.recentExploration) this.openRecentReport(); else this.openArchive();
+      return;
+    }
+    const card = this.data.cards.find(item => item.id === this.data.rewardTargetTestId && !item.collected);
+    if (!card) { this.exploreNext(); return; }
+    wx.navigateTo({ url: card.quickStart ? `/pages/test-answer/index?id=${encodeURIComponent(card.id)}&context=ordinary`
+      : `/pages/test-detail/index?id=${encodeURIComponent(card.id)}` });
+  },
+  retakeRecent() {
+    const recent = this.data.recentExploration;
+    if (this._hidden || this._recentOpening || !recent) return;
+    this._recentOpening = true;
+    wx.navigateTo({ url: `/pages/test-detail/index?id=${encodeURIComponent(recent.testId)}`,
+      fail: () => {
+        this._recentOpening = false;
+        if (!this._hidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
+      } });
+  },
+  openRecentReport() {
+    const recent = this.data.recentExploration;
+    if (this._hidden || this._recentOpening || !recent) return;
+    this._recentOpening = true;
+    wx.navigateTo({ url: `/packages/reports/index?id=${encodeURIComponent(recent.testId)}&recordId=${encodeURIComponent(recent.recordId)}`,
+      fail: () => {
+        this._recentOpening = false;
+        if (!this._hidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
+      } });
   },
   openArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },

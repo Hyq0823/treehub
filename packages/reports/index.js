@@ -17,6 +17,7 @@ const RESULT_VISUALS = {
   relationshiprhythm: { symbol: '♡', title: '彼此靠近的节奏', note: '连接 · 表达 · 空间 · 认真回应' },
   gentleboundaries: { symbol: '❧', title: '温柔也有自己的轮廓', note: '看见需要，慢慢练习说清楚' },
   emotionalrecharge: { symbol: '☼', title: '你的小小充电站', note: '找到此刻愿意试试的恢复入口' },
+  cityvibe: { symbol: '⌂', title: '城市生活气质图', note: '节奏 · 连接 · 环境 · 探索 · 预算' },
   historicalecho: { symbol: '卷', title: '与古人的隔空回信', note: '穿越时间，找到一种生活共鸣' },
   lifepath: { symbol: '⌁', title: '你的生活路线图', note: '轨道与旷野，都可以由你定义' },
   hiddentalent: { symbol: '✧', title: '给天赋的一封邀请函', note: '从愿意做的小事，发现新的可能' },
@@ -73,12 +74,16 @@ Page({
     premiumSavePending: false, premiumSaving: false, premiumSaveError: '', comparison: null,
     premiumPage: 'portrait', themeId: '', themeHeroUrl: '', themeName: '', themeQuote: '', companionNames: '', themeStatus: '',
     starterReveal: false, starterClaimedNow: false, starterBusy: false, starterError: '',
-    starterThemeId: '', starterThemes: [], starterCurrent: null, starterImages: {}, starterImage: '', starterShareImage: DEFAULT_SHARE_IMAGE
+    starterThemeId: '', starterThemes: [], starterCurrent: null, starterImages: {}, starterImage: '', starterShareImage: DEFAULT_SHARE_IMAGE,
+    resultShareBusy: false, resultShareImage: '', resultShareError: '', resultShareNote: ''
   },
   onLoad(options) {
     this._disposed = false;
     this._themeRequest = 0;
     this._starterShareCache = Object.create(null);
+    this._resultShareCache = Object.create(null);
+    this._resultShareRequest = (this._resultShareRequest || 0) + 1;
+    this._resultShareContextKey = '';
     try {
       const test = require('../../data/test-loader.js').getTest(options.id);
       if (!test) {
@@ -123,6 +128,7 @@ Page({
         profileMode: test.scoring.strategy === 'profile',
         profileDimensions: test.scoring.strategy === 'profile' && deepReport ? deepReport.dimensions : [],
         deepReport, comparison, relatedTests,
+        resultShareBusy: false, resultShareImage: '', resultShareError: '', resultShareNote: '',
         rankingProfile,
         rankingGridWidth: rankingProfile.length * 108,
         rankingLeadText: rankingProfile.length ? result.rankingMode === 'aggregate'
@@ -257,6 +263,75 @@ Page({
   },
   closeStarterReveal() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); },
   openStarterTree() { this.cancelStarterShareTimer(true); this.setData({ starterReveal: false }); wx.switchTab({ url: '/pages/my-tree/index' }); },
+  resultShareSnapshot() {
+    const dimensions = this.data.profileMode ? this.data.profileDimensions : this.data.basicDimensions;
+    const portrait = this.data.result.portrait;
+    return {
+      recordId: this.data.record && this.data.record.id || '', testId: this.data.test.id || '',
+      testName: this.data.test.name || '人格测试树', title: this.data.result.title || '这一次的我',
+      tagline: this.data.result.tagline || this.data.result.summary || '', date: this.data.savedAt || '',
+      themeId: this.data.themeId || '', heroUrl: this.data.themeHeroUrl || '', themeName: this.data.themeName || '',
+      color: this._resultShareStyle && this._resultShareStyle.color || '#80a9de',
+      pale: this._resultShareStyle && this._resultShareStyle.pale || '#eef5ff',
+      symbol: this.data.resultIcon || '✦',
+      mode: this.data.profileMode ? 'profile' : this.data.rankingProfile.length ? 'priority' : 'clarity',
+      dimensions: (dimensions || []).map(item => ({ id: item.id, label: item.label, percent: item.percent, rank: item.rank })),
+      keywords: portrait && portrait.keywords || [this.data.result.title || '本次探索', '允许自己慢慢改变']
+    };
+  },
+  resultShareKey(snapshot = this.resultShareSnapshot()) {
+    return JSON.stringify([snapshot.recordId, snapshot.testId, snapshot.title, snapshot.tagline,
+      snapshot.themeId, snapshot.heroUrl, snapshot.mode, snapshot.dimensions]);
+  },
+  refreshResultShareContext() {
+    const key = this.resultShareKey();
+    if (key === this._resultShareContextKey) return;
+    const updated = !!this._resultShareContextKey && !!(this.data.resultShareBusy || this.data.resultShareImage);
+    this._resultShareContextKey = key;
+    this._resultShareRequest = (this._resultShareRequest || 0) + 1;
+    const cached = this._resultShareCache && this._resultShareCache[key];
+    this.setData({ resultShareBusy: false, resultShareImage: cached && cached.path || '',
+      resultShareError: '', resultShareNote: cached && cached.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。'
+        : updated && !cached ? '主题画面已更新，可以重新制作结果卡。' : '' });
+  },
+  async prepareResultShareCard(event = {}) {
+    if (this._disposed || this.data.state !== 'ready' || this.data.adWatching || this.data.resultShareBusy) return;
+    const snapshot = this.resultShareSnapshot();
+    if (!snapshot.recordId || !snapshot.testId) return;
+    const key = this.resultShareKey(snapshot);
+    const force = !!(event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.force);
+    this._resultShareCache = this._resultShareCache || Object.create(null);
+    const cached = this._resultShareCache[key];
+    if (cached && !force) {
+      this.setData({ resultShareImage: cached.path, resultShareError: '',
+        resultShareNote: cached.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。' : '' });
+      return;
+    }
+    const request = this._resultShareRequest = (this._resultShareRequest || 0) + 1;
+    const isCancelled = () => this._disposed || request !== this._resultShareRequest || key !== this.resultShareKey();
+    this.setData({ resultShareBusy: true, resultShareError: '', resultShareNote: '' });
+    try {
+      // Load Canvas helpers only after the user requests a personal card. The
+      // card always uses free summary dimensions, independently of VIP status.
+      const image = await require('./result-share-card.js').buildResultShareCard(this,
+        Object.assign({}, snapshot, { selector: '#resultShareCanvas', isCancelled }));
+      if (isCancelled()) return;
+      this._resultShareCache[key] = image;
+      const keys = Object.keys(this._resultShareCache);
+      if (keys.length > 3) delete this._resultShareCache[keys[0]];
+      this.setData({ resultShareImage: image.path,
+        resultShareNote: image.artFallback ? '主题图片暂未载入，已用简洁树形生成。可稍后重新制作。' : '' });
+    } catch (error) {
+      if (!isCancelled()) this.setData({ resultShareError: error.message || '结果卡暂时未能生成，请稍后重试。' });
+    } finally {
+      if (!this._disposed && request === this._resultShareRequest) this.setData({ resultShareBusy: false });
+    }
+  },
+  previewResultShareCard() {
+    if (this._disposed || this.data.resultShareBusy) return;
+    const cached = this._resultShareCache && this._resultShareCache[this.resultShareKey()];
+    if (cached && cached.path) wx.previewImage({ current: cached.path, urls: [cached.path] });
+  },
   async loadReportTheme(records) {
     const request = ++this._themeRequest;
     try {
@@ -264,11 +339,18 @@ Page({
       const state = themes.getState(records);
       const current = state.catalog.find(item => item.id === state.selectedId);
       if (!current || current.hidden && !current.discovered) return;
+      const changed = this.data.themeId !== current.id;
+      this._resultShareStyle = { color: current.color, pale: current.pale };
       this.setData({ themeId: current.id, themeName: current.name, themeQuote: current.quote,
+        themeHeroUrl: changed ? '' : this.data.themeHeroUrl,
         companionNames: current.companions.map(item => item.name).join('与'),
         themeStatus: current.unlocked ? '已收藏' : '主题预览' });
+      this.refreshResultShareContext();
       const url = await require('../../utils/theme-assets.js').resolveThemeAsset(current.id);
-      if (!this._disposed && request === this._themeRequest) this.setData({ themeHeroUrl: url || '' });
+      if (!this._disposed && request === this._themeRequest) {
+        this.setData({ themeHeroUrl: url || '' });
+        this.refreshResultShareContext();
+      }
     } catch (error) {
       // A theme asset cannot prevent access to an already saved report.
     }
@@ -351,6 +433,8 @@ Page({
   },
   onUnload() {
     this._disposed = true;
+    this._resultShareRequest = (this._resultShareRequest || 0) + 1;
+    this._resultShareCache = null;
     this._reportAssetRequest = (this._reportAssetRequest || 0) + 1;
     this.cancelStarterShareTimer(true);
     this._themeRequest++;
@@ -392,6 +476,7 @@ Page({
       };
     }
     const profileTitles = {
+      cityvibe: `我的城市生活气质是「${this.data.result.title}」，你向往哪种日常？`,
       relationshiprhythm: `我的相处节奏是「${this.data.result.title}」，你呢？`,
       gentleboundaries: `温柔也有边界｜我的结果是「${this.data.result.title}」`,
       emotionalrecharge: `我是「${this.data.result.title}」，你的充电入口是什么？`,
@@ -400,11 +485,12 @@ Page({
       hiddentalent: `我的隐藏偏好是「${this.data.result.title}」，你愿意试试哪种可能？`
     };
     const firstPriority = this.data.rankingProfile && this.data.rankingProfile[0];
+    const resultCard = this._resultShareCache && this._resultShareCache[this.resultShareKey()];
     return {
       title: profileTitles[this.data.test.id] || (firstPriority ? `${this.data.rankingProfile.length}件事一起发生，我先保护「${firstPriority.label}」｜你会怎么排？` :
         this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`),
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
-      imageUrl: DEFAULT_SHARE_IMAGE
+      imageUrl: resultCard && resultCard.path || DEFAULT_SHARE_IMAGE
     };
   },
   onShareTimeline() {

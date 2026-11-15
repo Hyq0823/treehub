@@ -3,6 +3,7 @@
 const { catalog } = require('../data/test-catalog.js');
 const display = require('../data/exploration.js');
 const NEXT = {
+  cityvibe: ['lifepath', 'emotionalrecharge'],
   relationshiprhythm: ['gentleboundaries', 'emotionalrecharge'],
   gentleboundaries: ['emotionalrecharge', 'relationshiprhythm'],
   emotionalrecharge: ['gentleboundaries', 'relationshiprhythm'],

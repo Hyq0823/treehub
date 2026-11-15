@@ -105,8 +105,10 @@ test('explicit backup sends result summaries and theme grants, preserving privat
   const status = await f.sync.syncArchive();
   assert.equal(status.state, 'synced');
   const authorize = f.apiCalls().find(call => call.data.action === 'authorizeBackup');
+  assert.equal(authorize.data.themeRulesVersion, 2);
   assert.ok(authorize.data.consent.id);
   const push = f.apiCalls().find(call => call.data.operation === 'push');
+  assert.equal(push.data.themeRulesVersion, 2);
   assert.equal(push.name, 'treehub-api');
   assert.equal(push.data.records[0].id, 'record-1');
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'answers'), false);
@@ -114,6 +116,7 @@ test('explicit backup sends result summaries and theme grants, preserving privat
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'lifeContext'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(push.data.records[0], 'notes'), false);
   assert.equal(push.data.themeState.unlocked[0].themeId, 'adventurer');
+  assert.ok(f.apiCalls().filter(call => call.data.operation === 'pull').every(call => call.data.themeRulesVersion === 2));
   const merged = f.archive.getArchive();
   assert.equal(merged.seed, 'cloud-seed');
   assert.deepEqual(merged.records[0].answers, before.records[0].answers);
@@ -215,6 +218,7 @@ test('failed cloud deletion stays visible and can be retried without re-enabling
 test('cloud export includes theme rights and never expands the result field whitelist', async () => {
   const f = fixture();
   const result = await f.sync.exportCloudData();
+  assert.ok(f.apiCalls().filter(call => call.data.action === 'exportMyData').every(call => call.data.themeRulesVersion === 2));
   assert.equal(result.themeState.selectedId, 'adventurer');
   assert.equal(result.records.length, 1);
   assert.equal(Object.prototype.hasOwnProperty.call(result.records[0], 'answers'), false);

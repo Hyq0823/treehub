@@ -6,6 +6,7 @@ module.exports = {
   ],
   tests: {
     firstreaction: { title: '第一反应排序测试', category: 'emotion', prompt: '五件事一起发生，你本能会先保护什么？', symbol: '✦', art: 'compass', color: '#778eea', assetPath: 'tests/first-reaction/cover.webp', quickStart: true },
+    cityvibe: { title: '你的城市生活气质', category: 'playful', prompt: '如果生活是一座城，你想住进怎样的日常？', symbol: '⌂', art: 'compass', color: '#79a5ba' },
     relationshiprhythm: { title: '亲密相处节奏', category: 'relationship', prompt: '想靠近，也想保留自己：找到舒服的相处距离', symbol: '♡', art: 'leaves', color: '#a38dc9' },
     gentleboundaries: { title: '温柔边界测试', category: 'relationship', prompt: '体贴别人时，怎样也把自己的感受放进来？', symbol: '◇', art: 'facets', color: '#79a8bc' },
     emotionalrecharge: { title: '情绪充电地图', category: 'emotion', prompt: '最近有点累？看看什么小事更能帮你恢复一点能量', symbol: '☘', art: 'energy', color: '#89ad9f' },

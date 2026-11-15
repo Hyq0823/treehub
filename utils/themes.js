@@ -10,7 +10,7 @@ const validGrant = grant => {
   const theme = grant && getTheme(grant.themeId);
   return !!theme && validDate(grant.unlockedAt) &&
     (grant.source === 'rewarded-video' ||
-      grant.source === 'exploration' && !theme.starter && !!(theme.unlockTest || theme.requiredExplorations) ||
+      grant.source === 'exploration' && !!(theme.unlockTest || theme.requiredExplorations) ||
       grant.source === 'starter' && theme.starter === true);
 };
 const EMPTY = () => ({ version: 1, selectedId: 'adventurer', starterClaimed: false, unlocked: [] });
@@ -52,6 +52,7 @@ function recommendedTheme(records) {
     relationshiprhythm: { warm: 'romantic', parallel: 'observer', direct: 'adventurer', slow: 'romantic' },
     gentleboundaries: { guardian: 'romantic', negotiator: 'romantic', practicing: 'observer', clear: 'adventurer' },
     emotionalrecharge: { quiet: 'observer', connection: 'romantic', movement: 'adventurer', sensory: 'romantic', structure: 'observer' },
+    cityvibe: { metropolitan: 'adventurer', coastal: 'romantic', cultural: 'adventurer', nature: 'observer' },
     historicalecho: { liqingzhao: 'romantic', sushi: 'adventurer', wangyangming: 'observer', libai: 'adventurer', xuxiake: 'adventurer', taoyuanming: 'observer', wuzetian: 'adventurer', banzhao: 'observer', xiedaoyun: 'romantic', wangwei: 'romantic', shenkuo: 'observer', xinqiji: 'adventurer' },
     lifepath: { track: 'observer', wild: 'adventurer', dual: 'adventurer', builder: 'observer' },
     hiddentalent: { insight: 'observer', expression: 'romantic', creation: 'adventurer', coordination: 'adventurer', execution: 'adventurer' }
@@ -65,9 +66,31 @@ function earnedThemeIds(records) {
   const source = recordsOrLocal(records).filter(record => record.scoringVersion === '2' && !record.migrated);
   const completed = new Set(source.map(record => record.testId));
   const count = uniqueTests(source);
-  return new Set(THEMES.filter(theme => !theme.starter &&
+  return new Set(THEMES.filter(theme =>
     (theme.unlockTest && completed.has(theme.unlockTest) || theme.requiredExplorations && count >= theme.requiredExplorations)
   ).map(theme => theme.id));
+}
+
+function unlockProgress(theme, state, count, completed, owned, recommendation) {
+  const firstStarter = theme.starter && !state.starterClaimed && theme.id === recommendation;
+  const requiredCount = firstStarter ? 1 : theme.unlockTest ? 1 : theme.requiredExplorations || 1;
+  const matchingTest = theme.unlockTest && testCatalog.find(test => test.id === theme.unlockTest);
+  const complete = owned || (theme.unlockTest && !firstStarter
+    ? completed.has(theme.unlockTest)
+    : count >= requiredCount);
+  const completedCount = owned ? requiredCount : theme.unlockTest && !firstStarter
+    ? complete ? 1 : 0 : Math.min(count, requiredCount);
+  const remaining = Math.max(0, requiredCount - completedCount);
+  const hint = owned ? '已收藏，可回看自己的小世界' : firstStarter
+    ? count ? '首测已完成，可领取为你推荐的主题' : '完成首测，免费领取一套主题与伙伴'
+    : matchingTest ? `完成「${matchingTest.name}」后长出`
+      : `已探索 ${completedCount} / ${requiredCount} 类，还差 ${remaining} 类不同测试`;
+  return {
+    id: theme.id, name: theme.hidden && !owned && count < theme.requiredTests ? '隐藏的极光' : theme.name,
+    hint, completedCount, requiredCount, remaining,
+    progressPercent: Math.round(completedCount / requiredCount * 100),
+    targetTestId: matchingTest && !owned ? matchingTest.id : ''
+  };
 }
 function getState(records) {
   const state = read();
@@ -75,6 +98,7 @@ function getState(records) {
   const uniqueCount = uniqueTests(source);
   const catalogCount = testCatalog.length;
   const recommendation = recommendedTheme(source);
+  const completed = new Set(source.filter(record => record.scoringVersion === '2' && !record.migrated).map(record => record.testId));
   const owned = new Set(state.unlocked.map(grant => grant.themeId));
   const earned = earnedThemeIds(source);
   let changed = false;
@@ -91,13 +115,21 @@ function getState(records) {
     if (uniqueCount === 1) state.starterClaimed = true;
   }
   if (changed) { write(state); schedule(); }
-  return Object.assign(state, {
-    uniqueCount, catalogCount, recommendation,
-    catalog: THEMES.map(theme => Object.assign(copy(theme), {
+  const catalog = THEMES.map(theme => {
+    const progress = unlockProgress(theme, state, uniqueCount, completed, owned.has(theme.id), recommendation);
+    return Object.assign(copy(theme), {
       unlocked: owned.has(theme.id), discovered: owned.has(theme.id) || !theme.hidden || uniqueCount >= theme.requiredTests,
       recommended: recommendation === theme.id, selected: state.selectedId === theme.id, earned: earned.has(theme.id),
-      pending: !!getPendingGrant(theme.id)
-    }))
+      pending: !!getPendingGrant(theme.id),
+      unlockProgress: progress, progressHint: progress.hint
+    });
+  });
+  const next = catalog.filter(theme => !theme.unlocked).sort((a, b) =>
+    a.unlockProgress.remaining - b.unlockProgress.remaining ||
+    a.unlockProgress.requiredCount - b.unlockProgress.requiredCount)[0];
+  return Object.assign(state, {
+    uniqueCount, catalogCount, recommendation, catalog,
+    nextUnlock: next ? copy(next.unlockProgress) : null
   });
 }
 function ensureDiscoverable(themeId, records) {

@@ -6,6 +6,7 @@ const STATE_KEY = 'personalityTreeCloudSync.v1';
 const PUSH_BATCH_SIZE = 20;
 const PULL_PAGE_SIZE = 100;
 const AUTO_SYNC_FRESH_MS = 5 * 60 * 1000;
+const THEME_RULES_VERSION = 2;
 let initialized = false;
 let inFlight = null;
 let syncTimer = null;
@@ -66,7 +67,7 @@ function initializePublicAssets() {
 }
 
 async function callApi(action, data) {
-  const payload = Object.assign({ action, clientSchemaVersion: cloudConfig.schemaVersion }, data || {});
+  const payload = Object.assign({ action, clientSchemaVersion: cloudConfig.schemaVersion }, data || {}, { themeRulesVersion: THEME_RULES_VERSION });
   Object.keys(payload).forEach(key => { if (payload[key] === undefined) delete payload[key]; });
   const response = await wx.cloud.callFunction({
     name: cloudConfig.functionName,
