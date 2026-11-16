@@ -12,7 +12,7 @@
 
 发布前执行 `node scripts/check-release.cjs`，检查运行脚本依赖、云素材 ID 及客户端与云函数的授权版本是否一致；缺少题库等运行模块时会列出引用文件和缺失路径。检查通过后仍需在微信后台完成实际发布配置并进行真机验收。产品、分享与搜一搜策略见 [`产品与微信搜一搜.md`](docs/产品与微信搜一搜.md)，数据与平台声明见 [`隐私声明与备案填写清单.md`](docs/隐私声明与备案填写清单.md)。
 
-无需 npm 安装。逻辑测试使用 Node.js 24（读取原有 ESM 题库）：
+无需 npm 安装。逻辑测试与发布校验使用 Node.js 24（读取原有 ESM 题库）：
 
 ```sh
 node --test tests/*.test.cjs
@@ -30,6 +30,8 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 ```
 
 手机 UI 辅助预览与三档宽度验收见 [docs/UI还原与验收.md](docs/UI还原与验收.md)。关系与情绪测试、性能对照见 [关系与情绪轻测试](docs/关系与情绪轻测试.md)；专属结果卡、最近年轮、城市测试与兼容发布步骤见 [分享与年轮迭代](docs/分享与年轮迭代.md)。本机作答进度、竖版收藏卡和档案分页见 [持续探索与收藏迭代](docs/持续探索与收藏迭代.md)。
+
+本轮首页续答／方向引导、同版本「两次的我」与年轮收藏卡见 [复测对照与回访引导](docs/复测对照与回访引导.md)。题库保持十五套，业务图片不增加。
 
 编译检查与 Node 页面控制器测试不替代微信真机测试。验证流程：首次进入 → 选卡 → 完成十五套测试中的一项 → 已保存报告 → 我的档案 → 再测一次 → 对照两次历史报告 → 查看树的成长记录。还应确认退出重开后数据保留，以及清理存储后的首次进入状态。
 
@@ -72,6 +74,9 @@ node -e "const c=require('/tmp/treehub-compiler/node_modules/miniprogram-compile
 - `packages/reports/result-share-card.js`：用户主动制作时才加载的专属结果卡绘图模块；免费维度、共鸣短句和已解析远端树图绘成 5:4 聊天卡或 3:4 收藏长图，两种格式独立缓存，聊天始终使用横版。图片失败仍可成卡；记录、主题、资源地址共同决定缓存，未获取相册写入权限。
 - `utils/answer-drafts.js`：独立本机草稿，500 ms 合并写入，离页补存，版本校验后才恢复；报告成功保存后清理，本机会话凭据阻止重复保存，原始选项与凭据不加入云备份。
 - `utils/archive-view.js`：一次建立记录索引，首屏只传最新摘要；历史每次展开五条，避免复测越多首屏视图数据越大。
+- `utils/exploration-guide.js`：利用轻量测试信息和已读取的档案生成回访引导，有草稿时明确继续，无草稿时按用户选择的方向推荐新探索或阶段复测；不请求云端、不推断情绪。
+- `data/draft-manifest.js`：首页草稿摘要校验使用的自动生成元数据；题库更新后运行 `node scripts/update-draft-manifest.cjs`，发布检查会拒绝过期元数据。
+- `packages/reports/compare/`：同版本两份记录的私有对照页，历史基准每批展示五条；`comparison-model.js` 校验可比性和当前报告的维度权限，`comparison-share-card.js` 在用户请求时绘制无图片依赖的年轮收藏卡。
 - `utils/recent-exploration.js`：利用已读取历史作 O(n) 扫描，首页显示最近有效记录与同版本年轮；原始答案和树形快照不传入最近卡，也不为此加载题库或请求云端。
 - `packages/reports/premium-access.js`：记录已完成广告的待保存凭据，按测评记录补存权益；页面退出后停止广告加载与显示重试。
 - `data/trees.js`：树种寓意、解读文案和成长阶段；`utils/personality-tree.js`：匹配规则及可追溯依据。

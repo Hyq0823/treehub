@@ -32,3 +32,5 @@ page { color: #23426f; background: #f2f7ff; }
 .history-pagination { padding: 20rpx 0 16rpx; text-align: center; color: #8299b9; font-size: 22rpx; line-height: 1.6; }
 .history-load-more { width: 100%; min-width: 0; min-height: 88rpx; margin-top: 10rpx; padding: 0 18rpx; border-radius: 21rpx; background: #eef4ff; color: #5f86be; font-size: 24rpx; line-height: 88rpx; }
 .history-end { display: block; margin: 10rpx 0; color: #98abc5; font-size: 21rpx; }
+.group-actions .text-action { min-height: 44px; }
+.group-actions .comparison-action { color: #4284ca; text-align: center; }

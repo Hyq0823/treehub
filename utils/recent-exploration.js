@@ -60,4 +60,4 @@ function getRecentExploration(records) {
   };
 }
 
-module.exports = { getRecentExploration };
+module.exports = { getRecentExploration, validSummary };

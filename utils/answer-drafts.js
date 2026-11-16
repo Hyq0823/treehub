@@ -93,16 +93,61 @@ function getDraft(test, completedRecords = []) {
   return draft;
 }
 
-function hasPendingDraft(testId) {
+function hasPendingDraft(testId, completedRecords = []) {
   if (typeof testId !== 'string' || !/^[a-z0-9-]{1,64}$/.test(testId)) return false;
+  return !!readDraftSummary(completedRecords, testId);
+}
+
+function getLatestDraftSummary(completedRecords = []) { return readDraftSummary(completedRecords); }
+
+function readDraftSummary(completedRecords, requestedTestId) {
   try {
+    const manifest = require('../data/draft-manifest.js');
+    const { catalog } = require('../data/test-catalog.js');
+    const known = new Map(catalog.map(test => [test.id, test]));
+    const completed = new Set((Array.isArray(completedRecords) ? completedRecords : []).map(record => record && record.answerSessionId).filter(validSession));
     const now = Date.now();
-    return readStore().some(item => {
-      if (!object(item) || item.testId !== testId || item.status !== 'answering' || !validSession(item.sessionId)) return false;
-      const updated = Date.parse(item.updatedAt);
-      return Number.isFinite(updated) && now - updated <= MAX_AGE_MS && updated <= now + 5 * 60 * 1000;
-    });
-  } catch (error) { return false; }
+    let latest = null;
+    for (const draft of readStore()) {
+      if (requestedTestId && (!object(draft) || draft.testId !== requestedTestId)) continue;
+      const test = object(draft) && known.get(draft.testId);
+      const meta = test && manifest[test.id];
+      if (!meta || draft.status !== 'answering' || !validSession(draft.sessionId) || completed.has(draft.sessionId) ||
+          String(draft.testVersion) !== meta.testVersion || draft.scoringVersion !== SCORING_VERSION ||
+          draft.questionSignature !== meta.questionSignature || !getContext(draft.lifeContext) ||
+          !Array.isArray(draft.answers) || !Array.isArray(draft.questionOrder) ||
+          draft.answers.length !== meta.questions.length || draft.questionOrder.length !== meta.questions.length ||
+          new Set(draft.questionOrder).size !== meta.questions.length ||
+          !Number.isInteger(draft.currentQuestionIndex) || draft.currentQuestionIndex < 0 || draft.currentQuestionIndex >= meta.questions.length ||
+          JSON.stringify(draft).length > MAX_DRAFT_BYTES) continue;
+      const updated = Date.parse(draft.updatedAt);
+      if (!Number.isFinite(updated) || now - updated > MAX_AGE_MS || updated > now + 5 * 60 * 1000) continue;
+      const shapes = new Map(meta.questions.map(item => [item[0], item]));
+      let answeredCount = 0, selectedCount = 0, valid = true;
+      for (let index = 0; index < draft.questionOrder.length; index++) {
+        const shape = shapes.get(draft.questionOrder[index]), answer = draft.answers[index];
+        if (!shape) { valid = false; break; }
+        if (shape[2]) {
+          if (!Array.isArray(answer) || answer.length > shape[1] || new Set(answer).size !== answer.length ||
+              answer.some(value => !Number.isInteger(value) || value < 0 || value >= shape[1])) { valid = false; break; }
+          if (answer.length === shape[1]) answeredCount++;
+          selectedCount += answer.length;
+        } else {
+          if (!Number.isInteger(answer) || answer < -1 || answer >= shape[1]) { valid = false; break; }
+          if (answer !== -1) { answeredCount++; selectedCount++; }
+        }
+      }
+      if (!valid || !selectedCount || latest && updated <= Date.parse(latest.updatedAt)) continue;
+      const ranking = meta.questions.some(item => !!item[2]);
+      const totalSelections = meta.questions.reduce((sum, item) => sum + (item[2] ? item[1] : 1), 0);
+      latest = {
+        testId: test.id, name: test.name, answeredCount, totalCount: meta.questions.length, selectedCount,
+        allAnswered: answeredCount === meta.questions.length,
+        ranking, progressPercent: Math.round(selectedCount / totalSelections * 100), updatedAt: draft.updatedAt
+      };
+    }
+    return latest;
+  } catch (error) { return null; } // Starting a new exploration never depends on a readable draft.
 }
 
 function removeDraft(testId, sessionId) {
@@ -135,4 +180,4 @@ function saveDraft(test, state) {
   return validated;
 }
 
-module.exports = { STORAGE_KEY, MAX_DRAFTS, MAX_DRAFT_BYTES, MAX_AGE_MS, createSessionId, getDraft, hasPendingDraft, saveDraft, removeDraft };
+module.exports = { STORAGE_KEY, MAX_DRAFTS, MAX_DRAFT_BYTES, MAX_AGE_MS, createSessionId, getDraft, hasPendingDraft, getLatestDraftSummary, saveDraft, removeDraft };

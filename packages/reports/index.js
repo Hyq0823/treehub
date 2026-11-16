@@ -81,6 +81,8 @@ Page({
   },
   onLoad(options) {
     this._disposed = false;
+    this._premiumAccessNeedsRefresh = false;
+    this._comparisonNavigationRequest = 0;
     this._themeRequest = 0;
     this._starterShareCache = Object.create(null);
     this._resultShareCache = Object.create(null);
@@ -119,6 +121,7 @@ Page({
       const previous = currentIndex >= 0 ? history.slice(currentIndex + 1).find(item =>
         item.scoringVersion === record.scoringVersion && item.testVersion === record.testVersion) : null;
       const comparison = buildComparison(test, record, previous);
+      this._comparisonPreviousId = comparison && previous ? previous.id : '';
       const pendingGrant = !record.premiumUnlockedAt && premiumAccess.getPendingGrant(record.id);
       const rankingProfile = Array.isArray(result.ranking) ? result.ranking : [];
       this.setData({
@@ -156,7 +159,82 @@ Page({
     }
   },
   onShow() {
-    if (!this._disposed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
+    if (this._disposed) return;
+    this._comparisonHidden = false;
+    this._openingComparison = false;
+    this._comparisonNavigationRequest = (this._comparisonNavigationRequest || 0) + 1;
+    const refreshed = this._premiumAccessNeedsRefresh ? this.refreshPremiumAccess() : true;
+    if (refreshed && this.data.premiumSavePending) this.retryPremiumSave({ silent: true });
+  },
+  onHide() {
+    this._comparisonHidden = true;
+    this._premiumAccessNeedsRefresh = true;
+    this._comparisonNavigationRequest = (this._comparisonNavigationRequest || 0) + 1;
+  },
+  refreshPremiumAccess(options = {}) {
+    if (this._disposed || this.data.state !== 'ready' || !this.data.record || !this.data.record.id) return false;
+    const recordId = this.data.record.id;
+    let stored = null, message = '', invalidRecord = false;
+    try {
+      stored = archive.getRecord(recordId);
+      if (!stored || stored.id !== recordId || stored.testId !== this.data.test.id) {
+        stored = null;
+        invalidRecord = true;
+        message = '这份记录不在当前设备，请从档案重新打开。';
+      } else if (stored.premiumUnlockedAt !== undefined &&
+          (typeof stored.premiumUnlockedAt !== 'string' || !Number.isFinite(Date.parse(stored.premiumUnlockedAt)))) {
+        stored = null;
+        invalidRecord = true;
+        message = '解锁记录暂时无法核验，请稍后重试。';
+      }
+    } catch (error) { message = '解锁状态暂时未能读取，请稍后重试；已有权益仍保留。'; }
+    // A saved grant is sufficient. Do not read the smaller pending key again
+    // when another report instance has already persisted these exact rights.
+    if (stored && stored.premiumUnlockedAt) {
+      this._premiumAccessNeedsRefresh = false;
+      this.setData({ premiumUnlocked: true, premiumUnlockedAt: formatTime(stored.premiumUnlockedAt),
+        premiumSavePending: false, premiumSaving: false, premiumSaveError: '', adError: '' });
+      return true;
+    }
+    let pendingState;
+    try { pendingState = premiumAccess.getPendingGrantState(recordId); }
+    catch (error) { pendingState = { receipt: null, readable: false }; }
+    const receipt = pendingState && pendingState.receipt;
+    const completed = receipt && receipt.recordId === recordId && typeof receipt.completedAt === 'string' &&
+      Number.isFinite(Date.parse(receipt.completedAt));
+    if (completed && !invalidRecord) {
+      // A completed view kept in memory stays usable even if storage cannot be
+      // read. Persistence retries follow the existing completion-receipt flow.
+      this._premiumAccessNeedsRefresh = false;
+      this.setData({ premiumUnlocked: true, premiumUnlockedAt: formatTime(receipt.completedAt),
+        premiumSavePending: true, adError: '' });
+      return true;
+    }
+    if (!pendingState || pendingState.readable !== true) message = message || '解锁状态暂时未能读取，请稍后重试；已有权益仍保留。';
+    if (message) {
+      this._premiumAccessNeedsRefresh = true;
+      this.setData({ adError: message });
+      if (options.notify && !this.data.premiumUnlocked) wx.showToast({ title: '解锁状态未能读取，请重试', icon: 'none' });
+      return false;
+    }
+    this._premiumAccessNeedsRefresh = false;
+    if (this.data.adError) this.setData({ adError: '' });
+    return true;
+  },
+  openComparison() {
+    if (this._disposed || this._comparisonHidden || this._openingComparison || this.data.adWatching ||
+        !this.data.comparison || !this.data.test.id || !this.data.record || !this.data.record.id) return;
+    this._openingComparison = true;
+    const request = this._comparisonNavigationRequest = (this._comparisonNavigationRequest || 0) + 1;
+    const fail = () => {
+      if (this._disposed || request !== this._comparisonNavigationRequest) return;
+      this._openingComparison = false;
+      if (!this._disposed && !this._comparisonHidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
+    };
+    try {
+      wx.navigateTo({ url: `/packages/reports/compare/index?id=${encodeURIComponent(this.data.test.id)}&recordId=${encodeURIComponent(this.data.record.id)}` +
+        (this._comparisonPreviousId ? `&previousRecordId=${encodeURIComponent(this._comparisonPreviousId)}` : ''), fail });
+    } catch (error) { fail(); }
   },
   async loadResultAssets(result, rankingProfile) {
     const paths = Array.from(new Set([result && result.assetPath].concat(
@@ -404,7 +482,10 @@ Page({
     });
   },
   async showPremiumAd() {
-    if (this._disposed || !this.data.premiumAvailable || this.data.adWatching) return;
+    if (this._disposed || this._comparisonHidden || !this.data.premiumAvailable || this.data.adWatching) return;
+    // Comparison can open another instance of this report. Recheck the exact
+    // record before starting a video so a newly saved grant never needs replay.
+    if (!this.refreshPremiumAccess({ notify: true })) return;
     if (this.data.premiumSavePending) {
       this.retryPremiumSave();
       return;
@@ -502,6 +583,7 @@ Page({
     }
     const profileTitles = {
       cityvibe: `我的城市生活气质是「${this.data.result.title}」，你向往哪种日常？`,
+      friendshipstyle: `我是「${this.data.result.title}」，你的友情配方是什么？`,
       relationshiprhythm: `我的相处节奏是「${this.data.result.title}」，你呢？`,
       gentleboundaries: `温柔也有边界｜我的结果是「${this.data.result.title}」`,
       emotionalrecharge: `我是「${this.data.result.title}」，你的充电入口是什么？`,
@@ -513,7 +595,7 @@ Page({
     const resultCard = this._resultShareCache && this._resultShareCache[this.resultShareKey()];
     return {
       title: profileTitles[this.data.test.id] || (firstPriority ? `${this.data.rankingProfile.length}件事一起发生，我先保护「${firstPriority.label}」｜你会怎么排？` :
-        this.data.comparison ? `${this.data.comparison.currentLabel}，我真的有些变了` : `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`),
+        `${this.data.test.name || '人格测试树'} · 一起探索自己的另一面`),
       path: this.data.test.id ? `/pages/test-detail/index?id=${encodeURIComponent(this.data.test.id)}` : '/pages/test-hall/index',
       imageUrl: resultCard && resultCard.path || DEFAULT_SHARE_IMAGE
     };

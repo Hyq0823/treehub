@@ -152,3 +152,6 @@ page {
 .primary-action::after {
   border: 0;
 }
+.snapshot-footer { min-height: 44px; align-items: center; }
+.snapshot-comparison { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 17rpx 21rpx; margin: 0 0 24rpx; border: 1rpx solid #d5e5fa; border-radius: 20rpx; color: #3f7dbd; background: #edf5ff; font-size: 23rpx; line-height: 1.6; }
+.snapshot-comparison::after { border: 0; }

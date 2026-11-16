@@ -4,6 +4,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const { validateRuntimeDependencies } = require('./runtime-dependencies.cjs');
 const issues = validateRuntimeDependencies(root);
+if (!require('./update-draft-manifest.cjs').checkManifest()) issues.push('草稿元数据已过期，请运行 node scripts/update-draft-manifest.cjs');
 const assets = require('../config/theme-assets.js');
 const localTestAssets = path.join(root, 'assets/tests');
 if (fs.existsSync(localTestAssets) && fs.readdirSync(localTestAssets, { recursive: true }).some(name =>

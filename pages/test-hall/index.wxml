@@ -21,12 +21,17 @@
       <view class="reward-row" bindtap="exploreReward" hover-class="card-pressed" role="button"><view class="reward-copy"><view class="reward-title">{{rewardTitle}}</view></view><view class="reward-gift"><view class="gift-bow bow-left"></view><view class="gift-bow bow-right"></view><view class="gift-lid"></view><view class="gift-box"></view><view class="gift-ribbon"></view></view></view>
     </view>
 
-    <view wx:if="{{recentExploration}}" class="recent-exploration">
-      <view class="recent-topline"><text>上一次，认真回答的你</text><view class="recent-ring-mark">{{recentExploration.growthLabel}}</view></view>
-      <view class="recent-result">{{recentExploration.title}}</view>
-      <view class="recent-meta">{{recentExploration.testName}} · {{recentExploration.dateLabel}}<text wx:if="{{recentExploration.contextLabel}}"> · {{recentExploration.contextLabel}}</text></view>
-      <view wx:if="{{recentExploration.restoredFromSummary && !recentExploration.contextLabel}}" class="recent-summary-note">从云端摘要找回的记录，当时状态未同步。</view>
-      <view class="recent-actions"><button class="recent-retake" bindtap="retakeRecent">最近有点不一样，再记录一次 <text>→</text></button><button class="recent-review" bindtap="openRecentReport">回看这次</button></view>
+    <view wx:if="{{explorationGuide}}" class="exploration-guide">
+      <view class="guide-kicker">{{explorationGuide.mode === 'resume' ? '上次的探索，还为你留着' : '此刻，想先看看哪一面？'}}</view>
+      <view wx:if="{{explorationGuide.mode !== 'resume'}}" class="guide-intents"><button wx:for="{{guideIntents}}" wx:key="id" class="guide-intent {{guideIntent === item.id ? 'guide-intent-selected' : ''}}" data-id="{{item.id}}" bindtap="selectGuideIntent" aria-pressed="{{guideIntent === item.id}}">{{item.label}}</button></view>
+      <view class="guide-result"><text class="guide-symbol">{{explorationGuide.symbol}}</text><view><view class="guide-test-title">{{explorationGuide.title}}</view><view class="guide-meta">{{explorationGuide.meta}}</view></view></view>
+      <view class="guide-prompt">{{explorationGuide.prompt}}</view>
+      <view wx:if="{{explorationGuide.mode === 'resume'}}" class="guide-progress"><view style="width:{{explorationGuide.progressPercent}}%"></view></view>
+      <button class="guide-open" bindtap="openExplorationGuide">{{explorationGuide.buttonLabel}}</button>
+      <view wx:if="{{recentExploration}}" class="guide-recent">
+        <view class="guide-recent-copy"><view>上次 · {{recentExploration.title}}</view><text>{{recentExploration.dateLabel}} · {{recentExploration.growthLabel}}</text></view>
+        <view class="guide-recent-actions"><button bindtap="openRecentReport">回看</button><button bindtap="retakeRecent">再记录</button></view>
+      </view>
     </view>
 
     <view class="section-heading"><view><view class="section-title">选择测试，开始探索</view><view class="section-subtitle">收藏不一样的视角，认识完整的自己</view></view><view class="section-caption" bindtap="toggleFilters"><text>{{filterOpen ? '收起筛选' : category === 'all' ? '全部测试' : '已筛选'}}</text><view class="filter-chevron {{filterOpen ? 'filter-open' : ''}}"></view></view></view>

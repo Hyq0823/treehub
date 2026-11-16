@@ -223,10 +223,12 @@ async function fixtures() {
   add('packages/reports/index', 'starter-reveal', starterRevealFixture);
   const hall = page('pages/test-hall/index'); hall.onLoad(); hall.onShow();
   await Promise.resolve();
-  hall.data.themeImage = localArt('adventurer'); hall.data.artState = 'ready';
+  hall.data.themeImage = localArt(hall.data.themeId || 'adventurer'); hall.data.artState = 'ready';
   hall.data.cards = hall.data.cards.map(item => ({ ...item, image: item.image || localArt(item.artThemeId || 'adventurer') }));
   hall.data.filteredCards = hall.data.cards;
   add('pages/test-hall/index', 'hall', hall.data);
+  hall.selectGuideIntent({ currentTarget: { dataset: { id: 'relationship' } } });
+  add('pages/test-hall/index', 'hall-guide-relationship', hall.data);
   const archivePage = page('pages/user-center/index'); archivePage.onShow();
   add('pages/user-center/index', 'archive', archivePage.data);
   for (const [id, name] of [['adventurer', 'my-tree'], ['moon', 'my-tree-moon'], ['romantic', 'my-tree-romantic'], ['aurora', 'my-tree-hidden']]) {
@@ -260,6 +262,11 @@ async function fixtures() {
   });
   const resumable = page('pages/test-detail/index'); resumable.onLoad({ id: 'mbti' });
   add('pages/test-detail/index', 'detail-resume', resumable.data);
+  const resumeHall = page('pages/test-hall/index'); resumeHall.onShow();
+  Object.assign(resumeHall.data, { themeImage: localArt(resumeHall.data.themeId || 'adventurer'), artState: 'ready' });
+  resumeHall.data.cards = resumeHall.data.cards.map(item => ({ ...item, image: item.image || localArt(item.artThemeId || 'adventurer') }));
+  resumeHall.data.filteredCards = resumeHall.data.cards;
+  add('pages/test-hall/index', 'hall-resume', resumeHall.data);
   const resumed = page('pages/test-answer/index'); resumed.onLoad({ id: 'mbti', resume: '1' });
   add('pages/test-answer/index', 'answer-resumed', resumed.data);
   const rankingTest = catalog.find(item => item.id === 'firstreaction');
@@ -346,6 +353,36 @@ async function fixtures() {
   add('pages/user-center/index', 'archive-expanded', expandedArchive.data);
   const journal = page('pages/tree-history/index'); journal.onShow();
   add('pages/tree-history/index', 'year-rings', journal.data);
+  const compare = (id, recordId, previousRecordId) => {
+    const value = page('packages/reports/compare/index');
+    value.onLoad({ id, recordId, previousRecordId });
+    return value;
+  };
+  for (let index = 0; index < 6; index++) complete('friendshipstyle', index % 2 ? 'work' : 'ordinary', index % 4);
+  const friendshipComparison = compare('friendshipstyle', archive.getLatest('friendshipstyle').id);
+  add('packages/reports/compare/index', 'comparison-friendship', friendshipComparison.data);
+  friendshipComparison.toggleBaselines();
+  add('packages/reports/compare/index', 'comparison-friendship-picker', friendshipComparison.data);
+  const nextBigFive = complete('bigfive', 'ordinary', 0);
+  const freeComparison = compare('bigfive', nextBigFive.id);
+  add('packages/reports/compare/index', 'comparison-bigfive-free', freeComparison.data);
+  archive.unlockPremium(nextBigFive.id);
+  const paidComparison = compare('bigfive', nextBigFive.id);
+  add('packages/reports/compare/index', 'comparison-bigfive-paid', paidComparison.data);
+  const pendingCurrent = complete('mbti', 'ordinary', 1);
+  require(path.join(root, 'packages/reports/premium-access.js')).rememberCompletedGrant(pendingCurrent.id);
+  add('packages/reports/compare/index', 'comparison-pending', compare('mbti', pendingCurrent.id).data);
+  const nextEnneagram = complete('enneagram', 'ordinary', 1); archive.unlockPremium(nextEnneagram.id);
+  const enneagramComparison = compare('enneagram', nextEnneagram.id);
+  add('packages/reports/compare/index', 'comparison-enneagram', enneagramComparison.data);
+  add('packages/reports/compare/index', 'comparison-missing', compare('ie', 'missing-private-record').data);
+  complete('sbti'); complete('shadow');
+  memory.delete(drafts.STORAGE_KEY);
+  const collectedHall = page('pages/test-hall/index'); collectedHall.onShow();
+  Object.assign(collectedHall.data, { themeImage: localArt(collectedHall.data.themeId || 'adventurer'), artState: 'ready' });
+  collectedHall.data.cards = collectedHall.data.cards.map(item => ({ ...item, image: item.image || localArt(item.artThemeId || 'adventurer') }));
+  collectedHall.data.filteredCards = collectedHall.data.cards;
+  add('pages/test-hall/index', 'hall-collected', collectedHall.data);
   const policy = page('pages/privacy/index'); policy.onLoad(); add('pages/privacy/index', 'privacy', policy.data);
   return scenarios;
 }
@@ -360,10 +397,11 @@ async function screenshot(scenarios) {
         'hall', 'my-tree', 'my-tree-moon', 'my-tree-romantic', 'my-tree-hidden',
         'answer-2', 'answer-3', 'answer-4', 'answer-5', 'answer-ranking', 'starter-reveal',
         'detail-ranking', 'report-ranking', 'report-ranking-vip', 'archive', 'archive-expanded',
-        'detail-resume', 'detail-resume-ranking', 'answer-resumed', 'answer-resumed-ranking'
+        'detail-resume', 'detail-resume-ranking', 'answer-resumed', 'answer-resumed-ranking',
+        'hall-guide-relationship', 'hall-resume', 'hall-collected', 'year-rings'
       ];
       const isProfileScreen = /^(?:detail|report|answer)-(?:historicalecho|lifepath|hiddentalent|relationshiprhythm|gentleboundaries|emotionalrecharge|cityvibe|friendshipstyle)(?:-|$)/.test(scenario.name);
-      const scenarioWidths = responsiveScreens.includes(scenario.name) || isProfileScreen ? widths : [390];
+      const scenarioWidths = responsiveScreens.includes(scenario.name) || isProfileScreen || scenario.name.startsWith('comparison-') ? widths : [390];
       for (const width of scenarioWidths) {
         const browserPage = await browser.newPage({ viewport: { width, height: width === 430 ? 932 : width === 360 ? 800 : 844 }, deviceScaleFactor: 1 });
         await browserPage.setContent(fs.readFileSync(scenario.file, 'utf8'), { waitUntil: 'load' });

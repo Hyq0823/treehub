@@ -100,8 +100,12 @@ test('all available tests can be collected and revisited; filtering and navigati
     Object.keys(require('../data/exploration.js').tests).filter(id => require('../data/exploration.js').tests[id].category === 'playful').sort());
   hall.openTest({ currentTarget: { dataset: { id: 'sbti' } } });
   assert.match(navigation.at(-1), /^\/packages\/reports\/index\?.*recordId=/);
+  hall.onHide(); hall.onShow();
+  assert.equal(hall.data.recommendation, null);
+  assert.equal(hall.data.explorationGuide.mode, 'revisit');
   hall.exploreNext();
-  assert.equal(navigation.at(-1), '/pages/user-center/index');
+  assert.equal(navigation.at(-1), `/pages/test-detail/index?id=${hall.data.explorationGuide.testId}`,
+    'returning after every test is collected offers a new ordinary record through detail, not an old report');
 });
 test('first-reaction card starts its one-minute ranking flow without an extra detail-page tap', () => {
   const hall = page('pages/test-hall'); hall.onShow();

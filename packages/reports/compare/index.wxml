@@ -1,0 +1,37 @@
+<view class="comparison-page">
+  <view class="eyebrow">MY CHANGING SEASONS</view>
+  <view class="page-title">两次的我，都值得收藏</view>
+  <view class="page-intro">看见自评里的不同，也把变化放回真实生活。</view>
+  <view wx:if="{{state !== 'ready'}}" class="empty-panel">
+    <view class="empty-symbol">◎</view><view class="empty-title">给变化一点时间</view>
+    <view class="body-copy">{{state === 'loading' ? '正在整理你的两份记录…' : error}}</view>
+    <button class="primary-action" bindtap="retake">再记录一次此刻的自己 →</button>
+    <button class="text-action" bindtap="backToArchive">回到我的档案</button>
+  </view>
+  <block wx:else>
+    <view class="comparison-kicker"><text>{{test.name}}</text><text>{{versionLabel}} · {{intervalLabel}}</text></view>
+    <view class="moments-grid">
+      <view class="moment-card before-card"><view class="moment-tag"><view></view>那时的我</view><view class="moment-title">{{before.title}}</view><view class="moment-date">{{before.date}}</view><view class="moment-context">{{before.contextLabel || (before.restoredFromSummary ? '云端摘要 · 当时状态未同步' : '一次阶段记录')}}</view><button class="record-link" data-side="before" bindtap="openReport">回看这份报告 ↗</button></view>
+      <view class="moment-card after-card"><view class="moment-tag"><view></view>这次的我</view><view class="moment-title">{{after.title}}</view><view class="moment-date">{{after.date}}</view><view class="moment-context">{{after.contextLabel || (after.restoredFromSummary ? '云端摘要 · 当时状态未同步' : '一次阶段记录')}}</view><button class="record-link" data-side="after" bindtap="openReport">回看这份报告 ↗</button></view>
+    </view>
+    <button wx:if="{{baselineCount > 1}}" class="baseline-toggle" bindtap="toggleBaselines" aria-expanded="{{pickerOpen ? 'true' : 'false'}}">{{pickerOpen ? '收起历史选择 −' : '换一份更早的记录 ＋'}}</button>
+    <view wx:if="{{pickerOpen}}" class="baseline-panel"><view class="baseline-note">只显示同一测试、同一版本的较早记录</view><button wx:for="{{baselines}}" wx:key="id" class="baseline-option {{item.selected ? 'baseline-selected' : ''}}" data-id="{{item.id}}" bindtap="selectBaseline"><view><view>{{item.title}}</view><text>{{item.date}}</text></view><text>{{item.selected ? '已选择' : '选择'}}</text></button><button wx:if="{{baselinesHasMore}}" class="text-action" bindtap="loadMoreBaselines">再看 5 份记录 ↓</button></view>
+    <view class="change-panel">
+      <view class="section-title">这段时间，哪里不一样？</view><view class="change-headline">{{headline}}</view>
+      <view class="axis-caption">{{axisCaption}}</view><view class="chart-legend"><view class="legend-item"><view class="legend-dot before-dot"></view><text>那时</text></view><view class="legend-item"><view class="legend-dot after-dot"></view><text>这次</text></view><text>差值单位：百分点</text></view>
+      <view wx:for="{{dimensions}}" wx:key="id" class="dimension-row">
+        <view class="dimension-heading"><text>{{item.label}}</text><text class="delta-text">{{item.deltaText}}</text></view>
+        <view wx:if="{{item.left || item.right}}" class="dimension-poles"><text>{{item.left}}</text><text>{{item.right}}</text></view>
+        <view class="bar-line"><text>那时</text><view class="bar-track"><view class="bar-fill before-fill" style="width:{{item.before}}%"></view></view><text>{{item.before}}%</text></view>
+        <view class="bar-line"><text>这次</text><view class="bar-track"><view class="bar-fill after-fill" style="width:{{item.after}}%"></view></view><text>{{item.after}}%</text></view>
+      </view>
+      <view wx:if="{{limited}}" class="limited-note"><text>这里展示基础对比，完整维度沿用本次报告的解锁状态。</text><button bindtap="openReport">查看本次深度报告 →</button></view>
+      <view wx:if="{{premiumSavePending}}" class="limited-note"><text>本次视频已完整观看，完整对比已可用；权益仍待保存。</text><button bindtap="openReport">返回本次报告，补存权益 →</button></view>
+      <view class="chart-note">{{note}}</view>
+    </view>
+    <view class="reflection-panel"><view class="section-title">把数字，放回自己的故事里</view><view>{{reflection}}</view><text>这些差异没有统一的好坏方向，也不要求每次复测都出现变化。</text></view>
+    <view class="keepsake-panel"><view class="section-title">留下这一圈年轮</view><view class="keepsake-copy">只整理这两次的结果与维度，不展示当时的私人状态。</view><button class="primary-action" bindtap="prepareComparisonCard" loading="{{shareBusy}}" disabled="{{shareBusy}}">{{shareBusy ? '正在整理变化卡…' : shareImage ? '变化卡已制作' : '制作我的变化卡'}}</button><view wx:if="{{shareError}}" class="share-error">{{shareError}}</view><image wx:if="{{shareImage}}" class="comparison-share-image" src="{{shareImage}}" mode="widthFix" bindtap="previewComparisonCard" alt="两次自评记录的变化收藏卡"/><button wx:if="{{shareImage}}" class="text-action" bindtap="previewComparisonCard">预览与保存 →</button><view class="keepsake-note">点击预览后，可用微信图片菜单保存。聊天邀请仅分享公开测试入口。</view></view>
+    <button class="retake-action" bindtap="retake">下次有新感受，再回来看看 →</button>
+  </block>
+  <canvas type="2d" id="comparisonShareCanvas" class="comparison-share-canvas"></canvas>
+</view>

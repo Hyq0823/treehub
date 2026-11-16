@@ -12,7 +12,7 @@
   "subPackages": [
     {
       "root": "packages/reports",
-      "pages": ["index"]
+      "pages": ["index", "compare/index"]
     }
   ],
   "lazyCodeLoading": "requiredComponents",

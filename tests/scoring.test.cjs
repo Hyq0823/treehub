@@ -151,6 +151,7 @@ function loadPage(relative, archiveOverrides = {}, wxOverrides = {}) {
   const pendingGrants = new Map();
   const premiumAccess = {
     getPendingGrant: id => pendingGrants.get(id) || null,
+    getPendingGrantState: id => ({ receipt: pendingGrants.get(id) || null, readable: true }),
     rememberCompletedGrant: id => {
       const receipt = { recordId: id, completedAt: new Date().toISOString() };
       pendingGrants.set(id, receipt);

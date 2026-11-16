@@ -8,22 +8,23 @@ const themeAssets = require('../../utils/theme-assets.js');
 const { DEFAULT_SHARE_IMAGE, buildShareCard } = require('../../utils/share-card.js');
 const { catalog, resolveResultTitle } = require('../../data/test-catalog.js');
 const { getRecentExploration } = require('../../utils/recent-exploration.js');
+const { INTENTS, buildExplorationGuide } = require('../../utils/exploration-guide.js');
 const CARD_THEMES = { firstreaction: 'adventurer', cityvibe: 'wanderer', relationshiprhythm: 'romantic', friendshipstyle: 'listener', gentleboundaries: 'listener', emotionalrecharge: 'moon', historicalecho: 'romantic', lifepath: 'wanderer', hiddentalent: 'collector', mbti: 'adventurer', bigfive: 'collector', enneagram: 'romantic', ie: 'observer', sbti: 'dreamer', shadow: 'moon' };
 const DISPLAY_ORDER = ['firstreaction', 'cityvibe', 'relationshiprhythm', 'friendshipstyle', 'gentleboundaries', 'emotionalrecharge', 'historicalecho', 'lifepath', 'hiddentalent', 'mbti', 'bigfive', 'enneagram', 'ie', 'sbti', 'shadow'];
 
 function buildGreeting(uniqueCount) {
   const hour = new Date().getHours();
   const day = Math.floor(Date.now() / 86400000);
-  if (!uniqueCount) return { lead: '你好，', title: '从一份好奇开始认识自己', note: '第一片探索叶，正在等你点亮。' };
+  if (!uniqueCount) return { lead: '你好，', title: '从一份好奇开始', note: '第一片探索叶，正在等你点亮。' };
   const moments = hour < 11 ? [
-    ['早上好，', '今天想从哪里认识自己？', '带着清醒，也带着一点好奇出发。'],
-    ['新的一天，', '先听听此刻真实的自己', '每次回答，都会留下新的年轮。']
+    ['早上好，', '今天，想认识哪一面？', '带着清醒，也带着一点好奇出发。'],
+    ['新的一天，', '听听此刻的自己', '每次认真回答，都值得留个位置。']
   ] : hour < 18 ? [
     ['下午好，', '给自己两分钟慢下来', '看看今天的你，和上次有什么不同。'],
-    ['见到你啦，', '来收集今天的自己', '新的探索，也许会长出新的伙伴。']
+    ['见到你啦，', '收集今天的自己', '新的探索，也许会长出新的伙伴。']
   ] : [
-    ['晚上好，', '把今天的感受留给自己', '慢慢回答，也是在认真照顾自己。'],
-    ['欢迎回来，', '看看此刻的你变了吗？', '今晚的答案，会成为新的年轮。']
+    ['晚上好，', '把今天轻轻收藏', '慢慢回答，也是在认真照顾自己。'],
+    ['欢迎回来，', '看看此刻的自己', '把此刻的感受，留成一份记录。']
   ];
   const [lead, title, note] = moments[(day + uniqueCount) % moments.length];
   return { lead, title, note };
@@ -33,6 +34,7 @@ Page({
   data: {
     categories: display.categories, category: 'all', cards: [], filteredCards: [], filterOpen: false, cardImagesFailed: false,
     tree: null, leaves: [], recommendation: null, recentExploration: null, error: '',
+    guideIntents: INTENTS, guideIntent: 'playful', explorationGuide: null,
     themeId: 'adventurer', themeName: '柔软的冒险家', themeImage: '',
     themeColor: '#318aff', themePale: '#e9f5ff',
     artState: 'loading', rewardTitle: '', rewardTargetTestId: '', rewardReady: false, shareImagePath: DEFAULT_SHARE_IMAGE,
@@ -42,6 +44,8 @@ Page({
   onShow() {
     this._hidden = false;
     this._recentOpening = false;
+    this._hallOpening = false;
+    this._hallNavRequest = (this._hallNavRequest || 0) + 1;
     this._cardAttempts = new Map();
     this._failedCardIds = this._hiddenCardFailures || new Set();
     this._hiddenCardFailures = new Set();
@@ -88,6 +92,9 @@ Page({
           resultTitle
         });
       });
+      this._guideRecords = state.records;
+      this._draftSummary = require('../../utils/answer-drafts.js').getLatestDraftSummary(state.records);
+      const explorationGuide = buildExplorationGuide(state.records, this._draftSummary, this.data.guideIntent);
       const recommendation = cards.find(t => !t.collected) || null;
       const greeting = buildGreeting(tree.uniqueCount);
       const nextUnlock = themeState && themeState.nextUnlock;
@@ -97,7 +104,7 @@ Page({
           : nextUnlock.targetTestId ? nextUnlock.hint : `再探索 ${nextUnlock.remaining} 项，长出「${nextUnlock.name}」`
         : allThemesOwned ? '主题已收齐，新的探索继续长叶片' : '新探索长叶片，复测留年轮';
       this.setData({
-        tree, cards, recommendation, recentExploration: getRecentExploration(state.records), error: '', themeId,
+        tree, cards, recommendation, explorationGuide, recentExploration: getRecentExploration(state.records), error: '', themeId,
         themeName: theme && theme.name || '我的成长小世界',
         themeColor: theme && theme.color || '#318aff', themePale: theme && theme.pale || '#e9f5ff',
         rewardTitle, rewardTargetTestId: nextUnlock && nextUnlock.targetTestId || '', rewardReady: !!(nextUnlock && nextUnlock.remaining === 0),
@@ -301,6 +308,7 @@ Page({
   },
   onHide() {
     this._hidden = true;
+    this._hallNavRequest = (this._hallNavRequest || 0) + 1;
     this._cardGeneration = (this._cardGeneration || 0) + 1;
     this._cardFlushToken = (this._cardFlushToken || 0) + 1;
     this._cardFlushScheduled = false;
@@ -325,9 +333,37 @@ Page({
     });
   },
   toggleFilters() { this.setData({ filterOpen: !this.data.filterOpen }); },
+  selectGuideIntent(event) {
+    const intent = event.currentTarget.dataset.id;
+    if (this._hidden || !INTENTS.some(item => item.id === intent)) return;
+    const guide = buildExplorationGuide(this._guideRecords || [], this._draftSummary, intent);
+    this.setData({ guideIntent: intent, explorationGuide: guide });
+  },
+  navigateHall(url) {
+    if (this._hidden || this._disposed || this._hallOpening || this._recentOpening) return;
+    this._hallOpening = true;
+    const request = this._hallNavRequest = (this._hallNavRequest || 0) + 1;
+    const fail = () => {
+      if (request !== this._hallNavRequest) return;
+      this._hallOpening = false;
+      if (!this._hidden && !this._disposed && wx.showToast) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
+    };
+    try { wx.navigateTo({ url, fail }); }
+    catch (error) { fail(); }
+  },
+  openExplorationGuide() {
+    const guide = this.data.explorationGuide;
+    if (!guide) return;
+    const card = this.data.cards.find(item => item.id === guide.testId);
+    if (!card) return;
+    // Every revisit passes through detail so context remains an explicit choice.
+    const url = guide.mode === 'discover' ? this.testEntryUrl(card)
+      : `/pages/test-detail/index?id=${encodeURIComponent(card.id)}`;
+    this.navigateHall(url);
+  },
   testEntryUrl(card) {
     const id = encodeURIComponent(card.id);
-    const pending = card.quickStart && require('../../utils/answer-drafts.js').hasPendingDraft(card.id);
+    const pending = card.quickStart && require('../../utils/answer-drafts.js').hasPendingDraft(card.id, this._guideRecords || []);
     return card.quickStart && !pending ? `/pages/test-answer/index?id=${id}&context=ordinary` : `/pages/test-detail/index?id=${id}`;
   },
   openTest(event) {
@@ -336,10 +372,11 @@ Page({
     const url = card.collected ?
       `/packages/reports/index?id=${card.id}&recordId=${encodeURIComponent(card.recordId)}` :
       this.testEntryUrl(card);
-    wx.navigateTo({ url });
+    this.navigateHall(url);
   },
   exploreNext() {
-    if (this.data.recommendation) wx.navigateTo({ url: this.testEntryUrl(this.data.recommendation) });
+    if (this.data.explorationGuide) this.openExplorationGuide();
+    else if (this.data.recommendation) this.navigateHall(this.testEntryUrl(this.data.recommendation));
     else this.openArchive();
   },
   exploreReward() {
@@ -349,31 +386,19 @@ Page({
     }
     const card = this.data.cards.find(item => item.id === this.data.rewardTargetTestId && !item.collected);
     if (!card) { this.exploreNext(); return; }
-    wx.navigateTo({ url: this.testEntryUrl(card) });
+    this.navigateHall(this.testEntryUrl(card));
   },
   retakeRecent() {
     const recent = this.data.recentExploration;
-    if (this._hidden || this._recentOpening || !recent) return;
-    this._recentOpening = true;
-    wx.navigateTo({ url: `/pages/test-detail/index?id=${encodeURIComponent(recent.testId)}`,
-      fail: () => {
-        this._recentOpening = false;
-        if (!this._hidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
-      } });
+    if (recent) this.navigateHall(`/pages/test-detail/index?id=${encodeURIComponent(recent.testId)}`);
   },
   openRecentReport() {
     const recent = this.data.recentExploration;
-    if (this._hidden || this._recentOpening || !recent) return;
-    this._recentOpening = true;
-    wx.navigateTo({ url: `/packages/reports/index?id=${encodeURIComponent(recent.testId)}&recordId=${encodeURIComponent(recent.recordId)}`,
-      fail: () => {
-        this._recentOpening = false;
-        if (!this._hidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
-      } });
+    if (recent) this.navigateHall(`/packages/reports/index?id=${encodeURIComponent(recent.testId)}&recordId=${encodeURIComponent(recent.recordId)}`);
   },
   openArchive() { wx.switchTab({ url: '/pages/user-center/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
-  openPrivacy() { wx.navigateTo({ url: '/pages/privacy/index' }); },
+  openPrivacy() { this.navigateHall('/pages/privacy/index'); },
   onShareAppMessage() {
     return {
       title: '人格测试树｜第一反应、MBTI、大五与九型人格测试',

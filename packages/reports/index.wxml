@@ -129,10 +129,10 @@
       <view class="comparison-context"><text>{{comparison.previousLabel}}</text><text>→</text><text>{{comparison.currentLabel}}</text></view>
       <view class="comparison-headline">{{comparison.headline}}</view>
       <view class="comparison-list">
-        <view class="comparison-row" wx:for="{{comparison.basicChanges}}" wx:key="id"><view><text>{{item.label}}</text><text>更靠近·{{item.toward}}</text></view><view class="comparison-delta {{item.delta > 0 ? 'delta-up' : item.delta < 0 ? 'delta-down' : ''}}">{{item.deltaText}}</view></view>
+        <view class="comparison-row" wx:for="{{comparison.basicChanges}}" wx:key="id"><view><text>{{item.label}}</text><text>{{item.delta === 0 ? '本次位置保持一致' : '更靠近·' + item.toward}}</text></view><view class="comparison-delta {{item.delta > 0 ? 'delta-up' : item.delta < 0 ? 'delta-down' : ''}}">{{item.deltaText}}</view></view>
       </view>
-      <view class="comparison-note">{{comparison.note}}这张卡可以直接截图保存。</view>
-      <button open-type="share" class="comparison-share">分享这次变化给朋友</button>
+      <view class="comparison-note">{{comparison.note}}</view>
+      <button bindtap="openComparison" class="comparison-share">查看两次的我，制作变化卡 →</button>
     </view>
 
     <view wx:if="{{premiumAvailable && !premiumUnlocked}}" class="premium-lock-card">

@@ -2,6 +2,7 @@
 // latest summary to the view; answers, scores and tree snapshots never go with it.
 const { catalog, resolveResultTitle } = require('../data/test-catalog.js');
 const { getContextLabel } = require('./life-context.js');
+const { versionKey } = require('./comparison-records.js');
 
 const HISTORY_PAGE_SIZE = 5;
 
@@ -42,9 +43,15 @@ function buildArchiveView(records) {
   });
   const groups = catalog.reduce((visible, test) => {
     const group = index.get(test.id);
+    const currentKey = group.latest && versionKey(group.latest.record);
+    // Only availability crosses into the list view; the comparison page picks
+    // and validates the actual previous record. Stop at the first safe hint.
+    const comparable = currentKey && group.entries.some(entry => entry.record.id !== group.latest.record.id &&
+      versionKey(entry.record) === currentKey);
     if (group.latest) visible.push({
       id: test.id, name: test.name, icon: test.icon,
       count: group.entries.length, latest: summarize(group.latest),
+      comparisonRecordId: comparable ? group.latest.record.id : '',
       history: [], visibleCount: 0, hasMore: group.entries.length > 0
     });
     return visible;

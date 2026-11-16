@@ -17,6 +17,7 @@ Page({
   onShow() {
     this._hidden = false;
     this._navigating = false;
+    this._navigationRequest = (this._navigationRequest || 0) + 1;
     if (this.data.cloudRetrying) this.setData({ cloudRetrying: false });
     const showRequest = this._showRequest = (this._showRequest || 0) + 1;
     require('../../utils/tab-bar.js').syncTabBar(this, '/pages/user-center/index');
@@ -149,7 +150,9 @@ Page({
   navigateArchive(url) {
     if (this._hidden || this._navigating) return;
     this._navigating = true;
+    const request = this._navigationRequest = (this._navigationRequest || 0) + 1;
     const fail = () => {
+      if (request !== this._navigationRequest) return;
       this._navigating = false;
       if (!this._hidden) wx.showToast({ title: '暂时未能打开，请再试一次', icon: 'none' });
     };
@@ -166,11 +169,18 @@ Page({
     const id = event.currentTarget.dataset.id;
     if (id && this.data.groups.some(group => group.id === id)) this.navigateArchive(`/pages/test-detail/index?id=${encodeURIComponent(id)}`);
   },
+  openComparison(event) {
+    const id = event.currentTarget.dataset.id;
+    const group = this.data.groups.find(item => item.id === id);
+    if (!group || !group.comparisonRecordId || !this._archiveView || !this._archiveView.contains(id, group.comparisonRecordId)) return;
+    this.navigateArchive(`/packages/reports/compare/index?id=${encodeURIComponent(id)}&recordId=${encodeURIComponent(group.comparisonRecordId)}`);
+  },
   explore() { wx.switchTab({ url: '/pages/test-hall/index' }); },
   openTree() { wx.switchTab({ url: '/pages/my-tree/index' }); },
   openPrivacy() { this.navigateArchive('/pages/privacy/index'); },
   onHide() {
     this._hidden = true;
+    this._navigationRequest = (this._navigationRequest || 0) + 1;
     this._showRequest = (this._showRequest || 0) + 1;
     this._cloudRequest = (this._cloudRequest || 0) + 1;
     this._retryRequest = (this._retryRequest || 0) + 1;

@@ -43,11 +43,13 @@ function writeReceipts() {
   }
 }
 
-function getPendingGrant(recordId) {
-  readReceipts();
+function getPendingGrantState(recordId) {
+  const readable = readReceipts();
   const receipt = pending.get(recordId);
-  return receipt ? Object.assign({}, receipt) : null;
+  return { receipt: receipt ? Object.assign({}, receipt) : null, readable };
 }
+
+function getPendingGrant(recordId) { return getPendingGrantState(recordId).receipt; }
 
 function rememberCompletedGrant(recordId) {
   if (typeof recordId !== 'string' || !recordId) throw new Error('没有找到要解锁的测评报告。');
@@ -77,4 +79,4 @@ function clearAllReceipts() {
   pending.clear();
 }
 
-module.exports = { PENDING_KEY, getPendingGrant, rememberCompletedGrant, persistPendingGrant, clearAllReceipts };
+module.exports = { PENDING_KEY, getPendingGrant, getPendingGrantState, rememberCompletedGrant, persistPendingGrant, clearAllReceipts };

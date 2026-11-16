@@ -163,20 +163,37 @@ function dimensionsFor(test, record, rankingRounds) {
 }
 
 function buildComparison(test, current, previous) {
-  if (!test || !current || !previous || current.testId !== previous.testId ||
+  if (!test || !current || !previous || current.testId !== test.id || current.testId !== previous.testId ||
+      current.migrated || previous.migrated ||
       current.scoringVersion !== previous.scoringVersion || current.scoringVersion !== '2' ||
-      current.testVersion !== previous.testVersion) return null;
+      (current.testVersion || '1') !== (previous.testVersion || '1')) return null;
+  if (test.scoring.strategy !== 'profile' && (current.testVersion || '1') !== (test.testVersion || '1')) return null;
   if (test.scoring.strategy === 'weighted-ranking' &&
       rankingRoundCount(test, current) !== rankingRoundCount(test, previous)) return null;
-  const before = new Map(dimensionsFor(test, previous).map(item => [item.id, item]));
-  const changes = dimensionsFor(test, current).map(item => {
+  const positions = record => {
+    if (test.id !== 'enneagram') return dimensionsFor(test, record);
+    // A within-report radar is relative to that report's highest vote. Retests
+    // need the same denominator, otherwise an unchanged count appears to move.
+    const scores = record.scores || {};
+    const ids = Object.keys(ENNEAGRAM_COPY);
+    const total = test.questions.length;
+    if (Object.keys(scores).length !== ids.length || ids.some(id => !Number.isInteger(scores[id]) || scores[id] < 0) ||
+        ids.reduce((sum, id) => sum + scores[id], 0) !== total) return [];
+    return ids.map(id => dimension(id, `${id} 型`, '较少选择', '较多选择', scores[id] / total * 100,
+      `本次 ${total} 道题中有 ${scores[id]} 次选择此方向。`));
+  };
+  const beforePositions = positions(previous), afterPositions = positions(current);
+  if (!beforePositions.length || beforePositions.length !== afterPositions.length) return null;
+  const before = new Map(beforePositions.map(item => [item.id, item]));
+  const changes = afterPositions.map(item => {
     const prior = before.get(item.id);
     if (!prior) return null;
     const delta = item.percent - prior.percent;
     return {
-      id: item.id, label: item.label, before: prior.percent, after: item.percent, delta,
+      id: item.id, label: item.label, left: item.left, right: item.right,
+      before: prior.percent, after: item.percent, delta, unit: '百分点',
       magnitude: Math.abs(delta), toward: delta > 0 ? item.right : delta < 0 ? item.left : '保持稳定',
-      deltaText: delta > 0 ? `+${delta}%` : `${delta}%`
+      deltaText: delta > 0 ? `+${delta} 个百分点` : `${delta} 个百分点`
     };
   }).filter(Boolean).sort((a, b) => b.magnitude - a.magnitude);
   if (!changes.length) return null;
@@ -194,9 +211,11 @@ function buildComparison(test, current, previous) {
   return {
     currentLabel, previousLabel, stable, changes, basicChanges: changes.slice(0, 2),
     headline: stable ? '这一次，你的整体倾向和上次比较接近。' :
-      `这段时间，“${top.label}”更靠近“${top.toward}” ${top.magnitude}%。`,
+      `这段时间，“${top.label}”更靠近“${top.toward}” ${top.magnitude} 个百分点。`,
     reflection: prompts[current.lifeContext] || prompts.ordinary,
-    note: '对比展示两次自评位置的差异，可能受近期情境影响，不代表能力升降。'
+    note: test.id === 'enneagram'
+      ? '对比使用两次相同题数下的选择占比，不使用各次最高分归一化；可能受情境影响，不代表能力升降。'
+      : '对比展示两次自评位置的差异，可能受近期情境影响，不代表能力升降。'
   };
 }
 

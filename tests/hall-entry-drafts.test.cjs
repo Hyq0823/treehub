@@ -31,9 +31,11 @@ function fixture(pending) {
 
 test('quick-entry cards, next exploration and theme goal offer an existing draft through detail', () => {
   const env = fixture(true);
-  assert.equal(env.requests.some(id => id.endsWith('/answer-drafts.js')), false, 'draft reading stays out of hall startup');
+  assert.equal(env.requests.some(id => id.endsWith('/answer-drafts.js')), false, 'defining the hall page does not load draft helpers');
   env.page.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
+  env.page._hallOpening = false; // Separate returns to hall, not rapid taps.
   env.page.exploreNext();
+  env.page._hallOpening = false;
   env.page.exploreReward();
   assert.deepEqual(env.navigations, Array(3).fill('/pages/test-detail/index?id=firstreaction'));
   assert.ok(env.navigations.every(url => !/answers|recordId|resume|work|breakup/.test(url)));
@@ -42,7 +44,10 @@ test('quick-entry cards, next exploration and theme goal offer an existing draft
 test('fresh quick-entry tests retain direct ordinary answering', () => {
   const env = fixture(false);
   env.page.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
-  env.page.exploreNext(); env.page.exploreReward();
+  env.page._hallOpening = false;
+  env.page.exploreNext();
+  env.page._hallOpening = false;
+  env.page.exploreReward();
   assert.deepEqual(env.navigations, Array(3).fill('/pages/test-answer/index?id=firstreaction&context=ordinary'));
 });
 
@@ -53,6 +58,7 @@ test('existing result links retain their record, and regular detail entries do n
     { id: 'mbti', quickStart: false, collected: false }
   ];
   env.page.openTest({ currentTarget: { dataset: { id: 'firstreaction' } } });
+  env.page._hallOpening = false;
   env.page.openTest({ currentTarget: { dataset: { id: 'mbti' } } });
   assert.equal(env.navigations[0], '/packages/reports/index?id=firstreaction&recordId=record%3Fx%3D1%26x%3D2');
   assert.equal(env.navigations[1], '/pages/test-detail/index?id=mbti');
